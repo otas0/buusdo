@@ -97,6 +97,7 @@ from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
 from buusdo.ui.scan_worker import start_scan
 from buusdo.ui.theme import badge_color
 from buusdo.ui.tray_icon import make_mark_icon
+from buusdo.ui.selection_utils import clear_row_selections
 from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 
 
@@ -547,13 +548,17 @@ class MainWindow(QMainWindow):
         self._btn_steam_try_first.setEnabled(has_game)
         # "Try next" only after a failed attempt with remaining candidates.
         remaining = self._steam_uri_candidates_left()
-        can_next = (
+        # Disable after exhaust (remaining == 0) even if try_index advanced.
+        can_next = bool(
             has_game
             and getattr(self, "_steam_uri_try_index", 0) > 0
             and remaining > 0
         )
-        self._btn_steam_try_next.setEnabled(bool(can_next))
-        if can_next:
+        self._btn_steam_try_next.setEnabled(can_next)
+        if remaining <= 0 and getattr(self, "_steam_uri_try_index", 0) > 0:
+            self._btn_steam_try_next.setEnabled(False)
+            self._btn_steam_try_next.setText(t("settings.steam_uri_try_next"))
+        elif can_next:
             self._btn_steam_try_next.setText(
                 t("settings.steam_uri_try_next_count", remaining=remaining)
             )
@@ -1378,10 +1383,7 @@ class MainWindow(QMainWindow):
             )
 
         def _clear_hdr_selection() -> None:
-            remaining_list.clearSelection()
-            remaining_list.setCurrentRow(-1)
-            table.clearSelection()
-            table.setCurrentCell(-1, -1)
+            clear_row_selections(remaining_list, table)
 
         retry.clicked.connect(_retry)
         retry_hdr.clicked.connect(_retry_hdr)

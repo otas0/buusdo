@@ -117,12 +117,31 @@ curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.g
 6. If jobs die in ~2–4s with *“recent account payments have failed or your spending limit needs to be increased”*, fix **Billing & plans / spending limit** first — no artifact will upload until runners can start.
 7. Prefer `GH_TOKEN=$(gh auth token)` in scripts; do not rely on bare `gh api` inside automation.
 
-## Current status (checked offline)
+## Offline PoC verify (no Actions / no network)
 
-- Actions Artifacts for `otas0/buusdo`: often **0** while spending limit blocks runners or uploads.
-- Local PoC verification (no runner needed):
+Prefer the wrapper (compiles/materializes, then checks zip + `hlsl_sha256`):
+
+```bash
+python scripts/verify_dwm_hdr_poc_local.py
+python scripts/verify_dwm_hdr_poc_local.py --json   # machine-readable summary
+# expect ok=true, status=skipped_no_compiler on macOS without fxc/dxc
+```
+
+Equivalent manual steps:
 
 ```bash
 python scripts/compile_dwm_hdr_poc.py --out /tmp/buusdo-dwm-hdr-poc
-# expect status=skipped_no_compiler (macOS) + hlsl_sources.zip + hlsl_sha256[]
+python -c "import json,zipfile; from pathlib import Path; r=Path('/tmp/buusdo-dwm-hdr-poc'); print(json.loads((r/'manifest.json').read_text())['hlsl_sha256']); print(zipfile.ZipFile(r/'hlsl_sources.zip').namelist())"
 ```
+
+## Agent / automation policy
+
+- **Do not** agent-poll GitHub Actions for green builds or artifacts.
+- Billing/spending-limit recovery is human-only; after fix, **one** `workflow_dispatch` (or push) is enough.
+- Local awareness of 0-step failures: macOS LaunchAgent via `scripts/install_watch_ci_billing_launchd.sh` only (appending logs).
+- Flaky `git push` HTTPS: `bash scripts/push_when_online.sh` (finite retries).
+
+## Current status (checked offline)
+
+- Actions Artifacts for `otas0/buusdo`: often **0** while spending limit blocks runners or uploads.
+- Use offline PoC verify above instead of waiting on `dwm-hdr-poc` uploads.
