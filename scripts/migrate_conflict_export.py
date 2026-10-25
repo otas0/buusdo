@@ -25,8 +25,58 @@ def _json_lines(payload: dict[str, Any]) -> list[str]:
     )
 
 
-def _print_dry_run_diff(src: Path, before: dict[str, Any], after: dict[str, Any]) -> None:
+def _flatten_keys(obj: Any, prefix: str = "") -> dict[str, Any]:
+    """Flatten nested dict/list into dotted key → leaf value (JSON-serializable)."""
+    out: dict[str, Any] = {}
+    if isinstance(obj, dict):
+        if not obj and prefix:
+            out[prefix] = {}
+        for key, val in sorted(obj.items(), key=lambda kv: str(kv[0])):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            out.update(_flatten_keys(val, path))
+    elif isinstance(obj, list):
+        if not obj and prefix:
+            out[prefix] = []
+        for i, val in enumerate(obj):
+            out.update(_flatten_keys(val, f"{prefix}[{i}]"))
+    else:
+        out[prefix or "$"] = obj
+    return out
+
+
+def _print_keys_only_diff(src: Path, before: dict[str, Any], after: dict[str, Any]) -> None:
+    left = _flatten_keys(before)
+    right = _flatten_keys(after)
+    keys = sorted(set(left) | set(right))
+    added = [k for k in keys if k not in left]
+    removed = [k for k in keys if k not in right]
+    changed = [k for k in keys if k in left and k in right and left[k] != right[k]]
+    if not added and not removed and not changed:
+        print(f"{src}: no key changes")
+        return
+    print(f"{src}: key diff (+{len(added)} / -{len(removed)} / ~{len(changed)})")
+    for k in added:
+        print(f"  + {k} = {json.dumps(right[k], ensure_ascii=False)}")
+    for k in removed:
+        print(f"  - {k} = {json.dumps(left[k], ensure_ascii=False)}")
+    for k in changed:
+        print(
+            f"  ~ {k}: {json.dumps(left[k], ensure_ascii=False)} "
+            f"-> {json.dumps(right[k], ensure_ascii=False)}"
+        )
+
+
+def _print_dry_run_diff(
+    src: Path,
+    before: dict[str, Any],
+    after: dict[str, Any],
+    *,
+    keys_only: bool = False,
+) -> None:
     """Human-readable unified diff of sorted JSON (dry-run only)."""
+    if keys_only:
+        _print_keys_only_diff(src, before, after)
+        return
     left = _json_lines(before)
     right = _json_lines(after)
     if left == right:
@@ -56,6 +106,7 @@ def _migrate_one(
     dest: Path | None,
     in_place: bool,
     dry_run: bool,
+    keys_only: bool = False,
 ) -> int:
     raw = json.loads(src.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -70,7 +121,7 @@ def _migrate_one(
             f"{src}: {'WOULD migrate' if changed else 'ok'} "
             f"{before} -> {after} (current={CONFLICT_EXPORT_SCHEMA_VERSION})"
         )
-        _print_dry_run_diff(src, raw, migrated)
+        _print_dry_run_diff(src, raw, migrated, keys_only=keys_only)
         return 0
     out = dest
     if out is None:
@@ -125,7 +176,16 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Report what would change without writing files",
     )
+    p.add_argument(
+        "--diff-keys-only",
+        action="store_true",
+        help="With --dry-run, print added/removed/changed dotted keys instead of a full unified diff",
+    )
     args = p.parse_args(argv)
+
+    if args.diff_keys_only and not args.dry_run:
+        print("--diff-keys-only requires --dry-run", file=sys.stderr)
+        return 2
 
     inputs = _iter_inputs(args.path, recursive=args.recursive, pattern=args.glob)
     if not inputs:
@@ -134,7 +194,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.path.is_file():
         return _migrate_one(
-            args.path, dest=args.output, in_place=args.in_place, dry_run=args.dry_run
+            args.path,
+            dest=args.output,
+            in_place=args.in_place,
+            dry_run=args.dry_run,
+            keys_only=args.diff_keys_only,
         )
 
     # Directory batch
@@ -155,7 +219,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             dest = None
             in_place = False
-        step = _migrate_one(src, dest=dest, in_place=in_place, dry_run=args.dry_run)
+        step = _migrate_one(
+            src,
+            dest=dest,
+            in_place=in_place,
+            dry_run=args.dry_run,
+            keys_only=args.diff_keys_only,
+        )
         if step != 0:
             rc = step
     return rc

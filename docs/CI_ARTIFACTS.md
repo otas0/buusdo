@@ -61,12 +61,24 @@ python scripts/prune_actions_artifacts.py --delete --older-than-days 3 --yes
 Scheduled workflow: `.github/workflows/prune-artifacts.yml` (weekly Monday + `workflow_dispatch`).
 Set repo secret `ARTIFACT_PRUNE_TOKEN` (classic PAT with `repo` + access to Zintriq) so the job can prune siblings; otherwise it still prunes `otas0/buusdo` via `GITHUB_TOKEN`.
 
+```bash
+# One-shot: store current gh token as the secret (needs admin on buusdo)
+bash scripts/setup_artifact_prune_token.sh otas0/buusdo
+```
+
 ## Billing / spending limit (0s empty-step fails)
 
 API cannot raise the spending limit for this account (`/users/.../settings/billing/actions` → 404).
 Fix in the browser: **https://github.com/settings/billing** → Spending limits / payment method.
 Until runners start, `workflow_dispatch` returns 204 but jobs die in ~3s with `steps=[]` and Artifacts stay 0.
 CI `run-name` + each job's first step write this tip into the Actions summary when runners *do* start.
+
+Local detector (bell + optional macOS notification):
+
+```bash
+python scripts/watch_ci_billing.py --notify --once
+# exit 1 when the newest main run looks billing-blocked
+```
 
 ## Stabilizing `gh` Actions API (avoid Forbidden)
 
