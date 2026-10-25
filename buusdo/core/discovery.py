@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from buusdo.core.backend import EnhancementTarget
+from buusdo.core.errors import BuusdoError
 from buusdo.core.vdf import parse_vdf
+
+CancelCb = Callable[[], bool]
+
+
+class DiscoveryCancelled(BuusdoError):
+    """Raised when a caller aborts discover_steam_games mid-scan."""
 
 
 @dataclass(frozen=True)
@@ -39,18 +46,28 @@ class DiscoveredGame:
         )
 
 
-def discover_steam_games(steam_roots: list[Path]) -> list[DiscoveredGame]:
+def discover_steam_games(
+    steam_roots: list[Path],
+    *,
+    should_cancel: CancelCb | None = None,
+) -> list[DiscoveredGame]:
     """Scan Steam library folders under the given client roots."""
     games: list[DiscoveredGame] = []
     seen: set[str] = set()
     for root in steam_roots:
+        if should_cancel and should_cancel():
+            raise DiscoveryCancelled("scan cancelled")
         if not root.exists():
             continue
         for library in _library_paths(root):
+            if should_cancel and should_cancel():
+                raise DiscoveryCancelled("scan cancelled")
             steamapps = library / "steamapps"
             if not steamapps.is_dir():
                 continue
             for manifest in sorted(steamapps.glob("appmanifest_*.acf")):
+                if should_cancel and should_cancel():
+                    raise DiscoveryCancelled("scan cancelled")
                 game = _game_from_manifest(manifest, library)
                 if game is None:
                     continue

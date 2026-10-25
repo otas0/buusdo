@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementTarget
+from buusdo.core.discovery import DiscoveryCancelled
 from buusdo.core.library_cache import invalidate_cache
 
 
@@ -32,15 +33,18 @@ class ScanWorker(QObject):
             self.progress.emit("start", 0.0)
             backend = get_backend()
             self.progress.emit("discover", 0.3)
-            if self._cancel:
-                self.failed.emit("cancelled")
-                return
-            games: list[EnhancementTarget] = backend.discover_games()
+
+            def should_cancel() -> bool:
+                return self._cancel
+
+            games: list[EnhancementTarget] = backend.discover_games(should_cancel=should_cancel)
             if self._cancel:
                 self.failed.emit("cancelled")
                 return
             self.progress.emit("done", 1.0)
             self.finished.emit(games)
+        except DiscoveryCancelled:
+            self.failed.emit("cancelled")
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -51,16 +53,22 @@ class FirstRunWizard(QDialog):
         row1 = QHBoxLayout()
         b1 = QPushButton("ReShade…")
         b1.clicked.connect(self._pick_reshade)
+        self._open_reshade = QPushButton(t("action.open_kit_folder"))
+        self._open_reshade.clicked.connect(lambda: self._open_folder(get_reshade_kit_path()))
         row1.addWidget(b1)
         row1.addWidget(self._reshade)
+        row1.addWidget(self._open_reshade)
         layout.addLayout(row1)
         layout.addWidget(self._reshade_status)
 
         row2 = QHBoxLayout()
         b2 = QPushButton("OptiScaler…")
         b2.clicked.connect(self._pick_opti)
+        self._open_opti = QPushButton(t("action.open_kit_folder"))
+        self._open_opti.clicked.connect(lambda: self._open_folder(get_optiscaler_kit_path()))
         row2.addWidget(b2)
         row2.addWidget(self._opti)
+        row2.addWidget(self._open_opti)
         layout.addLayout(row2)
         layout.addWidget(self._opti_status)
 
@@ -74,6 +82,14 @@ class FirstRunWizard(QDialog):
         layout.addLayout(actions)
 
         self._refresh_status()
+
+    @staticmethod
+    def _open_folder(path: Path | str | None) -> None:
+        if not path:
+            return
+        p = Path(path)
+        if p.is_dir():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(p.resolve())))
 
     @staticmethod
     def _set_status(label: QLabel, ok: bool, detail: str) -> None:
@@ -91,12 +107,14 @@ class FirstRunWizard(QDialog):
             rs.ok,
             ", ".join(rs.found) if rs.ok else ", ".join(rs.missing) or rs.message,
         )
+        self._open_reshade.setEnabled(bool(get_reshade_kit_path()) and not rs.ok)
         op = validate_optiscaler_kit(get_optiscaler_kit_path())
         self._set_status(
             self._opti_status,
             op.ok,
             ", ".join(op.found) if op.ok else ", ".join(op.missing) or op.message,
         )
+        self._open_opti.setEnabled(bool(get_optiscaler_kit_path()) and not op.ok)
 
     def _pick_reshade(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "ReShade kit")

@@ -17,9 +17,9 @@ from buusdo.core.errors import UnsafeTargetError
 from buusdo.core.library_cache import load_cached_games
 from buusdo.core.i18n import t
 from buusdo.core.macos_compat import (
-    bridgeplay_metalfx_file_contents,
     discover_compat_layers,
     find_recent_log,
+    merge_bridgeplay_metalfx,
     metalfx_options_payload,
 )
 from buusdo.core.platform_detect import HostPlatform, steam_roots
@@ -38,8 +38,10 @@ class MacOSBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.MACOS.value
 
-    def discover_games(self) -> list[EnhancementTarget]:
-        games = load_cached_games(steam_roots(HostPlatform.MACOS))
+    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+        games = load_cached_games(
+            steam_roots(HostPlatform.MACOS), should_cancel=should_cancel
+        )
         return [g.to_target() for g in games]
 
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
@@ -88,23 +90,21 @@ class MacOSBackend(EnhancementBackend):
                 tx.ensure_dir(compat_root)
                 tx.write_text(marker, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
                 if layer_id == "bridgeplay" or "bridgeplay" in str(compat_root).lower():
-                    files = bridgeplay_metalfx_file_contents(
+                    # Merge into discovered real Bridgeplay ini/plist (not only sidecars).
+                    layer_root = compat_root
+                    for layer in discover_compat_layers():
+                        if layer.id == "bridgeplay":
+                            layer_root = layer.config_dir
+                            break
+                    merged = merge_bridgeplay_metalfx(
+                        layer_root,
+                        game_name=target.name,
                         enable=bool(options.get("metalfx_enabled", True)),
                         quality=str(options.get("metalfx_quality", "balanced")),
                         scale=options.get("metalfx_scale"),
+                        tx=tx,
                     )
-                    for name, text in (
-                        ("metalfx_bridgeplay.json", files["json"]),
-                        ("metalfx.ini", files["ini"]),
-                        ("metalfx.plist", files["plist"]),
-                    ):
-                        path = compat_root / name
-                        tx.write_text(path, text)
-                    payload["bridgeplay_sidecars"] = [
-                        str(compat_root / "metalfx_bridgeplay.json"),
-                        str(compat_root / "metalfx.ini"),
-                        str(compat_root / "metalfx.plist"),
-                    ]
+                    payload["bridgeplay_merged"] = merged
         except Exception as exc:
             history.append_event("install:metalfx", target=target.name, success=False, message=str(exc))
             raise
@@ -119,7 +119,7 @@ class MacOSBackend(EnhancementBackend):
 
         result = InstallResult(
             success=True,
-            message=f"MetalFX 兼容层配置已写入。{log_note}".strip(),
+            message=t("msg.metalfx_written", log=log_note).strip(),
             details={"marker": str(marker), "payload": payload},
         )
         history.append_event(
@@ -141,13 +141,13 @@ class MacOSBackend(EnhancementBackend):
                 if marker.is_file():
                     with Transaction() as tx:
                         tx.delete(marker)
-                    return InstallResult(success=True, message="MetalFX 兼容层配置已移除。")
-            return InstallResult(success=True, message="Nothing to remove.")
+                    return InstallResult(success=True, message=t("msg.uninstall_macos"))
+            return InstallResult(success=True, message=t("msg.uninstall_none"))
         marker = compat_root / "buusdo_metalfx.json"
         with Transaction() as tx:
             if marker.exists():
                 tx.delete(marker)
-        return InstallResult(success=True, message="MetalFX 兼容层配置已移除。")
+        return InstallResult(success=True, message=t("msg.uninstall_macos"))
 
     def status(self, target: EnhancementTarget) -> dict[str, Any]:
         layers = discover_compat_layers()

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import configparser
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -175,3 +176,150 @@ def write_bridgeplay_metalfx_files(
     for kind, path in paths.items():
         path.write_text(contents[kind], encoding="utf-8")
     return {k: str(v) for k, v in paths.items()}
+
+
+def discover_bridgeplay_config_files(config_dir: Path) -> dict[str, Path | None]:
+    """Locate real Bridgeplay ini/plist candidates (prefer existing MetalFX-named files)."""
+    root = Path(config_dir)
+    ini: Path | None = None
+    plist: Path | None = None
+    preferred_ini = (
+        "metalfx.ini",
+        "MetalFX.ini",
+        "bridgeplay.ini",
+        "settings.ini",
+        "config.ini",
+    )
+    preferred_plist = (
+        "metalfx.plist",
+        "MetalFX.plist",
+        "com.bridgeplay.settings.plist",
+        "settings.plist",
+    )
+    for name in preferred_ini:
+        p = root / name
+        if p.is_file():
+            ini = p
+            break
+    if ini is None:
+        for p in sorted(root.rglob("*.ini")):
+            if p.is_file() and "metalfx" in p.name.lower():
+                ini = p
+                break
+    for name in preferred_plist:
+        p = root / name
+        if p.is_file():
+            plist = p
+            break
+    if plist is None:
+        for p in sorted(root.rglob("*.plist")):
+            if p.is_file() and "metalfx" in p.name.lower():
+                plist = p
+                break
+    return {"ini": ini, "plist": plist}
+
+
+def _merge_ini_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
+    cp = configparser.ConfigParser()
+    try:
+        cp.read_string(existing)
+    except configparser.Error:
+        cp = configparser.ConfigParser()
+    if not cp.has_section("MetalFX"):
+        cp.add_section("MetalFX")
+    cp["MetalFX"]["enabled"] = "true" if enable else "false"
+    cp["MetalFX"]["quality"] = str(quality)
+    cp["MetalFX"]["upscaler"] = "metalfx"
+    if scale is not None:
+        cp["MetalFX"]["scale"] = str(float(scale))
+    from io import StringIO
+
+    buf = StringIO()
+    cp.write(buf)
+    return buf.getvalue()
+
+
+def _merge_plist_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
+    """Naive XML plist merge: upsert known MetalFX keys; rewrite whole dict if unparsable."""
+    keys = {
+        "metalfx.enabled": f"<{ 'true' if enable else 'false' }/>",
+        "metalfx.quality": f"<string>{quality}</string>",
+        "renderer.upscaler": "<string>metalfx</string>",
+    }
+    if scale is not None:
+        keys["metalfx.scale"] = f"<real>{float(scale)}</real>"
+    text = existing
+    if "<plist" not in text or "<dict>" not in text:
+        return bridgeplay_metalfx_file_contents(enable=enable, quality=quality, scale=scale)["plist"]
+    for key, value_xml in keys.items():
+        pattern = re.compile(
+            rf"(<key>{re.escape(key)}</key>\s*)(<true/>|<false/>|<string>[^<]*</string>|<real>[^<]*</real>)",
+            re.IGNORECASE,
+        )
+        if pattern.search(text):
+            text = pattern.sub(rf"\1{value_xml}", text, count=1)
+        else:
+            text = text.replace("</dict>", f"\t<key>{key}</key>\n\t{value_xml}\n</dict>", 1)
+    return text
+
+
+def merge_bridgeplay_metalfx(
+    config_dir: Path,
+    *,
+    game_name: str,
+    enable: bool = True,
+    quality: str = "balanced",
+    scale: float | None = None,
+    tx: Any = None,
+) -> dict[str, Any]:
+    """Merge MetalFX keys into discovered Bridgeplay ini/plist; fall back to sidecar write."""
+    found = discover_bridgeplay_config_files(config_dir)
+    contents = bridgeplay_metalfx_file_contents(enable=enable, quality=quality, scale=scale)
+    result: dict[str, Any] = {
+        "merged": [],
+        "created": [],
+        "found": {k: str(v) if v else None for k, v in found.items()},
+    }
+
+    def _write(path: Path, text: str) -> None:
+        if tx is not None:
+            tx.ensure_dir(path.parent)
+            tx.write_text(path, text)
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+
+    ini_path = found.get("ini")
+    if ini_path and Path(ini_path).is_file():
+        merged = _merge_ini_text(
+            Path(ini_path).read_text(encoding="utf-8", errors="replace"),
+            enable=enable,
+            quality=quality,
+            scale=scale,
+        )
+        _write(Path(ini_path), merged)
+        result["merged"].append(str(ini_path))
+    else:
+        dest = Path(config_dir) / "buusdo" / game_name / "metalfx.ini"
+        _write(dest, contents["ini"])
+        result["created"].append(str(dest))
+
+    plist_path = found.get("plist")
+    if plist_path and Path(plist_path).is_file():
+        merged_plist = _merge_plist_text(
+            Path(plist_path).read_text(encoding="utf-8", errors="replace"),
+            enable=enable,
+            quality=quality,
+            scale=scale,
+        )
+        _write(Path(plist_path), merged_plist)
+        result["merged"].append(str(plist_path))
+    else:
+        dest = Path(config_dir) / "buusdo" / game_name / "metalfx.plist"
+        _write(dest, contents["plist"])
+        result["created"].append(str(dest))
+
+    json_dest = Path(config_dir) / "buusdo" / game_name / "metalfx_bridgeplay.json"
+    _write(json_dest, contents["json"])
+    result["created"].append(str(json_dest))
+    return result

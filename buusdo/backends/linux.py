@@ -38,10 +38,16 @@ class LinuxBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.LINUX.value
 
-    def discover_games(self) -> list[EnhancementTarget]:
-        games = load_cached_games(steam_roots(HostPlatform.LINUX))
+    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+        games = load_cached_games(
+            steam_roots(HostPlatform.LINUX), should_cancel=should_cancel
+        )
         out: list[EnhancementTarget] = []
         for g in games:
+            if should_cancel and should_cancel():
+                from buusdo.core.discovery import DiscoveryCancelled
+
+                raise DiscoveryCancelled("scan cancelled")
             t = g.to_target()
             cfg = load_game_config(g.app_id)
             prefs = cfg.get("prefs") or {}
@@ -103,7 +109,9 @@ class LinuxBackend(EnhancementBackend):
                 if not launched.get("launched"):
                     raise BuusdoError("未找到 Goverlay，请先安装 goverlay。")
                 result = InstallResult(
-                    success=True, message=f"已启动 Goverlay：{launched['path']}", details=launched
+                    success=True,
+                    message=t("msg.goverlay_launched", path=launched["path"]),
+                    details=launched,
                 )
             else:
                 raise BuusdoError(f"Unknown Linux install mode: {mode}")
@@ -133,7 +141,7 @@ class LinuxBackend(EnhancementBackend):
                 localconfig = find_localconfig(steam_roots(HostPlatform.LINUX))
                 if localconfig:
                     details["launch_options"] = set_launch_options(tx, localconfig, str(app_id), "")
-        result = InstallResult(success=True, message="已移除 Linux 增强部署。", details=details)
+        result = InstallResult(success=True, message=t("msg.uninstall_linux"), details=details)
         history.append_event("uninstall", target=target.name, success=True, message=result.message, details=details)
         return result
 
@@ -257,7 +265,7 @@ class LinuxBackend(EnhancementBackend):
                     )
         return InstallResult(
             success=True,
-            message=f"已在 Proton 游戏目录部署 ReShade（{plan.mode}，API {plan.api.value}）。",
+            message=t("msg.reshade_proton", mode=plan.mode, api=plan.api.value),
             details=state,
         )
 
@@ -314,6 +322,6 @@ class LinuxBackend(EnhancementBackend):
         details["steam_launch_options"] = launch
         return InstallResult(
             success=True,
-            message="已写入 vkBasalt 调度配置（近似后处理），并尝试写回 Steam 启动项。",
+            message=t("msg.vkbasalt_written"),
             details=details,
         )

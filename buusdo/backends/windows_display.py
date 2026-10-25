@@ -6,6 +6,7 @@ import ctypes
 import json
 import os
 import re
+import time
 from ctypes import wintypes
 from pathlib import Path
 from typing import Any
@@ -131,14 +132,60 @@ class DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO(ctypes.Structure):
     ]
 
 
+SESSION_MAX_AGE_S = 12 * 3600
+_SESSION_REQUIRED = ("width", "height", "captured_at")
+
+
 def _session_path() -> Path:
     return user_config_dir() / "display_session.json"
+
+
+def clear_display_session() -> None:
+    path = _session_path()
+    path.unlink(missing_ok=True)
+
+
+def heal_display_session() -> dict[str, Any]:
+    """Drop corrupt or expired display_session.json. Returns heal status."""
+    path = _session_path()
+    if not path.is_file():
+        return {"ok": True, "action": "absent"}
+    try:
+        snap = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_corrupt"}
+    if not isinstance(snap, dict):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_invalid_type"}
+    for key in _SESSION_REQUIRED:
+        if key not in snap:
+            clear_display_session()
+            return {"ok": True, "action": "deleted_missing_fields", "missing": key}
+    try:
+        age = time.time() - float(snap["captured_at"])
+    except (TypeError, ValueError):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_bad_timestamp"}
+    if age > SESSION_MAX_AGE_S or age < 0:
+        clear_display_session()
+        return {"ok": True, "action": "deleted_expired", "age_s": age}
+    return {"ok": True, "action": "kept", "age_s": age, "snap": snap}
+
+
+def load_display_session() -> dict[str, Any] | None:
+    """Return a valid session snap, or None after self-heal."""
+    status = heal_display_session()
+    if status.get("action") != "kept":
+        return None
+    snap = status.get("snap")
+    return snap if isinstance(snap, dict) else None
 
 
 def capture_current_mode() -> dict[str, Any]:
     """Snapshot current primary display mode for later rollback."""
     if os.name != "nt":
-        return {"platform": "non_windows"}
+        return {"platform": "non_windows", "captured_at": time.time()}
     user32 = ctypes.windll.user32
     mode = DEVMODEW()
     mode.dmSize = ctypes.sizeof(DEVMODEW)
@@ -149,6 +196,8 @@ def capture_current_mode() -> dict[str, Any]:
         "height": int(mode.dmPelsHeight),
         "refresh_hz": int(mode.dmDisplayFrequency),
         "hdr": _query_hdr_enabled(),
+        "captured_at": time.time(),
+        "targets": list_advanced_color_targets(),
     }
     path = _session_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -158,10 +207,9 @@ def capture_current_mode() -> dict[str, Any]:
 
 def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
     """Restore resolution/refresh/HDR from the last captured session."""
-    path = _session_path()
-    if not path.is_file():
+    snap = load_display_session()
+    if snap is None:
         return {"restored": False, "reason": "no_session"}
-    snap = json.loads(path.read_text(encoding="utf-8"))
     if os.name != "nt":
         return {"restored": False, "reason": "not_windows", "snap": snap}
     profile = DisplayProfile(
@@ -172,8 +220,60 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
     )
     result = apply_display_profile(profile, dry_run=dry_run, capture_before=False)
     if result.get("applied") and not dry_run:
-        path.unlink(missing_ok=True)
+        clear_display_session()
     return {"restored": bool(result.get("applied")), "details": result, "snap": snap}
+
+
+def list_advanced_color_targets() -> list[dict[str, Any]]:
+    """Enumerate active CCD paths with adapterId/targetId for multi-monitor HDR verify."""
+    if os.name != "nt":
+        return []
+    paths, err = _active_paths()
+    if paths is None:
+        return []
+    out: list[dict[str, Any]] = []
+    user32 = ctypes.windll.user32
+    for path in paths:
+        info = DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO()
+        info.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO
+        info.header.size = ctypes.sizeof(DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO)
+        info.header.adapterId = path.targetInfo.adapterId
+        info.header.id = path.targetInfo.id
+        status = user32.DisplayConfigGetDeviceInfo(ctypes.byref(info))
+        out.append(
+            {
+                "adapterLow": int(path.targetInfo.adapterId.LowPart),
+                "adapterHigh": int(path.targetInfo.adapterId.HighPart),
+                "targetId": int(path.targetInfo.id),
+                "get_status": int(status),
+                "advancedColorSupported": bool(info.value & 0x1) if status == 0 else None,
+                "advancedColorEnabled": bool(info.value & 0x2) if status == 0 else None,
+            }
+        )
+    return out
+
+
+def verify_set_advanced_color_state(*, enable: bool, dry_run: bool = True) -> dict[str, Any]:
+    """Multi-monitor verification helper for SET_ADVANCED_COLOR_STATE (real machine / dry-run)."""
+    before = list_advanced_color_targets()
+    if os.name != "nt":
+        return {
+            "ok": False,
+            "reason": "not_windows",
+            "before": before,
+            "note": "Run on a Windows host with multiple displays to verify adapterId/targetId.",
+        }
+    applied = _set_hdr_advanced_color(enable, dry_run=dry_run)
+    after = before if dry_run else list_advanced_color_targets()
+    return {
+        "ok": bool(applied.get("ok")),
+        "dry_run": dry_run,
+        "enable": enable,
+        "before": before,
+        "after": after,
+        "apply": applied,
+        "multi_monitor": len(before) > 1,
+    }
 
 
 def apply_display_profile(

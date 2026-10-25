@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
-from buusdo.core.discovery import DiscoveredGame, discover_steam_games
+from buusdo.core.discovery import CancelCb, DiscoveredGame, DiscoveryCancelled, discover_steam_games
 from buusdo.core.platform_detect import user_config_dir
 from buusdo.core.vdf import parse_vdf
 
@@ -87,11 +87,16 @@ def load_cached_games(
     *,
     force: bool = False,
     progress: ProgressCb | None = None,
+    should_cancel: CancelCb | None = None,
 ) -> list[DiscoveredGame]:
     cache_file = _cache_path()
+    if should_cancel and should_cancel():
+        raise DiscoveryCancelled("scan cancelled")
     if progress:
         progress("fingerprint", 0.1)
     fp = _fingerprint(steam_roots)
+    if should_cancel and should_cancel():
+        raise DiscoveryCancelled("scan cancelled")
     if not force and cache_file.is_file():
         try:
             raw = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -104,7 +109,9 @@ def load_cached_games(
 
     if progress:
         progress("discover", 0.4)
-    games = discover_steam_games(steam_roots)
+    games = discover_steam_games(steam_roots, should_cancel=should_cancel)
+    if should_cancel and should_cancel():
+        raise DiscoveryCancelled("scan cancelled")
     if progress:
         progress("write_cache", 0.85)
     payload = {

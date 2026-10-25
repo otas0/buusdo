@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -21,6 +22,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QSystemTrayIcon,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -44,14 +47,20 @@ from buusdo.core.conflict_preview import (
     preview_reshade_deploy,
     preview_triple_matrix,
 )
-from buusdo.core.crash_report import capture_exception
+from buusdo.core.crash_report import (
+    capture_exception,
+    crash_upload_opted_in,
+    set_crash_upload_opt_in,
+)
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.platform_detect import steam_roots
 from buusdo.core.recent_games import list_recent
-from buusdo.core.steam_launch import list_steam_users
+from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
+from buusdo.core.transaction import Transaction
+from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
 from buusdo.ui.scan_worker import start_scan
 from buusdo.ui.theme import badge_color
@@ -177,7 +186,20 @@ class MainWindow(QMainWindow):
         ):
             self._mode_combo.addItem(label, mode)
         mode_row.addWidget(self._mode_combo)
+        mode_row.addWidget(QLabel("vkBasalt"))
+        self._vk_preset = QComboBox()
+        for name in list_presets():
+            self._vk_preset.addItem(name, name)
+        idx = self._vk_preset.findData("cas")
+        if idx >= 0:
+            self._vk_preset.setCurrentIndex(idx)
+        mode_row.addWidget(self._vk_preset)
         home.addLayout(mode_row)
+
+        self._crash_opt = QCheckBox(t("action.crash_opt_in"))
+        self._crash_opt.setChecked(crash_upload_opted_in())
+        self._crash_opt.toggled.connect(lambda v: set_crash_upload_opt_in(bool(v)))
+        home.addWidget(self._crash_opt)
 
         home.addWidget(QLabel("Capabilities"))
         self._cap_list = QListWidget()
@@ -194,6 +216,7 @@ class MainWindow(QMainWindow):
         self._btn_cancel.setEnabled(False)
         self._btn_preview = QPushButton(t("conflict.title"))
         self._btn_steam = QPushButton(t("proton.open_steam"))
+        self._btn_proton_note = QPushButton(t("action.proton_note"))
         self._btn_kit = QPushButton("ReShade…")
         self._btn_opti = QPushButton("OptiScaler…")
         self._btn_install = QPushButton(t("action.deploy"))
@@ -207,6 +230,7 @@ class MainWindow(QMainWindow):
             self._btn_cancel,
             self._btn_preview,
             self._btn_steam,
+            self._btn_proton_note,
             self._btn_kit,
             self._btn_opti,
             self._btn_install,
@@ -230,6 +254,7 @@ class MainWindow(QMainWindow):
         self._btn_cancel.clicked.connect(self._cancel_scan)
         self._btn_preview.clicked.connect(self._on_preview)
         self._btn_steam.clicked.connect(self._open_steam_for_target)
+        self._btn_proton_note.clicked.connect(self._write_proton_note)
         self._btn_kit.clicked.connect(self._pick_reshade_kit)
         self._btn_opti.clicked.connect(self._pick_optiscaler_kit)
         self._btn_install.clicked.connect(self._on_install)
@@ -283,8 +308,18 @@ class MainWindow(QMainWindow):
             menu.addAction(empty)
 
     def _tray_uninstall(self, data: dict) -> None:
+        name = str(data.get("name") or "game")
+        reply = QMessageBox.question(
+            self,
+            "buusdo",
+            t("action.confirm_uninstall", name=name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         target = EnhancementTarget(
-            name=str(data.get("name") or "game"),
+            name=name,
             install_path=Path(str(data.get("install_path"))),
             executable=Path(data["executable"]) if data.get("executable") else None,
             metadata=dict(data.get("metadata") or {}),
@@ -381,6 +416,29 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl(uri))
         if not health.get("ok", True):
             QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+
+    def _write_proton_note(self) -> None:
+        if not self._target or not self._target.metadata.get("app_id"):
+            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            return
+        steam_id3 = self._steam_user.currentData() or self._target.metadata.get("steam_id3")
+        localconfig = find_localconfig(steam_roots(), steam_id3=steam_id3 or None)
+        if localconfig is None:
+            QMessageBox.warning(self, "buusdo", t("proton.missing_prefix"))
+            return
+        try:
+            with Transaction() as tx:
+                write_proton_launch_note(
+                    tx,
+                    localconfig,
+                    str(self._target.metadata["app_id"]),
+                    note=t("proton.note_text"),
+                )
+        except BuusdoError as exc:
+            QMessageBox.warning(self, "buusdo", str(exc))
+            return
+        self._status.setText(t("proton.note_written"))
+        QMessageBox.information(self, "buusdo", t("proton.note_written"))
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -488,6 +546,9 @@ class MainWindow(QMainWindow):
             opts["hdr_preferred"] = True
         if opts["mode"] == "preview":
             opts["preview_mode"] = "reshade"
+            opts["triple_matrix"] = True
+        if opts["mode"] == "vkbasalt":
+            opts["vkbasalt_preset"] = self._vk_preset.currentData() or "cas"
         return opts
 
     def _show_conflict_dialog(self, details: dict) -> None:
@@ -495,14 +556,38 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle(t("conflict.title"))
         layout = QVBoxLayout(dlg)
         layout.addWidget(QLabel(t("conflict.title")))
-        lst = QListWidget()
-        for item in details.get("diffs") or []:
-            lst.addItem(f"{item.get('action')}: {item.get('path') or ''} {item.get('detail')}")
-        layout.addWidget(lst)
+        rows = list(details.get("diffs") or [])
+        table = QTableWidget(len(rows), 4)
+        table.setHorizontalHeaderLabels(
+            [
+                t("conflict.col.severity"),
+                t("conflict.col.action"),
+                t("conflict.col.path"),
+                t("conflict.col.detail"),
+            ]
+        )
+        for i, item in enumerate(rows):
+            detail = str(item.get("detail") or "")
+            severity = ""
+            if item.get("action") == "conflict":
+                if detail.startswith("[block]"):
+                    severity = "block"
+                elif detail.startswith("[warning]"):
+                    severity = "warning"
+                elif detail.startswith("[info]"):
+                    severity = "info"
+                else:
+                    severity = "conflict"
+            table.setItem(i, 0, QTableWidgetItem(severity))
+            table.setItem(i, 1, QTableWidgetItem(str(item.get("action") or "")))
+            table.setItem(i, 2, QTableWidgetItem(str(item.get("path") or "")))
+            table.setItem(i, 3, QTableWidgetItem(detail))
+        table.resizeColumnsToContents()
+        layout.addWidget(table)
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         layout.addWidget(close)
-        dlg.resize(560, 360)
+        dlg.resize(720, 420)
         dlg.exec()
 
     def _on_preview(self) -> None:

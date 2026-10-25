@@ -4,11 +4,45 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 from typing import Callable
 
 import psutil
 
 from buusdo.core.backend import EnhancementTarget
+
+
+def _exact_exe_paths(target: EnhancementTarget) -> set[Path]:
+    paths: set[Path] = set()
+    if target.executable:
+        paths.add(Path(target.executable).expanduser())
+    for raw in target.metadata.get("executables") or []:
+        paths.add(Path(str(raw)).expanduser())
+    resolved: set[Path] = set()
+    for p in paths:
+        try:
+            resolved.add(p.resolve())
+        except OSError:
+            resolved.add(p)
+    return resolved
+
+
+def process_matches_target(proc: psutil.Process, target: EnhancementTarget) -> bool:
+    """True only when the process exe path exactly matches a known game executable."""
+    wanted = _exact_exe_paths(target)
+    if not wanted:
+        return False
+    try:
+        exe = proc.exe()
+    except (psutil.Error, OSError):
+        return False
+    if not exe:
+        return False
+    try:
+        current = Path(exe).resolve()
+    except OSError:
+        current = Path(exe)
+    return current in wanted
 
 
 def watch_and_rollback(
@@ -21,27 +55,18 @@ def watch_and_rollback(
     """Start a daemon thread: when matching process disappears after being seen, rollback."""
 
     def _run() -> None:
-        names = set()
-        if target.executable:
-            names.add(target.executable.name.lower())
-            names.add(target.executable.stem.lower())
-        for raw in target.metadata.get("executables") or []:
-            from pathlib import Path
-
-            p = Path(str(raw))
-            names.add(p.name.lower())
-            names.add(p.stem.lower())
-
         seen = False
         while True:
             alive = False
             try:
-                for proc in psutil.process_iter(["name"]):
-                    pname = (proc.info.get("name") or "").lower()
-                    if any(n and n in pname for n in names):
-                        alive = True
-                        seen = True
-                        break
+                for proc in psutil.process_iter(["pid"]):
+                    try:
+                        if process_matches_target(proc, target):
+                            alive = True
+                            seen = True
+                            break
+                    except (psutil.Error, OSError):
+                        continue
             except (psutil.Error, OSError):
                 pass
             if seen and not alive:

@@ -47,10 +47,16 @@ class WindowsBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.WINDOWS.value
 
-    def discover_games(self) -> list[EnhancementTarget]:
-        games = load_cached_games(steam_roots(HostPlatform.WINDOWS))
+    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+        games = load_cached_games(
+            steam_roots(HostPlatform.WINDOWS), should_cancel=should_cancel
+        )
         targets = []
         for g in games:
+            if should_cancel and should_cancel():
+                from buusdo.core.discovery import DiscoveryCancelled
+
+                raise DiscoveryCancelled("scan cancelled")
             t = g.to_target()
             cfg = load_game_config(g.app_id)
             targets.append(self._apply_saved_prefs(t, cfg))
@@ -150,7 +156,7 @@ class WindowsBackend(EnhancementBackend):
             )
         result = InstallResult(
             success=True,
-            message="已卸载 ReShade / OptiScaler / Vulkan 层写回。",
+            message=t("msg.uninstall_win"),
             details=details,
         )
         history.append_event(
@@ -211,13 +217,10 @@ class WindowsBackend(EnhancementBackend):
 
         warnings = [i.message for i in report.issues if i.level.value == "warning"]
         warnings.extend(i.message for i in conflicts.issues if i.severity.value == "warning")
-        msg = (
-            f"已部署 ReShade（模式 {plan.mode}，API {plan.api.value}"
-            + (f"，代理 {plan.proxy_dll_name}" if plan.proxy_dll_name else "，Vulkan 显式层")
-            + "）。"
-        )
+        proxy = f", {plan.proxy_dll_name}" if plan.proxy_dll_name else ", Vulkan layer"
+        msg = t("msg.reshade_deployed", mode=plan.mode, api=plan.api.value, proxy=proxy)
         if warnings:
-            msg += " 警告：" + "；".join(warnings)
+            msg += " | " + "; ".join(warnings)
         return InstallResult(success=True, message=msg, details=state)
 
     def _install_optiscaler(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
@@ -240,7 +243,7 @@ class WindowsBackend(EnhancementBackend):
             state = optiscaler.deploy(tx, target.install_path, resolved, target_name=target.name)
         return InstallResult(
             success=True,
-            message="已调度神经画质增强组件（OptiScaler）；与路径追踪无关。",
+            message=t("msg.optiscaler_deployed"),
             details={**state, "conflicts": [i.message for i in conflicts.issues]},
         )
 
@@ -272,13 +275,18 @@ class WindowsBackend(EnhancementBackend):
         display_profile.set_game_profile(game_id, profile)
         update_game_config(game_id, display_profile=profile.name)
         dry_run = bool(options.get("dry_run", False))
-        applied = apply_display_profile(profile, dry_run=dry_run, capture_before=True)
+        from buusdo.backends.windows_display import heal_display_session
+
+        applied = {
+            "session_heal": heal_display_session(),
+            **apply_display_profile(profile, dry_run=dry_run, capture_before=True),
+        }
         if options.get("watch_rollback", True) and not dry_run:
             watch_and_rollback(target, rollback=lambda: rollback_display_session())
             applied["watch_rollback"] = True
         return InstallResult(
             success=True,
-            message="已保存并尝试应用显示/HDR 偏好（Win32/CCD）；游戏退出后将尝试回滚。",
+            message=t("msg.display_applied"),
             details=applied,
         )
 
@@ -287,7 +295,7 @@ class WindowsBackend(EnhancementBackend):
             state = dwm_hdr.install(tx, target.install_path, target_name=target.name)
         return InstallResult(
             success=True,
-            message=state.get("copy", "DWM HDR 原型意图已记录"),
+            message=state.get("copy") or t("msg.dwm_recorded"),
             details=state,
         )
 
@@ -314,7 +322,7 @@ class WindowsBackend(EnhancementBackend):
             )
         return InstallResult(
             success=not details.get("blocked"),
-            message="冲突预览已生成" if not details.get("blocked") else "预览发现阻断冲突",
+            message=t("msg.preview_blocked") if details.get("blocked") else t("msg.preview_ok"),
             details=details,
         )
 
