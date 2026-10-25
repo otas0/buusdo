@@ -38,9 +38,11 @@ class LinuxBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.LINUX.value
 
-    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+    def discover_games(self, *, should_cancel=None, progress=None) -> list[EnhancementTarget]:
         games = load_cached_games(
-            steam_roots(HostPlatform.LINUX), should_cancel=should_cancel
+            steam_roots(HostPlatform.LINUX),
+            should_cancel=should_cancel,
+            progress=progress,
         )
         out: list[EnhancementTarget] = []
         for g in games:
@@ -114,7 +116,7 @@ class LinuxBackend(EnhancementBackend):
                     details=launched,
                 )
             else:
-                raise BuusdoError(f"Unknown Linux install mode: {mode}")
+                raise BuusdoError(t("err.unknown_mode", mode=mode))
         except Exception as exc:
             history.append_event(f"install:{mode}", target=target.name, success=False, message=str(exc))
             raise
@@ -209,7 +211,7 @@ class LinuxBackend(EnhancementBackend):
         try:
             return GraphicsApi(str(raw).lower())
         except ValueError as exc:
-            raise BuusdoError(f"Unknown graphics API: {raw}") from exc
+            raise BuusdoError(t("err.unknown_api", api=raw)) from exc
 
     def _install_reshade(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kit_path = options.get("reshade_kit") or get_reshade_kit_path()

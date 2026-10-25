@@ -90,7 +90,9 @@ def _try_registry_explicit_layer(tx: Transaction, layer_dir: Path, layer_name: s
         winreg.SetValueEx(key, json_path, 0, winreg.REG_DWORD, 0)
         winreg.CloseKey(key)
     except OSError as exc:
-        raise BuusdoError(f"Vulkan registry write failed: {exc}") from exc
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.vulkan_registry", error=exc)) from exc
     return {"written": True, "value_name": value_name, "json_path": json_path}
 
 

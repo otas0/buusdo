@@ -28,24 +28,36 @@ if [[ "${BUUSDO_CODESIGN:-}" == "1" ]] || [[ -f "${ROOT}/scripts/codesign.env" ]
   HOOK="${ROOT}/scripts/codesign_hooks.sh"
   if [[ -x "${HOOK}" ]]; then
     signed_any=0
+    failed_paths=()
+    unsigned_candidates=()
     while IFS= read -r art; do
       [[ -z "${art}" ]] && continue
+      unsigned_candidates+=("${art}")
       echo "codesign: signing ${art}"
       if ! "${HOOK}" "${art}"; then
         echo "codesign: hook failed for ${art}" >&2
-        if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
-          exit 1
+        failed_paths+=("${art}")
+        if [[ "${BUUSDO_CODESIGN_STRICT:-}" != "1" ]]; then
+          echo "codesign: continuing (set BUUSDO_CODESIGN_STRICT=1 to fail the build)" >&2
         fi
-        echo "codesign: continuing (set BUUSDO_CODESIGN_STRICT=1 to fail the build)" >&2
+      else
+        signed_any=1
       fi
-      signed_any=1
     done < <(find "${OUT}" -maxdepth 3 \( -name 'buusdo' -o -name 'buusdo.exe' -o -name 'buusdo.app' \) 2>/dev/null | head -5)
-    if [[ "${signed_any}" -eq 0 ]]; then
+    if [[ "${signed_any}" -eq 0 && ${#unsigned_candidates[@]} -eq 0 ]]; then
       echo "codesign: no buusdo artifact found under ${OUT}; skip."
       if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
-        echo "codesign: strict mode requires an artifact to sign" >&2
+        echo "codesign: strict mode — unsigned path list:" >&2
+        find "${OUT}" -maxdepth 4 -type f 2>/dev/null | head -50 >&2 || true
         exit 1
       fi
+    fi
+    if [[ ${#failed_paths[@]} -gt 0 && "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
+      echo "codesign: strict mode — failed to sign:" >&2
+      printf '  %s\n' "${failed_paths[@]}" >&2
+      echo "codesign: remaining candidates under dist:" >&2
+      printf '  %s\n' "${unsigned_candidates[@]}" >&2
+      exit 1
     fi
   fi
 fi

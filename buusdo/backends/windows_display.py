@@ -279,7 +279,9 @@ def capture_current_mode() -> dict[str, Any]:
         mode = DEVMODEW()
         mode.dmSize = ctypes.sizeof(DEVMODEW)
         if not user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
-            raise BuusdoError("EnumDisplaySettingsW failed while capturing mode")
+            from buusdo.core.i18n import t
+
+            raise BuusdoError(t("err.display_enum"))
         displays = [
             {
                 "device": None,
@@ -314,30 +316,46 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
         return {"restored": False, "reason": "not_windows", "snap": snap}
     steps: list[dict[str, Any]] = []
     for disp in snap.get("displays") or []:
-        steps.append(
-            _apply_mode(
-                int(disp["width"]),
-                int(disp["height"]),
-                disp.get("refresh_hz"),
-                dry_run=dry_run,
-                device=disp.get("device"),
-            )
+        step = _apply_mode(
+            int(disp["width"]),
+            int(disp["height"]),
+            disp.get("refresh_hz"),
+            dry_run=dry_run,
+            device=disp.get("device"),
         )
+        step["device_string"] = disp.get("device_string")
+        step["primary"] = bool(disp.get("primary"))
+        steps.append(step)
     hdr_step = _set_hdr_advanced_color(bool(snap.get("hdr")), dry_run=dry_run)
     steps.append(hdr_step)
-    ok = all(s.get("ok") for s in steps if s.get("action") != "hdr") or any(
-        s.get("ok") for s in steps
-    )
-    # Prefer: all mode restores ok, and HDR attempted
-    mode_ok = all(
-        s.get("ok") for s in steps if s.get("action") in {"ChangeDisplaySettingsW", "ChangeDisplaySettingsExW"}
-    )
+    mode_steps = [
+        s
+        for s in steps
+        if s.get("action") in {"ChangeDisplaySettingsW", "ChangeDisplaySettingsExW"}
+    ]
+    failed_displays = [
+        {
+            "device": s.get("device"),
+            "device_string": s.get("device_string"),
+            "primary": s.get("primary"),
+            "action": s.get("action"),
+            "code": s.get("code"),
+            "error": s.get("error"),
+            "width": s.get("width"),
+            "height": s.get("height"),
+            "refresh_hz": s.get("refresh_hz"),
+        }
+        for s in mode_steps
+        if not s.get("ok")
+    ]
+    mode_ok = bool(mode_steps) and all(s.get("ok") for s in mode_steps)
     applied = bool(mode_ok or (not snap.get("displays") and hdr_step.get("ok")))
     if applied and not dry_run:
         clear_display_session()
     return {
         "restored": applied,
-        "details": {"steps": steps, "hdr": hdr_step},
+        "failed_displays": failed_displays,
+        "details": {"steps": steps, "hdr": hdr_step, "failed_displays": failed_displays},
         "snap": snap,
     }
 
@@ -424,7 +442,9 @@ def apply_display_profile(
     if profile.resolution:
         m = re.match(r"^(\d+)\s*[xX×]\s*(\d+)$", profile.resolution.strip())
         if not m:
-            raise BuusdoError(f"Invalid resolution: {profile.resolution}")
+            from buusdo.core.i18n import t
+
+            raise BuusdoError(t("err.display_resolution", resolution=profile.resolution))
         width, height = int(m.group(1)), int(m.group(2))
 
     if width and height:
@@ -432,7 +452,9 @@ def apply_display_profile(
         step = _apply_mode(width, height, profile.refresh_hz, dry_run=dry_run, device=None)
         result["steps"].append(step)
         if not step.get("ok"):
-            raise BuusdoError(step.get("error") or "ChangeDisplaySettings failed")
+            from buusdo.core.i18n import t
+
+            raise BuusdoError(step.get("error") or t("err.display_change"))
 
     hdr_step = _set_hdr_advanced_color(bool(profile.hdr_preferred), dry_run=dry_run)
     result["steps"].append(hdr_step)

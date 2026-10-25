@@ -47,7 +47,11 @@ from buusdo.core.conflict_preview import (
     preview_reshade_deploy,
     preview_triple_matrix,
 )
-from buusdo.backends.windows_display import clear_display_session, display_session_status
+from buusdo.backends.windows_display import (
+    clear_display_session,
+    display_session_status,
+    rollback_display_session,
+)
 from buusdo.core.crash_report import (
     capture_exception,
     crash_upload_opted_in,
@@ -58,9 +62,11 @@ from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
+from buusdo.core.library_progress import resume_scan_status
 from buusdo.core.platform_detect import steam_roots
-from buusdo.core.recent_games import list_recent
+from buusdo.core.recent_games import list_recent, remove_recent
 from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
+from buusdo.core.steam_uris import game_properties_uri_candidates, probe_open_uris
 from buusdo.core.transaction import Transaction
 from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
@@ -209,8 +215,11 @@ class MainWindow(QMainWindow):
         self._session_banner.setStyleSheet("color: #B08900;")
         self._btn_clear_session = QPushButton(t("action.clear_display_session"))
         self._btn_clear_session.clicked.connect(self._clear_display_session)
+        self._btn_rollback_now = QPushButton(t("action.rollback_now"))
+        self._btn_rollback_now.clicked.connect(self._rollback_display_now)
         sess_row = QHBoxLayout()
         sess_row.addWidget(self._session_banner, stretch=1)
+        sess_row.addWidget(self._btn_rollback_now)
         sess_row.addWidget(self._btn_clear_session)
         home.addLayout(sess_row)
         self._refresh_session_banner()
@@ -340,6 +349,7 @@ class MainWindow(QMainWindow):
         )
         try:
             result = self._backend.uninstall(target)
+            remove_recent(data)
             self._status.setText(result.message)
             if hasattr(self, "_tray"):
                 self._tray.showMessage("buusdo", result.message)
@@ -380,8 +390,30 @@ class MainWindow(QMainWindow):
         self._btn_force.setEnabled(False)
         self._btn_cancel.setEnabled(True)
 
-        def on_progress(_stage: str, value: float) -> None:
+        def on_progress(stage: str, value: float) -> None:
             self._progress.setValue(int(value * 100))
+            if isinstance(stage, str) and stage.startswith("resume:"):
+                st = resume_scan_status()
+                self._status.setText(
+                    t(
+                        "scan.resume",
+                        scanned=st.get("scanned", 0),
+                        total=st.get("total_manifests", 0),
+                        match=st.get("fingerprint_match"),
+                    )
+                )
+
+        # Surface pending resume before worker starts
+        resume = resume_scan_status()
+        if resume.get("resume"):
+            self._status.setText(
+                t(
+                    "scan.resume",
+                    scanned=resume.get("scanned", 0),
+                    total=resume.get("total_manifests", 0),
+                    match=resume.get("fingerprint_match"),
+                )
+            )
 
         def on_finished(games: list) -> None:
             self._games = games
@@ -461,14 +493,10 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
 
-        # Prefer Steam game properties deep link when the client supports it.
-        for uri in (
-            f"steam://gameproperties/{app_id}",
-            f"steam://open/gameproperties/{app_id}",
-            f"steam://url/GameHub/{app_id}",
-        ):
-            if QDesktopServices.openUrl(QUrl(uri)):
-                break
+        def _open(uri: str) -> bool:
+            return bool(QDesktopServices.openUrl(QUrl(uri)))
+
+        probe_open_uris(game_properties_uri_candidates(app_id), opener=_open)
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -645,9 +673,36 @@ class MainWindow(QMainWindow):
                 table.setItem(i, col, cell)
         table.resizeColumnsToContents()
         layout.addWidget(table)
+        payload = {"mode": details.get("mode"), "blocked": details.get("blocked"), "diffs": details.get("diffs") or []}
+        actions = QHBoxLayout()
+        copy_btn = QPushButton(t("action.copy_json"))
+        export_btn = QPushButton(t("action.export_json"))
         close = QPushButton("OK")
+
+        def _copy() -> None:
+            from PySide6.QtWidgets import QApplication
+            import json as _json
+
+            QApplication.clipboard().setText(_json.dumps(payload, indent=2, ensure_ascii=False))
+
+        def _export() -> None:
+            import json as _json
+
+            path, _ = QFileDialog.getSaveFileName(
+                dlg, t("action.export_json"), "conflict-preview.json", "JSON (*.json)"
+            )
+            if path:
+                Path(path).write_text(
+                    _json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+                )
+
+        copy_btn.clicked.connect(_copy)
+        export_btn.clicked.connect(_export)
         close.clicked.connect(dlg.accept)
-        layout.addWidget(close)
+        actions.addWidget(copy_btn)
+        actions.addWidget(export_btn)
+        actions.addWidget(close)
+        layout.addLayout(actions)
         dlg.resize(720, 420)
         dlg.exec()
 
@@ -676,20 +731,34 @@ class MainWindow(QMainWindow):
         if not st.get("present"):
             self._session_banner.setText("")
             self._btn_clear_session.setEnabled(False)
+            self._btn_rollback_now.setEnabled(False)
             return
         self._btn_clear_session.setEnabled(True)
+        self._btn_rollback_now.setEnabled(True)
         mins = max(1, int((st.get("ttl_remaining_s") or 0) / 60))
-        if st.get("warn_expiring"):
-            self._session_banner.setText(t("display.session_warn", minutes=mins))
-        else:
-            self._session_banner.setText(
-                t("display.session_warn", minutes=mins)
-            )
+        self._session_banner.setText(t("display.session_warn", minutes=mins))
 
     def _clear_display_session(self) -> None:
         clear_display_session()
         self._refresh_session_banner()
         self._status.setText(t("action.clear_display_session"))
+
+    def _rollback_display_now(self) -> None:
+        result = rollback_display_session(dry_run=False)
+        self._refresh_session_banner()
+        if result.get("restored"):
+            self._status.setText(t("action.rollback_now"))
+            return
+        failed = result.get("failed_displays") or []
+        if failed:
+            devices = ", ".join(
+                str(f.get("device_string") or f.get("device") or "?") for f in failed
+            )
+            QMessageBox.warning(
+                self, "buusdo", t("display.rollback_failed", devices=devices)
+            )
+        else:
+            self._status.setText(str(result.get("reason") or "no_session"))
 
     def _on_preview(self) -> None:
         if not self._target:

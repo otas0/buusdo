@@ -13,6 +13,7 @@ from buusdo.core.vdf import parse_vdf
 
 
 ProgressCb = Callable[[str, float], None]
+# progress(stage, value) — stage may be resume|discover|cache_hit|...; value 0..1
 
 
 def _cache_path() -> Path:
@@ -131,6 +132,13 @@ def load_cached_games(
             if raw.get("partial") and raw.get("fingerprint") == fp:
                 prior_games = [_game_from_cache(item) for item in raw.get("games") or []]
                 prior_scanned = dict(raw.get("scanned_manifests") or {})
+                if progress:
+                    total = max(1, len([k for k in fp if "appmanifest_" in str(k)]))
+                    scanned_n = len(prior_scanned)
+                    progress(
+                        f"resume:{scanned_n}/{total}",
+                        min(0.35, 0.1 + 0.25 * (scanned_n / total)),
+                    )
         except (OSError, json.JSONDecodeError, KeyError, TypeError):
             pass
 

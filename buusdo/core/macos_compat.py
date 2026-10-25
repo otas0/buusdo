@@ -225,13 +225,21 @@ def _merge_ini_text(existing: str, *, enable: bool, quality: str, scale: float |
         cp.read_string(existing)
     except configparser.Error:
         cp = configparser.ConfigParser()
-    if not cp.has_section("MetalFX"):
-        cp.add_section("MetalFX")
-    cp["MetalFX"]["enabled"] = "true" if enable else "false"
-    cp["MetalFX"]["quality"] = str(quality)
-    cp["MetalFX"]["upscaler"] = "metalfx"
+    # Prefer [MetalFX]; also upgrade legacy / GPTK [metalfx] keys.
+    section = "MetalFX"
+    if not cp.has_section(section) and cp.has_section("metalfx"):
+        section = "metalfx"
+    if not cp.has_section(section):
+        cp.add_section(section)
+    cp[section]["enabled"] = "true" if enable else "false"
+    cp[section]["quality"] = str(quality)
+    cp[section]["upscaler"] = "metalfx"
     if scale is not None:
-        cp["MetalFX"]["scale"] = str(float(scale))
+        cp[section]["scale"] = str(float(scale))
+    if section != "MetalFX" and not cp.has_section("MetalFX"):
+        cp.add_section("MetalFX")
+        for key, value in cp[section].items():
+            cp["MetalFX"][key] = value
     from io import StringIO
 
     buf = StringIO()

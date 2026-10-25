@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
 )
@@ -84,15 +85,20 @@ class FirstRunWizard(QDialog):
         layout.addWidget(self._opti_status)
 
         actions = QHBoxLayout()
-        skip = QPushButton("Skip / 跳过")
-        done = QPushButton("Done / 完成")
-        skip.clicked.connect(self._finish)
-        done.clicked.connect(self._finish)
-        actions.addWidget(skip)
-        actions.addWidget(done)
+        self._skip = QPushButton("Skip / 跳过")
+        self._done = QPushButton("Done / 完成")
+        self._skip.clicked.connect(self._finish_skip)
+        self._done.clicked.connect(self._finish_done)
+        actions.addWidget(self._skip)
+        actions.addWidget(self._done)
         layout.addLayout(actions)
 
         self._refresh_status()
+
+    def _has_valid_kit(self) -> bool:
+        return validate_reshade_kit(get_reshade_kit_path()).ok or validate_optiscaler_kit(
+            get_optiscaler_kit_path()
+        ).ok
 
     @staticmethod
     def _open_folder(path: Path | str | None) -> None:
@@ -139,6 +145,8 @@ class FirstRunWizard(QDialog):
         self._set_highlight(self._open_opti, missing_o)
         self._set_highlight(self._reselect_opti, missing_o or get_optiscaler_kit_path() is None)
 
+        self._done.setEnabled(self._has_valid_kit())
+
     def _pick_reshade(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "ReShade kit")
         if path:
@@ -153,7 +161,16 @@ class FirstRunWizard(QDialog):
             self._opti.setText(path)
             self._refresh_status()
 
-    def _finish(self) -> None:
+    def _finish_skip(self) -> None:
+        data = load_settings()
+        data["wizard_completed"] = True
+        save_settings(data)
+        self.accept()
+
+    def _finish_done(self) -> None:
+        if not self._has_valid_kit():
+            QMessageBox.warning(self, "buusdo", t("wizard.need_kit"))
+            return
         data = load_settings()
         data["wizard_completed"] = True
         save_settings(data)

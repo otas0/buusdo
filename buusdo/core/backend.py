@@ -47,7 +47,10 @@ class EnhancementBackend(ABC):
 
     @abstractmethod
     def discover_games(
-        self, *, should_cancel: CancelCb | None = None
+        self,
+        *,
+        should_cancel: CancelCb | None = None,
+        progress: Callable[[str, float], None] | None = None,
     ) -> list[EnhancementTarget]:
         """Enumerate known games (e.g. Steam). should_cancel() True aborts mid-scan."""
 

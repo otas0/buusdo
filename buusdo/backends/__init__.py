@@ -21,7 +21,9 @@ def get_backend(platform: HostPlatform | None = None) -> EnhancementBackend:
         from buusdo.backends.macos import MacOSBackend
 
         return MacOSBackend()
-    raise BuusdoError(f"Unsupported host platform: {host}")
+    from buusdo.core.i18n import t
+
+    raise BuusdoError(t("err.unsupported_platform", host=host))
 
 
 __all__ = ["get_backend"]

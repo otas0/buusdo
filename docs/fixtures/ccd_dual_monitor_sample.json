@@ -1,6 +1,6 @@
 {
   "recorded_at": "2026-10-25T00:00:00+00:00",
-  "note": "Sample shape from scripts/verify_ccd_hdr.py --record on a dual-monitor Windows host. Replace with a real run; values below are illustrative.",
+  "note": "ILLUSTRATIVE until overwritten. On dual-monitor Windows: python scripts/verify_ccd_hdr.py --apply on --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture && python scripts/verify_ccd_hdr.py --apply off --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture",
   "targets": [
     {
       "adapterLow": 12345,

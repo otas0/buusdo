@@ -106,13 +106,15 @@ def set_launch_options(
     launch_options: str,
 ) -> dict:
     """Set LaunchOptions for app_id inside localconfig.vdf."""
+    from buusdo.core.i18n import t
+
     if not localconfig.is_file():
-        raise BuusdoError(f"localconfig.vdf not found: {localconfig}")
+        raise BuusdoError(t("err.localconfig_missing", path=localconfig))
     text = localconfig.read_text(encoding="utf-8", errors="replace")
     try:
         parse_vdf(text)
     except ValueError as exc:
-        raise BuusdoError(f"Invalid localconfig.vdf: {exc}") from exc
+        raise BuusdoError(t("err.localconfig_invalid", error=exc)) from exc
 
     app_id = str(app_id)
     pattern = re.compile(
@@ -152,8 +154,10 @@ def write_proton_launch_note(
     preserve_existing: bool = True,
 ) -> dict:
     """Write a user-visible Proton reminder into LaunchOptions (and a buusdo_note key)."""
+    from buusdo.core.i18n import t
+
     if not localconfig.is_file():
-        raise BuusdoError(f"localconfig.vdf not found: {localconfig}")
+        raise BuusdoError(t("err.localconfig_missing", path=localconfig))
     text = localconfig.read_text(encoding="utf-8", errors="replace")
     app_id = str(app_id)
     existing = ""

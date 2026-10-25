@@ -41,12 +41,37 @@ def crash_upload_opted_in() -> bool:
     return bool(load_settings().get("crash_upload_opt_in"))
 
 
+def _audit_path() -> Path:
+    return user_config_dir() / "crash_opt_in_audit.jsonl"
+
+
+def append_crash_opt_in_audit(*, enabled: bool, note: str = "") -> Path:
+    """Append opt-in change audit (never stores raw crash bodies)."""
+    path = _audit_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "crash_upload_opt_in": bool(enabled),
+        "note": redact(note) if note else "",
+        "raw_payload_uploaded": False,
+    }
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return path
+
+
 def set_crash_upload_opt_in(enabled: bool) -> None:
     data = load_settings()
+    prev = bool(data.get("crash_upload_opt_in"))
     data["crash_upload_opt_in"] = bool(enabled)
     if enabled:
         data["crash_reports_enabled"] = True
     save_settings(data)
+    if prev != bool(enabled):
+        append_crash_opt_in_audit(
+            enabled=bool(enabled),
+            note="user toggled opt-in; redacted reports only, no raw upload of originals",
+        )
 
 
 def _sentry_store_url(dsn_or_endpoint: str) -> str:

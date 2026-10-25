@@ -47,9 +47,11 @@ class WindowsBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.WINDOWS.value
 
-    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+    def discover_games(self, *, should_cancel=None, progress=None) -> list[EnhancementTarget]:
         games = load_cached_games(
-            steam_roots(HostPlatform.WINDOWS), should_cancel=should_cancel
+            steam_roots(HostPlatform.WINDOWS),
+            should_cancel=should_cancel,
+            progress=progress,
         )
         targets = []
         for g in games:
@@ -121,7 +123,7 @@ class WindowsBackend(EnhancementBackend):
             elif mode == "preview":
                 result = self._preview(target, options)
             else:
-                raise BuusdoError(f"Unknown Windows install mode: {mode}")
+                raise BuusdoError(t("err.unknown_mode", mode=mode))
         except Exception as exc:
             history.append_event(
                 f"install:{mode}", target=target.name, success=False, message=str(exc)
@@ -336,7 +338,7 @@ class WindowsBackend(EnhancementBackend):
         try:
             return GraphicsApi(str(raw).lower())
         except ValueError as exc:
-            raise BuusdoError(f"Unknown graphics API: {raw}") from exc
+            raise BuusdoError(t("err.unknown_api", api=raw)) from exc
 
     def _resolve_target_prefs(
         self, target: EnhancementTarget, options: dict[str, Any]

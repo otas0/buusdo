@@ -61,8 +61,10 @@ jobs:
         run: |
           set -o pipefail
           export QT_QPA_PLATFORM=offscreen
+          export QT_DEBUG_PLUGINS=1
           mkdir -p qt-diag
           python -V | tee qt-diag/python.txt
+          echo "QT_DEBUG_PLUGINS=$QT_DEBUG_PLUGINS" | tee qt-diag/qt-env.txt
           python -c "import os; from PySide6.QtCore import QLibraryInfo; print('QT_QPA_PLATFORM=', os.environ.get('QT_QPA_PLATFORM')); print('PluginsPath=', QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))" | tee qt-diag/qt-plugins.txt || true
           pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
       - name: Upload Qt diagnostic artifact on failure
@@ -92,17 +94,27 @@ jobs:
           python scripts/compile_dwm_hdr_poc.py --out dist/dwm_hdr_poc
           test -f dist/dwm_hdr_poc/manifest.json
           python - <<'PY'
-          import json, hashlib, pathlib, sys
+          import json, hashlib, pathlib, shutil, sys
           root = pathlib.Path("dist/dwm_hdr_poc")
           man = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
           cso = root / "sdr_to_hdr_tonemap.cso"
-          if man.get("status") == "ok":
+          has_compiler = bool(shutil.which("dxc") or shutil.which("dxc.exe") or shutil.which("fxc") or shutil.which("fxc.exe"))
+          kits = pathlib.Path(r"C:\Program Files (x86)\Windows Kits\10\bin")
+          if not has_compiler and kits.is_dir():
+              has_compiler = any((p / "x64" / name).is_file() for p in kits.iterdir() if p.is_dir() for name in ("dxc.exe", "fxc.exe"))
+          if has_compiler:
+              # Windows Kits present: require a successful compile (status=ok).
+              assert man.get("status") == "ok", man
               assert cso.is_file(), "cso missing after ok compile"
               digest = hashlib.sha256(cso.read_bytes()).hexdigest()
               assert man.get("sha256") == digest, (man.get("sha256"), digest)
               print("sha256 ok", digest)
           elif man.get("status") == "skipped_no_compiler":
               print("compiler missing on runner; HLSL materialize-only accepted")
+          elif man.get("status") == "ok":
+              digest = hashlib.sha256(cso.read_bytes()).hexdigest()
+              assert man.get("sha256") == digest
+              print("sha256 ok", digest)
           else:
               print(man)
               sys.exit(1)

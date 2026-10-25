@@ -49,12 +49,12 @@ class ReshadeKit:
         return self.root / "ReShade.ini"
 
     def validate(self) -> None:
+        from buusdo.core.i18n import t
+
         if not self.root.is_dir():
-            raise BuusdoError(f"ReShade kit not found: {self.root}")
+            raise BuusdoError(t("err.reshade_kit_missing", path=self.root))
         if not self.dll64.is_file() and not self.dll32.is_file():
-            raise BuusdoError(
-                f"ReShade kit missing ReShade64.dll / ReShade32.dll under {self.root}"
-            )
+            raise BuusdoError(t("err.reshade_kit_dlls", path=self.root))
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,9 @@ def plan_deploy(
     if not source.is_file():
         source = kit.dll64 if kit.dll64.is_file() else kit.dll32
     if not source.is_file():
-        raise BuusdoError("No usable ReShade DLL in kit")
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.reshade_no_dll"))
 
     source_ini = kit.ini if kit.ini.is_file() else None
     dest_ini = game_dir / "ReShade.ini" if source_ini is not None else None
