@@ -25,8 +25,11 @@ def test_migrate_diff_keys_only(tmp_path: Path, capsys) -> None:
     assert mod.main([str(src), "--dry-run", "--diff-keys-only"]) == 0
     out = capsys.readouterr().out
     assert "WOULD migrate" in out
-    assert "key diff" in out
-    assert "schema_version" in out
+    lines = [ln for ln in out.splitlines() if ln.startswith("{")]
+    assert lines, out
+    row = json.loads(lines[0])
+    assert row["op"] in {"add", "change"}
+    assert "schema_version" in row["key"] or row["key"] == "schema_version"
     assert mod.main([str(src), "--diff-keys-only"]) == 2  # requires --dry-run
 
 

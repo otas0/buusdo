@@ -38,9 +38,11 @@ Do not pass `--require-live` until a real dual-monitor overwrite lands.
 This macOS/CI agent **cannot** run the live record — copy the block below onto a dual-monitor Windows machine.
 
 1. Attach ≥2 monitors; Windows Settings → System → Display shows both.
-2. From a checkout on that host:
+2. From a checkout on that host (or double-click `scripts/ccd_record_windows.bat`):
 
 ```bat
+scripts\ccd_record_windows.bat
+REM or manually:
 python -m pip install -e ".[dev]"
 python scripts/verify_ccd_hdr.py --apply on --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture --require-multi
 python scripts/validate_ccd_fixture.py docs/fixtures/ccd_dual_monitor_sample.json --require-live
