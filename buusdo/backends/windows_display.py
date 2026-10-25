@@ -333,8 +333,8 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
         for s in steps
         if s.get("action") in {"ChangeDisplaySettingsW", "ChangeDisplaySettingsExW"}
     ]
-    failed_displays = [
-        {
+    def _row(s: dict[str, Any]) -> dict[str, Any]:
+        return {
             "device": s.get("device"),
             "device_string": s.get("device_string"),
             "primary": s.get("primary"),
@@ -345,17 +345,26 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
             "height": s.get("height"),
             "refresh_hz": s.get("refresh_hz"),
         }
-        for s in mode_steps
-        if not s.get("ok")
-    ]
+
+    failed_displays = [_row(s) for s in mode_steps if not s.get("ok")]
+    succeeded_displays = [_row(s) for s in mode_steps if s.get("ok")]
     mode_ok = bool(mode_steps) and all(s.get("ok") for s in mode_steps)
+    partial = bool(succeeded_displays) and bool(failed_displays)
     applied = bool(mode_ok or (not snap.get("displays") and hdr_step.get("ok")))
+    # Full restore clears session; partial keeps it so failed displays can be retried.
     if applied and not dry_run:
         clear_display_session()
     return {
         "restored": applied,
+        "partial": partial,
         "failed_displays": failed_displays,
-        "details": {"steps": steps, "hdr": hdr_step, "failed_displays": failed_displays},
+        "succeeded_displays": succeeded_displays,
+        "details": {
+            "steps": steps,
+            "hdr": hdr_step,
+            "failed_displays": failed_displays,
+            "succeeded_displays": succeeded_displays,
+        },
         "snap": snap,
     }
 
@@ -467,6 +476,18 @@ def apply_display_profile(
         "不宣称「已开启光线追踪」。"
     )
     return result
+
+
+def retry_display_mode(
+    *,
+    device: str | None,
+    width: int,
+    height: int,
+    refresh_hz: int | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Retry ChangeDisplaySettings(Ex)W for a single monitor."""
+    return _apply_mode(width, height, refresh_hz, dry_run=dry_run, device=device)
 
 
 def _apply_mode(

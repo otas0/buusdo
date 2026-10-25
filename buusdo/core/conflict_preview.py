@@ -117,9 +117,23 @@ def preview_triple_matrix(
     )
     for issue in report.issues:
         diffs.append(FileDiff("", "conflict", f"[{issue.severity.value}] {issue.message}"))
+    by_sev = {"block": 0, "warning": 0, "info": 0}
+    for issue in report.issues:
+        by_sev[issue.severity.value] = by_sev.get(issue.severity.value, 0) + 1
+    summary = {
+        "reshade_proxy": proxy,
+        "optiscaler_kit": str(optiscaler_kit) if optiscaler_kit else None,
+        "remix_present": bool(remix.get("present")),
+        "remix_enabled": remix.get("enabled"),
+        "issue_counts": by_sev,
+        "blocked": report.blocked,
+        "issue_codes": [i.code for i in report.issues],
+    }
     return {
+        "schema_version": 1,
         "mode": "triple_matrix",
         "blocked": report.blocked,
         "remix": remix,
+        "triple_matrix_summary": summary,
         "diffs": [d.__dict__ for d in diffs],
     }

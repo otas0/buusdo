@@ -1,6 +1,7 @@
 {
   "recorded_at": "2026-10-25T00:00:00+00:00",
-  "note": "ILLUSTRATIVE until overwritten. On dual-monitor Windows: python scripts/verify_ccd_hdr.py --apply on --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture && python scripts/verify_ccd_hdr.py --apply off --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture",
+  "host_windows": false,
+  "note": "ILLUSTRATIVE until overwritten. On dual-monitor Windows: python scripts/verify_ccd_hdr.py --apply on --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture --require-multi && python scripts/verify_ccd_hdr.py --apply off --record docs/fixtures/ccd_dual_monitor_sample.json --overwrite-fixture --require-multi",
   "targets": [
     {
       "adapterLow": 12345,

@@ -50,11 +50,14 @@ from buusdo.core.conflict_preview import (
 from buusdo.backends.windows_display import (
     clear_display_session,
     display_session_status,
+    retry_display_mode,
     rollback_display_session,
 )
 from buusdo.core.crash_report import (
     capture_exception,
+    clear_crash_opt_in_audit,
     crash_upload_opted_in,
+    export_crash_opt_in_audit,
     redact,
     set_crash_upload_opt_in,
 )
@@ -64,7 +67,7 @@ from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.library_progress import resume_scan_status
 from buusdo.core.platform_detect import steam_roots
-from buusdo.core.recent_games import list_recent, remove_recent
+from buusdo.core.recent_games import clear_uninstalled, is_greyed, list_recent, mark_uninstalled
 from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
 from buusdo.core.steam_uris import game_properties_uri_candidates, probe_open_uris
 from buusdo.core.transaction import Transaction
@@ -146,6 +149,17 @@ class MainWindow(QMainWindow):
         filter_row.addWidget(self._filter)
         home.addLayout(filter_row)
 
+        self._kits_banner = QLabel("")
+        self._kits_banner.setWordWrap(True)
+        self._kits_banner.setStyleSheet("color: #B08900;")
+        self._btn_complete_kits = QPushButton(t("settings.complete_kits"))
+        self._btn_complete_kits.clicked.connect(self._complete_kits_setup)
+        kits_row = QHBoxLayout()
+        kits_row.addWidget(self._kits_banner, stretch=1)
+        kits_row.addWidget(self._btn_complete_kits)
+        home.addLayout(kits_row)
+        self._refresh_kits_banner()
+
         home.addWidget(QLabel("Games"))
         self._game_list = QListWidget()
         self._game_list.setAccessibleName("游戏列表")
@@ -155,6 +169,7 @@ class MainWindow(QMainWindow):
         self._progress = QProgressBar()
         self._progress.setRange(0, 100)
         self._progress.setValue(0)
+        self._progress.setFormat("%p%")
         self._progress.setVisible(False)
         home.addWidget(self._progress)
 
@@ -209,6 +224,14 @@ class MainWindow(QMainWindow):
         self._crash_opt.setChecked(crash_upload_opted_in())
         self._crash_opt.toggled.connect(self._on_crash_opt_toggled)
         home.addWidget(self._crash_opt)
+        audit_row = QHBoxLayout()
+        self._btn_export_audit = QPushButton(t("action.export_audit"))
+        self._btn_clear_audit = QPushButton(t("action.clear_audit"))
+        self._btn_export_audit.clicked.connect(self._export_crash_audit)
+        self._btn_clear_audit.clicked.connect(self._clear_crash_audit)
+        audit_row.addWidget(self._btn_export_audit)
+        audit_row.addWidget(self._btn_clear_audit)
+        home.addLayout(audit_row)
 
         self._session_banner = QLabel("")
         self._session_banner.setWordWrap(True)
@@ -294,6 +317,7 @@ class MainWindow(QMainWindow):
 
         if needs_wizard():
             FirstRunWizard(self).exec()
+            self._refresh_kits_banner()
 
     def _setup_tray(self) -> None:
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -322,13 +346,47 @@ class MainWindow(QMainWindow):
         menu.clear()
         for item in list_recent():
             name = str(item.get("name") or "game")
-            act = QAction(f"Uninstall {name}", self)
-            act.triggered.connect(lambda _=False, data=item: self._tray_uninstall(data))
-            menu.addAction(act)
+            if is_greyed(item):
+                grey = QAction(f"{name} {t('tray.uninstalled')}", self)
+                grey.setEnabled(False)
+                menu.addAction(grey)
+                clear_act = QAction(t("tray.clear_uninstalled"), self)
+                clear_act.triggered.connect(
+                    lambda _=False, data=item: self._tray_clear_uninstalled(data)
+                )
+                menu.addAction(clear_act)
+            else:
+                act = QAction(f"Uninstall {name}", self)
+                act.triggered.connect(lambda _=False, data=item: self._tray_uninstall(data))
+                menu.addAction(act)
         if menu.isEmpty():
             empty = QAction("(none)", self)
             empty.setEnabled(False)
             menu.addAction(empty)
+
+    def _tray_clear_uninstalled(self, data: dict) -> None:
+        if clear_uninstalled(data):
+            self._rebuild_tray_recent()
+            self._status.setText(t("tray.clear_uninstalled"))
+
+    def _refresh_kits_banner(self) -> None:
+        skipped = bool(load_settings().get("wizard_skipped_kits"))
+        has_kit = get_reshade_kit_path() is not None or get_optiscaler_kit_path() is not None
+        show = skipped and not has_kit
+        self._kits_banner.setText(t("settings.kits_banner") if show else "")
+        self._btn_complete_kits.setVisible(show)
+
+    def _complete_kits_setup(self) -> None:
+        FirstRunWizard(self).exec()
+        data = load_settings()
+        if get_reshade_kit_path() or get_optiscaler_kit_path():
+            data["wizard_skipped_kits"] = False
+            data["wizard_completed"] = True
+            save_settings(data)
+        self._refresh_kits_banner()
+        kit = get_reshade_kit_path()
+        if kit:
+            self._status.setText(f"ReShade: {kit}")
 
     def _tray_uninstall(self, data: dict) -> None:
         name = str(data.get("name") or "game")
@@ -349,7 +407,7 @@ class MainWindow(QMainWindow):
         )
         try:
             result = self._backend.uninstall(target)
-            remove_recent(data)
+            mark_uninstalled(data)
             self._status.setText(result.message)
             if hasattr(self, "_tray"):
                 self._tray.showMessage("buusdo", result.message)
@@ -391,14 +449,19 @@ class MainWindow(QMainWindow):
         self._btn_cancel.setEnabled(True)
 
         def on_progress(stage: str, value: float) -> None:
-            self._progress.setValue(int(value * 100))
+            pct = int(max(0, min(100, value * 100)))
+            self._progress.setValue(pct)
             if isinstance(stage, str) and stage.startswith("resume:"):
                 st = resume_scan_status()
+                scanned = int(st.get("scanned", 0) or 0)
+                total = max(1, int(st.get("total_manifests", 0) or 1))
+                resume_pct = int(100 * scanned / total)
+                self._progress.setValue(max(pct, min(99, resume_pct)))
                 self._status.setText(
                     t(
                         "scan.resume",
-                        scanned=st.get("scanned", 0),
-                        total=st.get("total_manifests", 0),
+                        scanned=scanned,
+                        total=total,
                         match=st.get("fingerprint_match"),
                     )
                 )
@@ -406,11 +469,14 @@ class MainWindow(QMainWindow):
         # Surface pending resume before worker starts
         resume = resume_scan_status()
         if resume.get("resume"):
+            scanned = int(resume.get("scanned", 0) or 0)
+            total = max(1, int(resume.get("total_manifests", 0) or 1))
+            self._progress.setValue(int(100 * scanned / total))
             self._status.setText(
                 t(
                     "scan.resume",
-                    scanned=resume.get("scanned", 0),
-                    total=resume.get("total_manifests", 0),
+                    scanned=scanned,
+                    total=total,
                     match=resume.get("fingerprint_match"),
                 )
             )
@@ -580,12 +646,20 @@ class MainWindow(QMainWindow):
         if path:
             set_reshade_kit_path(path)
             self._status.setText(path)
+            data = load_settings()
+            data["wizard_skipped_kits"] = False
+            save_settings(data)
+            self._refresh_kits_banner()
 
     def _pick_optiscaler_kit(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "OptiScaler")
         if path:
             set_optiscaler_kit_path(path)
             self._status.setText(path)
+            data = load_settings()
+            data["wizard_skipped_kits"] = False
+            save_settings(data)
+            self._refresh_kits_banner()
 
     def _install_options(self) -> dict:
         opts: dict = {"mode": self._mode_combo.currentData()}
@@ -673,7 +747,13 @@ class MainWindow(QMainWindow):
                 table.setItem(i, col, cell)
         table.resizeColumnsToContents()
         layout.addWidget(table)
-        payload = {"mode": details.get("mode"), "blocked": details.get("blocked"), "diffs": details.get("diffs") or []}
+        payload = {
+            "schema_version": details.get("schema_version", 1),
+            "mode": details.get("mode"),
+            "blocked": details.get("blocked"),
+            "triple_matrix_summary": details.get("triple_matrix_summary"),
+            "diffs": details.get("diffs") or [],
+        }
         actions = QHBoxLayout()
         copy_btn = QPushButton(t("action.copy_json"))
         export_btn = QPushButton(t("action.export_json"))
@@ -747,18 +827,105 @@ class MainWindow(QMainWindow):
         result = rollback_display_session(dry_run=False)
         self._refresh_session_banner()
         if result.get("restored"):
-            self._status.setText(t("action.rollback_now"))
+            self._status.setText(t("display.rollback_ok"))
+            if hasattr(self, "_tray"):
+                self._tray.showMessage("buusdo", t("display.rollback_ok"))
+            self._refresh_capabilities()
+            self._refresh_game_list()
             return
         failed = result.get("failed_displays") or []
+        succeeded = result.get("succeeded_displays") or []
         if failed:
-            devices = ", ".join(
-                str(f.get("device_string") or f.get("device") or "?") for f in failed
-            )
-            QMessageBox.warning(
-                self, "buusdo", t("display.rollback_failed", devices=devices)
-            )
+            if succeeded or result.get("partial"):
+                msg = t(
+                    "display.rollback_partial",
+                    ok=len(succeeded),
+                    fail=len(failed),
+                )
+                self._status.setText(msg)
+                if hasattr(self, "_tray"):
+                    self._tray.showMessage("buusdo", msg)
+                self._refresh_capabilities()
+            self._show_rollback_failures(failed)
         else:
             self._status.setText(str(result.get("reason") or "no_session"))
+
+    def _show_rollback_failures(self, failed: list) -> None:
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("display.fail_table"))
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(QLabel(t("display.fail_table")))
+        table = QTableWidget(len(failed), 5)
+        table.setHorizontalHeaderLabels(
+            ["device", "name", "code", "size", "refresh"]
+        )
+        for i, row in enumerate(failed):
+            table.setItem(i, 0, QTableWidgetItem(str(row.get("device") or "")))
+            table.setItem(i, 1, QTableWidgetItem(str(row.get("device_string") or "")))
+            table.setItem(i, 2, QTableWidgetItem(str(row.get("code") if row.get("code") is not None else row.get("error") or "")))
+            table.setItem(
+                i,
+                3,
+                QTableWidgetItem(f"{row.get('width')}x{row.get('height')}"),
+            )
+            table.setItem(i, 4, QTableWidgetItem(str(row.get("refresh_hz") or "")))
+        table.resizeColumnsToContents()
+        layout.addWidget(table)
+        retry = QPushButton(t("display.retry_one"))
+
+        def _retry() -> None:
+            r = table.currentRow()
+            if r < 0 or r >= len(failed):
+                return
+            row = failed[r]
+            out = retry_display_mode(
+                device=row.get("device"),
+                width=int(row.get("width") or 0),
+                height=int(row.get("height") or 0),
+                refresh_hz=row.get("refresh_hz"),
+                dry_run=False,
+            )
+            if out.get("ok"):
+                QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+                table.removeRow(r)
+                failed.pop(r)
+            else:
+                QMessageBox.warning(
+                    self,
+                    "buusdo",
+                    t(
+                        "display.rollback_failed",
+                        devices=str(row.get("device_string") or row.get("device")),
+                    ),
+                )
+
+        retry.clicked.connect(_retry)
+        close = QPushButton("OK")
+        close.clicked.connect(dlg.accept)
+        row = QHBoxLayout()
+        row.addWidget(retry)
+        row.addWidget(close)
+        layout.addLayout(row)
+        dlg.resize(640, 320)
+        dlg.exec()
+
+    def _export_crash_audit(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, t("action.export_audit"), "buusdo-crash-audit.jsonl", "JSONL (*.jsonl)"
+        )
+        if not path:
+            return
+        try:
+            export_crash_opt_in_audit(Path(path))
+            self._status.setText(t("action.export_audit"))
+        except OSError as exc:
+            QMessageBox.warning(
+                self, "buusdo", t("action.export_audit_failed", error=str(exc))
+            )
+
+    def _clear_crash_audit(self) -> None:
+        clear_crash_opt_in_audit()
+        self._status.setText(t("action.clear_audit"))
 
     def _on_preview(self) -> None:
         if not self._target:

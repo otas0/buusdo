@@ -219,32 +219,79 @@ def discover_bridgeplay_config_files(config_dir: Path) -> dict[str, Path | None]
     return {"ini": ini, "plist": plist}
 
 
-def _merge_ini_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
-    cp = configparser.ConfigParser()
-    try:
-        cp.read_string(existing)
-    except configparser.Error:
-        cp = configparser.ConfigParser()
-    # Prefer [MetalFX]; also upgrade legacy / GPTK [metalfx] keys.
-    section = "MetalFX"
-    if not cp.has_section(section) and cp.has_section("metalfx"):
-        section = "metalfx"
-    if not cp.has_section(section):
-        cp.add_section(section)
-    cp[section]["enabled"] = "true" if enable else "false"
-    cp[section]["quality"] = str(quality)
-    cp[section]["upscaler"] = "metalfx"
-    if scale is not None:
-        cp[section]["scale"] = str(float(scale))
-    if section != "MetalFX" and not cp.has_section("MetalFX"):
-        cp.add_section("MetalFX")
-        for key, value in cp[section].items():
-            cp["MetalFX"][key] = value
-    from io import StringIO
+def _upsert_ini_section_key(text: str, section: str, key: str, value: str) -> str:
+    """Upsert key=value under [section] while preserving comments and line order."""
+    lines = text.splitlines(keepends=True)
+    if not lines and text:
+        lines = [text]
+    section_re = re.compile(rf"^\[{re.escape(section)}\]\s*$", re.IGNORECASE)
+    any_section = re.compile(r"^\[.+\]\s*$")
+    key_re = re.compile(rf"^(\s*{re.escape(key)}\s*=\s*).*$", re.IGNORECASE)
+    start = None
+    end = len(lines)
+    for i, line in enumerate(lines):
+        if section_re.match(line.strip()):
+            start = i
+            break
+    if start is None:
+        suffix = "" if (not text or text.endswith("\n")) else "\n"
+        block = f"{suffix}[{section}]\n{key} = {value}\n"
+        return text + block
+    for j in range(start + 1, len(lines)):
+        if any_section.match(lines[j].strip()):
+            end = j
+            break
+    body = lines[start + 1 : end]
+    replaced = False
+    for k, line in enumerate(body):
+        m = key_re.match(line.rstrip("\n\r"))
+        if m:
+            nl = "\n" if line.endswith("\n") else ""
+            body[k] = f"{m.group(1)}{value}{nl}"
+            replaced = True
+            break
+    if not replaced:
+        insert = f"{key} = {value}\n"
+        # Keep blank trailing line of section if present.
+        if body and body[-1].strip() == "":
+            body.insert(len(body) - 1, insert)
+        else:
+            body.append(insert)
+    return "".join(lines[: start + 1] + body + lines[end:])
 
-    buf = StringIO()
-    cp.write(buf)
-    return buf.getvalue()
+
+def _merge_ini_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
+    text = existing
+    # Prefer [MetalFX]; also upgrade legacy / GPTK [metalfx] keys in-place.
+    has_metalfx = bool(re.search(r"(?im)^\[MetalFX\]\s*$", text))
+    has_legacy = bool(re.search(r"(?im)^\[metalfx\]\s*$", text))
+    section = "MetalFX" if has_metalfx or not has_legacy else "metalfx"
+    text = _upsert_ini_section_key(text, section, "enabled", "true" if enable else "false")
+    text = _upsert_ini_section_key(text, section, "quality", str(quality))
+    text = _upsert_ini_section_key(text, section, "upscaler", "metalfx")
+    if scale is not None:
+        text = _upsert_ini_section_key(text, section, "scale", str(float(scale)))
+    if section != "MetalFX" and not has_metalfx:
+        text = _upsert_ini_section_key(text, "MetalFX", "enabled", "true" if enable else "false")
+        text = _upsert_ini_section_key(text, "MetalFX", "quality", str(quality))
+        text = _upsert_ini_section_key(text, "MetalFX", "upscaler", "metalfx")
+        if scale is not None:
+            text = _upsert_ini_section_key(text, "MetalFX", "scale", str(float(scale)))
+    # GPTK [renderer]: only touch upscaler (and api when enabling); keep comments/order.
+    upscaler_val = "metalfx" if enable else "none"
+    if not enable:
+        m = re.search(r"(?im)^\[renderer\]\s*$([\s\S]*?)(?=^\[|\Z)", text)
+        if m:
+            um = re.search(r"(?im)^\s*upscaler\s*=\s*(.+)$", m.group(1))
+            if um:
+                upscaler_val = um.group(1).strip() or "none"
+    text = _upsert_ini_section_key(text, "renderer", "upscaler", upscaler_val)
+    if enable:
+        # Only set api if missing — do not clobber an existing value.
+        rend = re.search(r"(?im)^\[renderer\]\s*$([\s\S]*?)(?=^\[|\Z)", text)
+        if not rend or not re.search(r"(?im)^\s*api\s*=", rend.group(1)):
+            text = _upsert_ini_section_key(text, "renderer", "api", "metal")
+    return text
 
 
 def _merge_plist_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
