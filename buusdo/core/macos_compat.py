@@ -294,8 +294,24 @@ def _merge_ini_text(existing: str, *, enable: bool, quality: str, scale: float |
     return text
 
 
+def _upsert_plist_key(text: str, key: str, value_xml: str) -> str:
+    """Replace or insert a plist key while preserving surrounding comments and order."""
+    pattern = re.compile(
+        rf"(<key>{re.escape(key)}</key>\s*)(<true/>|<false/>|<string>[^<]*</string>|<real>[^<]*</real>)",
+        re.IGNORECASE,
+    )
+    if pattern.search(text):
+        return pattern.sub(rf"\1{value_xml}", text, count=1)
+    # Insert before the last </dict> of the root plist (preserve prior keys/comments).
+    close = text.rfind("</dict>")
+    if close < 0:
+        return text
+    insert = f"\t<key>{key}</key>\n\t{value_xml}\n"
+    return text[:close] + insert + text[close:]
+
+
 def _merge_plist_text(existing: str, *, enable: bool, quality: str, scale: float | None) -> str:
-    """Naive XML plist merge: upsert known MetalFX keys; rewrite whole dict if unparsable."""
+    """Upsert MetalFX plist keys without rewriting unrelated entries/comments."""
     keys = {
         "metalfx.enabled": f"<{ 'true' if enable else 'false' }/>",
         "metalfx.quality": f"<string>{quality}</string>",
@@ -307,14 +323,7 @@ def _merge_plist_text(existing: str, *, enable: bool, quality: str, scale: float
     if "<plist" not in text or "<dict>" not in text:
         return bridgeplay_metalfx_file_contents(enable=enable, quality=quality, scale=scale)["plist"]
     for key, value_xml in keys.items():
-        pattern = re.compile(
-            rf"(<key>{re.escape(key)}</key>\s*)(<true/>|<false/>|<string>[^<]*</string>|<real>[^<]*</real>)",
-            re.IGNORECASE,
-        )
-        if pattern.search(text):
-            text = pattern.sub(rf"\1{value_xml}", text, count=1)
-        else:
-            text = text.replace("</dict>", f"\t<key>{key}</key>\n\t{value_xml}\n</dict>", 1)
+        text = _upsert_plist_key(text, key, value_xml)
     return text
 
 

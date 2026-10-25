@@ -7,7 +7,7 @@ import sys
 
 from buusdo.core.i18n import _STRINGS
 
-_PREFIXES = ("err.", "cap.", "action.")
+_PREFIXES = ("err.", "cap.", "action.", "display.", "tray.")
 
 
 def _check_prefix(prefix: str) -> list[str]:

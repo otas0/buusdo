@@ -119,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
     manifest["stderr"] = proc.stderr[-2000:]
     if proc.returncode != 0 or not cso.is_file():
         manifest["status"] = "compile_failed"
+        zpath, hashes = _pack_hlsl_sources(src_root, args.out)
+        manifest["hlsl_sha256"] = hashes
+        manifest["hlsl_sources_zip"] = str(zpath.name)
         (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         print(proc.stderr or proc.stdout, file=sys.stderr)
         return 1

@@ -314,8 +314,9 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
         return {"restored": False, "reason": "no_session"}
     if os.name != "nt":
         return {"restored": False, "reason": "not_windows", "snap": snap}
+    snap_targets = list(snap.get("targets") or [])
     steps: list[dict[str, Any]] = []
-    for disp in snap.get("displays") or []:
+    for idx, disp in enumerate(snap.get("displays") or []):
         step = _apply_mode(
             int(disp["width"]),
             int(disp["height"]),
@@ -325,8 +326,14 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
         )
         step["device_string"] = disp.get("device_string")
         step["primary"] = bool(disp.get("primary"))
+        if idx < len(snap_targets):
+            tgt = snap_targets[idx]
+            step["adapterLow"] = tgt.get("adapterLow")
+            step["adapterHigh"] = tgt.get("adapterHigh")
+            step["targetId"] = tgt.get("targetId")
         steps.append(step)
-    hdr_step = _set_hdr_advanced_color(bool(snap.get("hdr")), dry_run=dry_run)
+    hdr_enable = bool(snap.get("hdr"))
+    hdr_step = _set_hdr_advanced_color(hdr_enable, dry_run=dry_run)
     steps.append(hdr_step)
     mode_steps = [
         s
@@ -344,6 +351,10 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
             "width": s.get("width"),
             "height": s.get("height"),
             "refresh_hz": s.get("refresh_hz"),
+            "adapterLow": s.get("adapterLow"),
+            "adapterHigh": s.get("adapterHigh"),
+            "targetId": s.get("targetId"),
+            "hdr_enable": hdr_enable,
         }
 
     failed_displays = [_row(s) for s in mode_steps if not s.get("ok")]
@@ -375,7 +386,7 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
 def _prune_session_to_failed(
     snap: dict[str, Any], failed_displays: list[dict[str, Any]]
 ) -> None:
-    """Keep only failed monitors in the session so retries do not re-touch successes."""
+    """Keep only failed monitors (+ matching CCD targets) so retries skip successes."""
     fail_devices = {d.get("device") for d in failed_displays}
     remaining = [
         d
@@ -395,6 +406,26 @@ def _prune_session_to_failed(
     snap["width"] = primary.get("width")
     snap["height"] = primary.get("height")
     snap["refresh_hz"] = primary.get("refresh_hz")
+    fail_keys = {
+        (
+            int(d["adapterLow"]) if d.get("adapterLow") is not None else None,
+            int(d["adapterHigh"]) if d.get("adapterHigh") is not None else None,
+            int(d["targetId"]) if d.get("targetId") is not None else None,
+        )
+        for d in failed_displays
+        if d.get("targetId") is not None and d.get("adapterLow") is not None
+    }
+    if fail_keys:
+        snap["targets"] = [
+            t
+            for t in (snap.get("targets") or [])
+            if (
+                int(t["adapterLow"]) if t.get("adapterLow") is not None else None,
+                int(t["adapterHigh"]) if t.get("adapterHigh") is not None else None,
+                int(t["targetId"]) if t.get("targetId") is not None else None,
+            )
+            in fail_keys
+        ]
     path = _session_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")

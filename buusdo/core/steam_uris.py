@@ -8,14 +8,31 @@ from typing import Iterable
 from buusdo.core.config_store import load_settings, save_settings
 
 # Prefer re-probing after a week so a Steam client update cannot pin a dead scheme forever.
-STEAM_URI_CACHE_TTL_S = 7 * 24 * 3600
+DEFAULT_STEAM_URI_CACHE_TTL_S = 7 * 24 * 3600
+# Back-compat alias.
+STEAM_URI_CACHE_TTL_S = DEFAULT_STEAM_URI_CACHE_TTL_S
+
+
+def steam_uri_cache_ttl_s() -> int:
+    """Settings-configurable TTL (seconds); default 7 days. Floor at 1 hour."""
+    raw = load_settings().get("steam_properties_uri_ttl_s")
+    try:
+        ttl = int(raw) if raw is not None else DEFAULT_STEAM_URI_CACHE_TTL_S
+    except (TypeError, ValueError):
+        ttl = DEFAULT_STEAM_URI_CACHE_TTL_S
+    return max(3600, ttl)
+
+
+def set_steam_uri_cache_ttl_s(seconds: int) -> None:
+    data = load_settings()
+    data["steam_properties_uri_ttl_s"] = max(3600, int(seconds))
+    save_settings(data)
 
 
 def game_properties_uri_candidates(app_id: str | int) -> list[str]:
     app_id = str(app_id)
     cached = cached_properties_template()
     if cached:
-        # Prefer last-known working scheme first.
         preferred = cached.replace("{app_id}", app_id)
         rest = [
             u
@@ -62,11 +79,12 @@ def cached_properties_template(*, now: datetime | None = None) -> str | None:
         return None
     probed = _parse_probed_at(data.get("steam_properties_uri_probed_at"))
     clock = now or datetime.now(timezone.utc)
+    ttl = steam_uri_cache_ttl_s()
     if probed is not None:
         if probed.tzinfo is None:
             probed = probed.replace(tzinfo=timezone.utc)
         age = (clock - probed).total_seconds()
-        if age < 0 or age > STEAM_URI_CACHE_TTL_S:
+        if age < 0 or age > ttl:
             clear_properties_uri_cache()
             return None
     return str(tpl)
