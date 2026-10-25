@@ -8,6 +8,8 @@ from typing import Any
 
 from buusdo.backends.goverlay import find_goverlay, launch_goverlay
 from buusdo.core import anticheat_guard, conflict, history, preflight, reshade
+from buusdo.core.proton_health import check_proton_prefix
+from buusdo.core.vkbasalt_template import steam_launch_for, write_template
 from buusdo.core.backend import (
     Capability,
     EnhancementBackend,
@@ -137,11 +139,15 @@ class LinuxBackend(EnhancementBackend):
     def status(self, target: EnhancementTarget) -> dict[str, Any]:
         info = reshade.status(target.install_path)
         env_path = target.install_path / _VKBASALT_STATE
+        health = check_proton_prefix(target)
         return {
             "platform": self.platform_id(),
             "reshade": info,
             "installed": info.get("installed") or env_path.is_file(),
             "proton_prefix": target.metadata.get("proton_prefix"),
+            "proton_health": None
+            if health is None
+            else {"ok": health.ok, "code": health.code, "message": health.message},
             "vkbasalt_configured": env_path.is_file(),
             "executables": target.metadata.get("executables")
             or [str(p) for p in list_executable_candidates(target.install_path)],
@@ -250,12 +256,20 @@ class LinuxBackend(EnhancementBackend):
 
     def _install_vkbasalt(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         conf = options.get("VKBASALT_CONFIG_FILE", "")
-        launch = "ENABLE_VKBASALT=1 %command%"
-        if conf:
-            launch = f"ENABLE_VKBASALT=1 VKBASALT_CONFIG_FILE={conf} %command%"
+        template_path = target.install_path / ".buusdo" / "vkBasalt.conf"
+        sharpness = float(options.get("cas_sharpness", 0.4))
+        generate = not conf
+        if generate:
+            conf = str(template_path)
+        launch = steam_launch_for(Path(conf))
         path = target.install_path / _VKBASALT_STATE
-        details: dict[str, Any] = {}
+        details: dict[str, Any] = {"template": conf}
         with Transaction() as tx:
+            if generate:
+                # Materialize template text then write transactionally
+                write_template(template_path, sharpness=sharpness)
+                text = template_path.read_text(encoding="utf-8")
+                tx.write_text(template_path, text)
             tx.ensure_dir(path.parent)
             tx.write_text(
                 path,
@@ -263,6 +277,7 @@ class LinuxBackend(EnhancementBackend):
                     {
                         "target": target.name,
                         "steam_launch_options": launch,
+                        "config_file": conf,
                         "note": "近似后处理：由系统已安装的 vkBasalt/vkSumi 层执行。",
                     },
                     indent=2,

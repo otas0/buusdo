@@ -5,9 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -16,8 +17,10 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QStackedWidget,
+    QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
 )
@@ -27,27 +30,35 @@ from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
     export_configs,
+    get_optiscaler_kit_path,
     get_reshade_kit_path,
     import_configs,
+    load_settings,
+    save_settings,
     set_optiscaler_kit_path,
     set_reshade_kit_path,
     update_game_config,
 )
+from buusdo.core.conflict_preview import preview_optiscaler_deploy, preview_reshade_deploy
+from buusdo.core.crash_report import capture_exception
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
-from buusdo.core.library_cache import invalidate_cache
+from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.platform_detect import steam_roots
 from buusdo.core.steam_launch import list_steam_users
 from buusdo.ui.blocked_page import BlockedPage
+from buusdo.ui.scan_worker import start_scan
 from buusdo.ui.theme import badge_color
+from buusdo.ui.tray_icon import make_mark_icon
+from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 
 
 class MainWindow(QMainWindow):
     def __init__(self, backend: EnhancementBackend | None = None):
         super().__init__()
         self.setWindowTitle("buusdo")
-        self.resize(960, 680)
+        self.resize(980, 720)
 
         logo = logo_path()
         if logo.is_file():
@@ -57,6 +68,11 @@ class MainWindow(QMainWindow):
         self._target: EnhancementTarget | None = None
         self._games: list[EnhancementTarget] = []
         self._filtered: list[EnhancementTarget] = []
+        self._scan_thread = None
+
+        settings = load_settings()
+        if settings.get("locale") in available_locales():
+            set_locale(settings["locale"])
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -78,13 +94,19 @@ class MainWindow(QMainWindow):
         tf.setBold(True)
         title.setFont(tf)
         brand_text.addWidget(title)
-        sub = QLabel("图形增强调度器 · 配置协调器")
-        sub.setObjectName("brandSubtitle")
-        brand_text.addWidget(sub)
+        self._subtitle = QLabel(t("app.subtitle"))
+        self._subtitle.setObjectName("brandSubtitle")
+        brand_text.addWidget(self._subtitle)
         brand.addLayout(brand_text)
         brand.addStretch(1)
+        self._lang = QComboBox()
+        for loc in available_locales():
+            self._lang.addItem(loc, loc)
+        self._lang.setCurrentIndex(self._lang.findData(get_locale()))
+        self._lang.currentIndexChanged.connect(self._on_locale_changed)
+        brand.addWidget(self._lang)
         outer.addLayout(brand)
-        outer.addWidget(QLabel(f"后端：{self._backend.platform_id()}"))
+        outer.addWidget(QLabel(f"backend: {self._backend.platform_id()}"))
 
         self._stack = QStackedWidget()
         outer.addWidget(self._stack, stretch=1)
@@ -93,27 +115,32 @@ class MainWindow(QMainWindow):
         home = QVBoxLayout(self._home)
 
         filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("过滤："))
+        filter_row.addWidget(QLabel("Filter"))
         self._filter = QLineEdit()
-        self._filter.setPlaceholderText("按名称搜索…")
         self._filter.setAccessibleName("游戏列表过滤")
         self._filter.textChanged.connect(self._refresh_game_list)
         filter_row.addWidget(self._filter)
         home.addLayout(filter_row)
 
-        home.addWidget(QLabel("已发现的游戏："))
+        home.addWidget(QLabel("Games"))
         self._game_list = QListWidget()
         self._game_list.setAccessibleName("游戏列表")
         self._game_list.currentRowChanged.connect(self._on_game_selected)
         home.addWidget(self._game_list, stretch=1)
 
+        self._progress = QProgressBar()
+        self._progress.setRange(0, 100)
+        self._progress.setValue(0)
+        self._progress.setVisible(False)
+        home.addWidget(self._progress)
+
         pref_row = QHBoxLayout()
-        pref_row.addWidget(QLabel("可执行文件："))
+        pref_row.addWidget(QLabel("EXE"))
         self._exe_combo = QComboBox()
         pref_row.addWidget(self._exe_combo, stretch=1)
-        pref_row.addWidget(QLabel("API："))
+        pref_row.addWidget(QLabel("API"))
         self._api_combo = QComboBox()
-        self._api_combo.addItem("自动", "")
+        self._api_combo.addItem("auto", "")
         for api in GraphicsApi:
             if api is GraphicsApi.UNKNOWN:
                 continue
@@ -122,50 +149,53 @@ class MainWindow(QMainWindow):
         home.addLayout(pref_row)
 
         user_row = QHBoxLayout()
-        user_row.addWidget(QLabel("Steam 用户："))
+        user_row.addWidget(QLabel("Steam user"))
         self._steam_user = QComboBox()
-        self._steam_user.setAccessibleName("Steam 用户选择")
         user_row.addWidget(self._steam_user, stretch=1)
         home.addLayout(user_row)
         self._reload_steam_users()
 
         mode_row = QHBoxLayout()
-        mode_row.addWidget(QLabel("安装模式："))
+        mode_row.addWidget(QLabel("Mode"))
         self._mode_combo = QComboBox()
         for mode, label in (
             ("reshade", "ReShade"),
-            ("optiscaler", "OptiScaler / 神经画质"),
-            ("vkbasalt", "vkBasalt（近似）"),
+            ("optiscaler", "OptiScaler"),
+            ("vkbasalt", "vkBasalt"),
             ("goverlay", "Goverlay"),
-            ("display_profile", "显示/HDR 配置"),
-            ("rtx_remix_enable", "启用 RTX Remix mod"),
-            ("rtx_remix_disable", "禁用 RTX Remix mod"),
+            ("display_profile", "Display/HDR"),
+            ("preview", "Conflict preview"),
+            ("rtx_remix_enable", "Remix enable"),
+            ("rtx_remix_disable", "Remix disable"),
+            ("dwm_hdr", "DWM HDR prototype"),
         ):
             self._mode_combo.addItem(label, mode)
         mode_row.addWidget(self._mode_combo)
         home.addLayout(mode_row)
 
-        home.addWidget(QLabel("能力："))
+        home.addWidget(QLabel("Capabilities"))
         self._cap_list = QListWidget()
         home.addWidget(self._cap_list)
 
-        home.addWidget(QLabel("操作历史："))
+        home.addWidget(QLabel("History"))
         self._history_list = QListWidget()
         home.addWidget(self._history_list)
 
         buttons = QHBoxLayout()
-        self._btn_scan = QPushButton("扫描 Steam 库")
-        self._btn_force = QPushButton("强制全量刷新")
-        self._btn_kit = QPushButton("ReShade 工具包…")
-        self._btn_opti = QPushButton("OptiScaler 工具包…")
-        self._btn_install = QPushButton("部署增强")
-        self._btn_uninstall = QPushButton("卸载")
-        self._btn_export = QPushButton("导出配置")
-        self._btn_import = QPushButton("导入配置")
-        self._btn_history = QPushButton("刷新历史")
+        self._btn_scan = QPushButton(t("action.scan"))
+        self._btn_force = QPushButton(t("action.force_scan"))
+        self._btn_preview = QPushButton(t("conflict.title"))
+        self._btn_kit = QPushButton("ReShade…")
+        self._btn_opti = QPushButton("OptiScaler…")
+        self._btn_install = QPushButton(t("action.deploy"))
+        self._btn_uninstall = QPushButton(t("action.uninstall"))
+        self._btn_export = QPushButton("Export")
+        self._btn_import = QPushButton("Import")
+        self._btn_history = QPushButton("History")
         for b in (
             self._btn_scan,
             self._btn_force,
+            self._btn_preview,
             self._btn_kit,
             self._btn_opti,
             self._btn_install,
@@ -186,6 +216,7 @@ class MainWindow(QMainWindow):
 
         self._btn_scan.clicked.connect(lambda: self._scan_games(force=False))
         self._btn_force.clicked.connect(lambda: self._scan_games(force=True))
+        self._btn_preview.clicked.connect(self._on_preview)
         self._btn_kit.clicked.connect(self._pick_reshade_kit)
         self._btn_opti.clicked.connect(self._pick_optiscaler_kit)
         self._btn_install.clicked.connect(self._on_install)
@@ -196,30 +227,83 @@ class MainWindow(QMainWindow):
 
         kit = get_reshade_kit_path()
         if kit:
-            self._status.setText(f"ReShade 工具包：{kit}")
+            self._status.setText(f"ReShade: {kit}")
         self._refresh_history()
+        self._setup_tray()
+
+        if needs_wizard():
+            FirstRunWizard(self).exec()
+
+    def _setup_tray(self) -> None:
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
+        self._tray = QSystemTrayIcon(make_mark_icon(64), self)
+        self._tray.setToolTip("buusdo")
+        show = QAction("Show", self)
+        show.triggered.connect(self.showNormal)
+        quit_act = QAction("Quit", self)
+        quit_act.triggered.connect(self.close)
+        from PySide6.QtWidgets import QMenu
+
+        menu = QMenu()
+        menu.addAction(show)
+        menu.addAction(quit_act)
+        self._tray.setContextMenu(menu)
+        self._tray.show()
+
+    def _on_locale_changed(self) -> None:
+        loc = self._lang.currentData()
+        if not loc:
+            return
+        set_locale(loc)
+        data = load_settings()
+        data["locale"] = loc
+        save_settings(data)
+        self._subtitle.setText(t("app.subtitle"))
+        self._btn_scan.setText(t("action.scan"))
+        self._btn_force.setText(t("action.force_scan"))
+        self._btn_install.setText(t("action.deploy"))
+        self._btn_uninstall.setText(t("action.uninstall"))
+        self._btn_preview.setText(t("conflict.title"))
 
     def _reload_steam_users(self) -> None:
         self._steam_user.clear()
-        self._steam_user.addItem("（默认第一个）", "")
-        try:
-            roots = steam_roots()
-        except Exception:
-            roots = []
-        for profile in list_steam_users(roots):
+        self._steam_user.addItem("(default)", "")
+        for profile in list_steam_users(steam_roots()):
             self._steam_user.addItem(profile.label, profile.steam_id3)
 
     def _scan_games(self, *, force: bool) -> None:
-        if force:
-            invalidate_cache()
-        # force path: backends use cache; invalidate then rediscover
-        self._games = self._backend.discover_games()
-        if force:
-            # second pass after invalidate already done; discover fills cache
-            pass
-        self._refresh_game_list()
-        self._reload_steam_users()
-        self._status.setText(f"发现 {len(self._games)} 个 Steam 游戏。")
+        self._progress.setVisible(True)
+        self._progress.setValue(0)
+        self._status.setText(t("scan.progress"))
+        self._btn_scan.setEnabled(False)
+        self._btn_force.setEnabled(False)
+
+        def on_progress(_stage: str, value: float) -> None:
+            self._progress.setValue(int(value * 100))
+
+        def on_finished(games: list) -> None:
+            self._games = games
+            self._refresh_game_list()
+            self._reload_steam_users()
+            self._status.setText(f"{len(games)} games")
+            self._progress.setVisible(False)
+            self._btn_scan.setEnabled(True)
+            self._btn_force.setEnabled(True)
+
+        def on_failed(message: str) -> None:
+            self._status.setText(message)
+            self._progress.setVisible(False)
+            self._btn_scan.setEnabled(True)
+            self._btn_force.setEnabled(True)
+            capture_exception(RuntimeError(message), context={"op": "scan"})
+
+        self._scan_thread, _worker = start_scan(
+            force=force,
+            on_progress=on_progress,
+            on_finished=on_finished,
+            on_failed=on_failed,
+        )
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -231,25 +315,25 @@ class MainWindow(QMainWindow):
             st = self._backend.status(game)
             kind, badge = self._badge_for_status(st)
             runtime = " [Proton]" if game.metadata.get("runtime") == "proton" else ""
-            item = QListWidgetItem(f"{badge} {game.name}{runtime}")
-            item.setToolTip(str(game.install_path))
-            item.setForeground(badge_color(kind))
+            health = st.get("proton_health") or {}
+            warn = ""
+            if health and not health.get("ok", True):
+                warn = " ⚠"
+            item = QListWidgetItem(f"{badge}{warn} {game.name}{runtime}")
+            tip = str(game.install_path)
+            if health and not health.get("ok", True):
+                tip += f"\n{health.get('message')}"
+            item.setToolTip(tip)
+            item.setForeground(badge_color(kind if not warn else "warn"))
             self._game_list.addItem(item)
             self._filtered.append(game)
 
     def _badge_for_status(self, st: dict) -> tuple[str, str]:
         if st.get("installed") or (st.get("reshade") or {}).get("installed"):
-            return "ok", "[已部署]"
+            return "ok", t("badge.deployed")
         if st.get("vkbasalt_configured"):
             return "warn", "[vkBasalt]"
-        if (st.get("optiscaler") or {}).get("installed"):
-            return "ok", "[神经画质]"
-        remix = st.get("rtx_remix") or {}
-        if remix.get("enabled") is True:
-            return "warn", "[Remix已启用]"
-        if remix.get("present"):
-            return "warn", "[Remix可用]"
-        return "muted", "[未部署]"
+        return "muted", t("badge.none")
 
     def _on_game_selected(self, row: int) -> None:
         if row < 0 or row >= len(self._filtered):
@@ -262,7 +346,11 @@ class MainWindow(QMainWindow):
         self._populate_exe_combo()
         st = self._backend.status(self._target)
         _, badge = self._badge_for_status(st)
-        self._status.setText(f"{self._target.name} — {badge}\n{self._target.install_path}")
+        msg = f"{self._target.name} — {badge}\n{self._target.install_path}"
+        health = st.get("proton_health")
+        if health and not health.get("ok", True):
+            msg += f"\n{health.get('message')}"
+        self._status.setText(msg)
 
     def _populate_exe_combo(self) -> None:
         self._exe_combo.clear()
@@ -277,48 +365,34 @@ class MainWindow(QMainWindow):
             idx = self._exe_combo.findData(str(self._target.executable))
             if idx >= 0:
                 self._exe_combo.setCurrentIndex(idx)
-        api = self._target.metadata.get("graphics_api")
-        if api:
-            idx = self._api_combo.findData(api)
-            if idx >= 0:
-                self._api_combo.setCurrentIndex(idx)
-        steam_id3 = self._target.metadata.get("steam_id3")
-        if steam_id3:
-            idx = self._steam_user.findData(str(steam_id3))
-            if idx >= 0:
-                self._steam_user.setCurrentIndex(idx)
 
     def _refresh_capabilities(self) -> None:
         self._cap_list.clear()
         if not self._target:
             return
         for cap in self._backend.list_capabilities(self._target):
-            avail = "可用" if cap.available else "不可用"
-            line = f"[{avail}] {cap.title} — {cap.description}"
-            if cap.notes:
-                line += f"（{cap.notes}）"
-            self._cap_list.addItem(line)
+            avail = "Y" if cap.available else "N"
+            self._cap_list.addItem(f"[{avail}] {cap.title} — {cap.description}")
 
     def _refresh_history(self) -> None:
         self._history_list.clear()
         for event in list_events(limit=50):
             ok = "OK" if event.get("success") else "FAIL"
             self._history_list.addItem(
-                f"{event.get('ts', '')} [{ok}] {event.get('action')} · "
-                f"{event.get('target')} — {event.get('message', '')}"
+                f"{event.get('ts', '')} [{ok}] {event.get('action')} · {event.get('target')}"
             )
 
     def _pick_reshade_kit(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "选择 ReShade 工具包目录")
+        path = QFileDialog.getExistingDirectory(self, "ReShade")
         if path:
             set_reshade_kit_path(path)
-            self._status.setText(f"ReShade 工具包：{path}")
+            self._status.setText(path)
 
     def _pick_optiscaler_kit(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "选择 OptiScaler 工具包目录")
+        path = QFileDialog.getExistingDirectory(self, "OptiScaler")
         if path:
             set_optiscaler_kit_path(path)
-            self._status.setText(f"OptiScaler 工具包：{path}")
+            self._status.setText(path)
 
     def _install_options(self) -> dict:
         opts: dict = {"mode": self._mode_combo.currentData()}
@@ -335,8 +409,47 @@ class MainWindow(QMainWindow):
                 update_game_config(str(self._target.metadata["app_id"]), steam_id3=steam_id3)
         if opts["mode"] == "display_profile":
             opts["hdr_preferred"] = True
-            opts["notes"] = "UI 保存的 HDR 偏好（非宣称已开启光追）"
+        if opts["mode"] == "preview":
+            opts["preview_mode"] = "reshade"
         return opts
+
+    def _show_conflict_dialog(self, details: dict) -> None:
+        dlg = QDialog(self)
+        dlg.setWindowTitle(t("conflict.title"))
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(QLabel(t("conflict.title")))
+        lst = QListWidget()
+        for item in details.get("diffs") or []:
+            lst.addItem(f"{item.get('action')}: {item.get('path') or ''} {item.get('detail')}")
+        layout.addWidget(lst)
+        close = QPushButton("OK")
+        close.clicked.connect(dlg.accept)
+        layout.addWidget(close)
+        dlg.resize(560, 360)
+        dlg.exec()
+
+    def _on_preview(self) -> None:
+        if not self._target:
+            QMessageBox.information(self, "buusdo", "Select a game first.")
+            return
+        mode = self._mode_combo.currentData()
+        try:
+            if mode == "optiscaler":
+                kit = get_optiscaler_kit_path()
+                if not kit:
+                    raise BuusdoError("OptiScaler kit not configured")
+                details = preview_optiscaler_deploy(self._target, Path(kit))
+            else:
+                kit = get_reshade_kit_path()
+                if not kit:
+                    raise BuusdoError("ReShade kit not configured")
+                api_raw = self._api_combo.currentData()
+                api = GraphicsApi(api_raw) if api_raw else None
+                details = preview_reshade_deploy(self._target, Path(kit), api=api)
+        except BuusdoError as exc:
+            QMessageBox.warning(self, "buusdo", str(exc))
+            return
+        self._show_conflict_dialog(details)
 
     def _show_blocked(self, error: UnsafeTargetError) -> None:
         page = BlockedPage(error)
@@ -349,7 +462,7 @@ class MainWindow(QMainWindow):
 
     def _on_install(self) -> None:
         if not self._target:
-            QMessageBox.information(self, "buusdo", "请先扫描并选择游戏。")
+            QMessageBox.information(self, "buusdo", "Select a game first.")
             return
         try:
             result = self._backend.install(self._target, self._install_options())
@@ -358,9 +471,12 @@ class MainWindow(QMainWindow):
             self._refresh_history()
             return
         except BuusdoError as exc:
+            capture_exception(exc, context={"op": "install", "target": self._target.name})
             QMessageBox.warning(self, "buusdo", str(exc))
             self._refresh_history()
             return
+        if self._mode_combo.currentData() == "preview":
+            self._show_conflict_dialog(result.details)
         self._status.setText(result.message)
         self._stack.setCurrentWidget(self._home)
         self._refresh_game_list()
@@ -368,32 +484,25 @@ class MainWindow(QMainWindow):
 
     def _on_uninstall(self) -> None:
         if not self._target:
-            QMessageBox.information(self, "buusdo", "请先扫描并选择游戏。")
             return
         try:
             result = self._backend.uninstall(self._target)
         except UnsafeTargetError as exc:
             self._show_blocked(exc)
-            self._refresh_history()
             return
         except BuusdoError as exc:
             QMessageBox.warning(self, "buusdo", str(exc))
-            self._refresh_history()
             return
         self._status.setText(result.message)
         self._refresh_game_list()
         self._refresh_history()
 
     def _on_export(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "导出配置", "buusdo-config.zip", "Zip (*.zip)")
-        if not path:
-            return
-        export_configs(path)
-        self._status.setText(f"已导出配置：{path}")
+        path, _ = QFileDialog.getSaveFileName(self, "Export", "buusdo-config.zip", "Zip (*.zip)")
+        if path:
+            export_configs(path)
 
     def _on_import(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "导入配置", "", "Zip (*.zip)")
-        if not path:
-            return
-        result = import_configs(path)
-        self._status.setText(f"已导入：{', '.join(result.get('imported') or [])}")
+        path, _ = QFileDialog.getOpenFileName(self, "Import", "", "Zip (*.zip)")
+        if path:
+            import_configs(path)

@@ -73,9 +73,12 @@ class MacOSBackend(EnhancementBackend):
                 evidence=["macos:compat_root_unconfirmed"],
             )
 
+        layer_id = options.get("compat_layer") or target.metadata.get("compat_layer")
         payload = metalfx_options_payload(
             enable=bool(options.get("metalfx_enabled", True)),
             quality=str(options.get("metalfx_quality", "balanced")),
+            layer_id=str(layer_id) if layer_id else None,
+            scale=options.get("metalfx_scale"),
         )
         payload["target"] = target.name
         payload["options"] = {k: v for k, v in options.items() if k != "compat_config_dir"}
@@ -85,6 +88,14 @@ class MacOSBackend(EnhancementBackend):
             with Transaction() as tx:
                 tx.ensure_dir(compat_root)
                 tx.write_text(marker, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+                if layer_id == "bridgeplay" or "bridgeplay" in str(compat_root).lower():
+                    bp_marker = compat_root / "metalfx_bridgeplay.json"
+                    tx.write_text(
+                        bp_marker,
+                        json.dumps(payload.get("bridgeplay_keys") or payload, indent=2, ensure_ascii=False)
+                        + "\n",
+                    )
+                    payload["bridgeplay_sidecar"] = str(bp_marker)
         except Exception as exc:
             history.append_event("install:metalfx", target=target.name, success=False, message=str(exc))
             raise

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from buusdo.backends import vulkan_layer_win
+from buusdo.backends.windows_display import apply_display_profile
 from buusdo.core import (
     anticheat_guard,
     conflict,
@@ -17,6 +18,7 @@ from buusdo.core import (
     reshade,
     rtx_remix,
 )
+from buusdo.core.conflict_preview import preview_optiscaler_deploy, preview_reshade_deploy
 from buusdo.core.backend import (
     Capability,
     EnhancementBackend,
@@ -109,8 +111,9 @@ class WindowsBackend(EnhancementBackend):
             elif mode == "display_profile":
                 result = self._apply_display_profile(target, options)
             elif mode == "dwm_hdr":
-                dwm_hdr.install()
-                raise AssertionError("unreachable")
+                result = self._install_dwm_hdr_prototype(target)
+            elif mode == "preview":
+                result = self._preview(target, options)
             else:
                 raise BuusdoError(f"Unknown Windows install mode: {mode}")
         except Exception as exc:
@@ -255,15 +258,44 @@ class WindowsBackend(EnhancementBackend):
             resolution=options.get("resolution"),
             refresh_hz=options.get("refresh_hz"),
             color_space=options.get("color_space"),
-            notes=str(options.get("notes") or "按游戏显示配置（诚实记录偏好，非强制改系统）"),
+            notes=str(options.get("notes") or "按游戏显示配置"),
         )
         display_profile.set_game_profile(game_id, profile)
-        applied = display_profile.apply_profile_noop(profile)
         update_game_config(game_id, display_profile=profile.name)
+        dry_run = bool(options.get("dry_run", False))
+        applied = apply_display_profile(profile, dry_run=dry_run)
         return InstallResult(
             success=True,
-            message="已保存该游戏的显示/HDR 偏好配置。",
+            message="已保存并尝试应用显示/HDR 偏好（Win32/CCD）。",
             details=applied,
+        )
+
+    def _install_dwm_hdr_prototype(self, target: EnhancementTarget) -> InstallResult:
+        with Transaction() as tx:
+            state = dwm_hdr.install(tx, target.install_path, target_name=target.name)
+        return InstallResult(
+            success=True,
+            message=state.get("copy", "DWM HDR 原型意图已记录"),
+            details=state,
+        )
+
+    def _preview(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
+        kind = str(options.get("preview_mode") or "reshade")
+        if kind == "optiscaler":
+            kit = options.get("optiscaler_kit") or get_optiscaler_kit_path()
+            if not kit:
+                raise BuusdoError("未配置 OptiScaler 工具包路径。")
+            details = preview_optiscaler_deploy(target, Path(kit))
+        else:
+            kit = options.get("reshade_kit") or get_reshade_kit_path()
+            if not kit:
+                raise BuusdoError("未配置 ReShade 工具包路径。")
+            api = self._resolve_api(options, target)
+            details = preview_reshade_deploy(target, Path(kit), api=api)
+        return InstallResult(
+            success=not details.get("blocked"),
+            message="冲突预览已生成" if not details.get("blocked") else "预览发现阻断冲突",
+            details=details,
         )
 
     def _resolve_api(self, options: dict[str, Any], target: EnhancementTarget) -> GraphicsApi | None:

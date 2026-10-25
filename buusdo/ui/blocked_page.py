@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QListWidget, QVBoxLayout, QWidget
 
 from buusdo.core.errors import UnsafeTargetError
+from buusdo.core.i18n import t
 from buusdo.ui.theme import COLOR_BLOCK
 
 
@@ -17,7 +18,7 @@ class BlockedPage(QWidget):
         self.setObjectName("blockedPage")
         layout = QVBoxLayout(self)
 
-        title = QLabel("已阻断 — 检测到不安全目标")
+        title = QLabel(t("block.title"))
         title.setObjectName("blockTitle")
         title.setAccessibleName("安全阻断标题")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -29,23 +30,22 @@ class BlockedPage(QWidget):
         layout.addWidget(title)
 
         summary = QLabel(
-            f"目标「{error.target_name}」无法应用增强。\n"
-            f"原因：{error.reason}\n\n"
-            "存在反作弊或无法确认安全时一律拒绝，不可继续。"
-            "（本页无「继续」按钮，此为强制门禁。）"
+            f"{error.target_name}\n{error.reason}\n\n{t('block.body')}"
         )
         summary.setWordWrap(True)
         summary.setAccessibleName("阻断说明")
         layout.addWidget(summary)
 
         if error.evidence:
-            evidence_label = QLabel("证据：")
+            evidence_label = QLabel("Evidence")
             evidence_label.setAccessibleName("证据列表标题")
             layout.addWidget(evidence_label)
             evidence_list = QListWidget()
+            evidence_list.setObjectName("evidenceList")
             evidence_list.setAccessibleName("反作弊证据列表")
             for item in error.evidence:
                 evidence_list.addItem(item)
             layout.addWidget(evidence_list)
 
+        # Intentionally no continue / bypass buttons (C1).
         layout.addStretch(1)

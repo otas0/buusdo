@@ -20,6 +20,11 @@ ui = [
 dev = [
     "pytest>=8.0",
 ]
+devui = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+    "PySide6-Essentials>=6.6",
+]
 
 [project.scripts]
 buusdo = "buusdo.app:main"

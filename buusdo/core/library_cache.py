@@ -5,46 +5,108 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from buusdo.core.discovery import DiscoveredGame, discover_steam_games
 from buusdo.core.platform_detect import user_config_dir
+from buusdo.core.vdf import parse_vdf
+
+
+ProgressCb = Callable[[str, float], None]
 
 
 def _cache_path() -> Path:
     return user_config_dir() / "library_cache.json"
 
 
+def _library_paths_from_vdf(vdf_path: Path) -> list[Path]:
+    try:
+        data = parse_vdf(vdf_path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, ValueError):
+        return []
+    folders = data.get("libraryfolders") or data.get("LibraryFolders") or {}
+    if not isinstance(folders, dict):
+        return []
+    out: list[Path] = []
+    for key, value in folders.items():
+        if str(key).lower() in {"contentstatsid", "time_next_stats_report"}:
+            continue
+        raw = None
+        if isinstance(value, dict):
+            raw = value.get("path") or value.get("Path")
+        elif isinstance(value, str) and value.strip() and not value.isdigit():
+            raw = value
+        if isinstance(raw, str) and raw.strip():
+            out.append(Path(raw.strip()))
+    return out
+
+
 def _fingerprint(steam_roots: list[Path]) -> dict[str, float]:
-    """mtime of libraryfolders.vdf + appmanifests for change detection."""
+    """mtime of libraryfolders.vdf + appmanifests across all library paths."""
     stamps: dict[str, float] = {}
+    libraries: list[Path] = []
+
     for root in steam_roots:
-        for pattern in (
-            "steamapps/libraryfolders.vdf",
-            "config/libraryfolders.vdf",
-            "steamapps/appmanifest_*.acf",
-        ):
-            for path in root.glob(pattern):
+        for rel in ("steamapps/libraryfolders.vdf", "config/libraryfolders.vdf"):
+            vdf = root / rel
+            if vdf.is_file():
                 try:
-                    stamps[str(path)] = path.stat().st_mtime
+                    stamps[str(vdf.resolve())] = vdf.stat().st_mtime
                 except OSError:
-                    continue
-            # Also libraries referenced — discovery already expands; fingerprint manifests under root only.
+                    stamps[str(vdf)] = vdf.stat().st_mtime
+                libraries.extend(_library_paths_from_vdf(vdf))
+        if (root / "steamapps").is_dir():
+            libraries.append(root)
+
+    seen: set[Path] = set()
+    for lib in libraries:
+        try:
+            resolved = lib.expanduser().resolve()
+        except OSError:
+            resolved = lib.expanduser()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        steamapps = resolved / "steamapps"
+        if not steamapps.is_dir():
+            continue
+        try:
+            stamps[str(steamapps)] = steamapps.stat().st_mtime
+        except OSError:
+            pass
+        for manifest in steamapps.glob("appmanifest_*.acf"):
+            try:
+                stamps[str(manifest)] = manifest.stat().st_mtime
+            except OSError:
+                continue
     return stamps
 
 
-def load_cached_games(steam_roots: list[Path], *, force: bool = False) -> list[DiscoveredGame]:
+def load_cached_games(
+    steam_roots: list[Path],
+    *,
+    force: bool = False,
+    progress: ProgressCb | None = None,
+) -> list[DiscoveredGame]:
     cache_file = _cache_path()
+    if progress:
+        progress("fingerprint", 0.1)
     fp = _fingerprint(steam_roots)
     if not force and cache_file.is_file():
         try:
             raw = json.loads(cache_file.read_text(encoding="utf-8"))
             if raw.get("fingerprint") == fp:
+                if progress:
+                    progress("cache_hit", 1.0)
                 return [_game_from_cache(item) for item in raw.get("games") or []]
         except (OSError, json.JSONDecodeError, KeyError, TypeError):
             pass
 
+    if progress:
+        progress("discover", 0.4)
     games = discover_steam_games(steam_roots)
+    if progress:
+        progress("write_cache", 0.85)
     payload = {
         "saved_at": time.time(),
         "fingerprint": fp,
@@ -52,6 +114,8 @@ def load_cached_games(steam_roots: list[Path], *, force: bool = False) -> list[D
     }
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     cache_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    if progress:
+        progress("done", 1.0)
     return games
 
 

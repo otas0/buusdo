@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 
 from buusdo.backends import get_backend
+from buusdo.core.crash_report import capture_exception
 from buusdo.core.errors import BuusdoError
 
 
@@ -23,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     from buusdo.assets import logo_path
     from buusdo.ui.main_window import MainWindow
     from buusdo.ui.theme import apply_dark_theme
+    from buusdo.ui.tray_icon import make_mark_icon
 
     app = QApplication(argv)
     app.setApplicationName("buusdo")
@@ -30,9 +32,12 @@ def main(argv: list[str] | None = None) -> int:
     logo = logo_path()
     if logo.is_file():
         app.setWindowIcon(QIcon(str(logo)))
+    else:
+        app.setWindowIcon(make_mark_icon(64))
     try:
         backend = get_backend()
     except BuusdoError as exc:
+        capture_exception(exc, context={"op": "startup"})
         print(exc, file=sys.stderr)
         return 1
     window = MainWindow(backend=backend)
