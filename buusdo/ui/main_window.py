@@ -52,6 +52,7 @@ from buusdo.backends.windows_display import (
     clear_display_session,
     display_session_status,
     retry_display_mode,
+    retry_hdr_target,
     rollback_display_session,
 )
 from buusdo.core.crash_report import (
@@ -69,7 +70,13 @@ from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 from buusdo.core.library_progress import resume_scan_status
 from buusdo.core.platform_detect import steam_roots
-from buusdo.core.recent_games import clear_uninstalled, is_greyed, list_recent, mark_uninstalled
+from buusdo.core.recent_games import (
+    clear_uninstalled,
+    is_greyed,
+    list_recent,
+    mark_uninstalled,
+    push_recent,
+)
 from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
 from buusdo.core.steam_uris import game_properties_uri_candidates, probe_open_uris
 from buusdo.core.transaction import Transaction
@@ -378,6 +385,8 @@ class MainWindow(QMainWindow):
         if reply != QMessageBox.StandardButton.Yes:
             return
         if clear_uninstalled(data):
+            # Re-push to the front of recent so the tray order reflects a reinstall.
+            push_recent(dict(data))
             self._rebuild_tray_recent()
             self._status.setText(t("tray.clear_uninstalled"))
 
@@ -386,10 +395,26 @@ class MainWindow(QMainWindow):
             get_optiscaler_kit_path()
         ).ok
 
+    def _kit_banner_detail(self) -> str:
+        parts: list[str] = [t("settings.kits_banner")]
+        r_path = get_reshade_kit_path()
+        o_path = get_optiscaler_kit_path()
+        if r_path is not None:
+            rs = validate_reshade_kit(r_path)
+            if not rs.ok:
+                miss = ", ".join(rs.missing) if rs.missing else rs.message
+                parts.append(f"ReShade: {t('wizard.kit_bad')} ({miss})")
+        if o_path is not None:
+            os_ = validate_optiscaler_kit(o_path)
+            if not os_.ok:
+                miss = ", ".join(os_.missing) if os_.missing else os_.message
+                parts.append(f"OptiScaler: {t('wizard.kit_bad')} ({miss})")
+        return "\n".join(parts)
+
     def _refresh_kits_banner(self) -> None:
         skipped = bool(load_settings().get("wizard_skipped_kits"))
         show = skipped and not self._has_valid_kit()
-        self._kits_banner.setText(t("settings.kits_banner") if show else "")
+        self._kits_banner.setText(self._kit_banner_detail() if show else "")
         self._btn_complete_kits.setVisible(show)
 
     def _complete_kits_setup(self) -> None:
@@ -535,7 +560,17 @@ class MainWindow(QMainWindow):
         self._progress.setValue(0)
         self._progress.setFormat("%p%")
         self._progress.setVisible(False)
-        self._status.setText(t("action.cancel_scan"))
+        resume = resume_scan_status()
+        if resume.get("partial") or resume.get("resume"):
+            self._status.setText(
+                t(
+                    "scan.cancel_resume",
+                    scanned=int(resume.get("scanned") or 0),
+                    total=int(resume.get("total_manifests") or 0),
+                )
+            )
+        else:
+            self._status.setText(t("action.cancel_scan"))
 
     def _open_steam_for_target(self) -> None:
         if not self._target:
@@ -728,6 +763,13 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle(t("conflict.title"))
         layout = QVBoxLayout(dlg)
         layout.addWidget(QLabel(t("conflict.title")))
+        schema_v = details.get("schema_version") or 1
+        badge = QLabel(t("conflict.schema_badge", version=schema_v))
+        badge.setStyleSheet(
+            "color: #2E86AB; font-weight: 600; border: 1px solid #2E86AB; "
+            "padding: 2px 8px; align-self: flex-start;"
+        )
+        layout.addWidget(badge)
         rows = []
         for item in details.get("diffs") or []:
             detail = str(item.get("detail") or "")
@@ -874,18 +916,18 @@ class MainWindow(QMainWindow):
                 if hasattr(self, "_tray"):
                     self._tray.showMessage("buusdo", msg)
                 self._refresh_capabilities()
-            self._show_rollback_failures(failed)
+            self._show_rollback_failures(failed, hdr_step=result.get("details", {}).get("hdr"))
         else:
             self._status.setText(str(result.get("reason") or "no_session"))
 
-    def _show_rollback_failures(self, failed: list) -> None:
+    def _show_rollback_failures(self, failed: list, *, hdr_step: dict | None = None) -> None:
         dlg = QDialog(self)
         dlg.setWindowTitle(t("display.fail_table"))
         layout = QVBoxLayout(dlg)
         layout.addWidget(QLabel(t("display.fail_table")))
-        table = QTableWidget(len(failed), 5)
+        table = QTableWidget(len(failed), 7)
         table.setHorizontalHeaderLabels(
-            ["device", "name", "code", "size", "refresh"]
+            ["device", "name", "code", "size", "refresh", "adapter", "targetId"]
         )
         for i, row in enumerate(failed):
             table.setItem(i, 0, QTableWidgetItem(str(row.get("device") or "")))
@@ -897,9 +939,15 @@ class MainWindow(QMainWindow):
                 QTableWidgetItem(f"{row.get('width')}x{row.get('height')}"),
             )
             table.setItem(i, 4, QTableWidgetItem(str(row.get("refresh_hz") or "")))
+            adapter = ""
+            if row.get("adapterLow") is not None:
+                adapter = f"{row.get('adapterLow')}/{row.get('adapterHigh') or 0}"
+            table.setItem(i, 5, QTableWidgetItem(adapter))
+            table.setItem(i, 6, QTableWidgetItem(str(row.get("targetId") if row.get("targetId") is not None else "")))
         table.resizeColumnsToContents()
         layout.addWidget(table)
         retry = QPushButton(t("display.retry_one"))
+        retry_hdr = QPushButton(t("display.retry_hdr"))
 
         def _retry() -> None:
             r = table.currentRow()
@@ -927,18 +975,57 @@ class MainWindow(QMainWindow):
                     ),
                 )
 
+        def _retry_hdr() -> None:
+            r = table.currentRow()
+            row = failed[r] if 0 <= r < len(failed) else None
+            enable = bool((row or {}).get("hdr_enable"))
+            if hdr_step and hdr_step.get("enable") is not None:
+                enable = bool(hdr_step.get("enable"))
+            adapter_low = (row or {}).get("adapterLow")
+            adapter_high = (row or {}).get("adapterHigh") or 0
+            target_id = (row or {}).get("targetId")
+            if target_id is None or adapter_low is None:
+                # Fall back to first failed HDR target from the step payload.
+                targets = list((hdr_step or {}).get("targets") or [])
+                bad = next((t for t in targets if not t.get("ok")), None)
+                if not bad:
+                    QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                    return
+                adapter_low = bad.get("adapterLow")
+                adapter_high = bad.get("adapterHigh") or 0
+                target_id = bad.get("id") if bad.get("id") is not None else bad.get("targetId")
+            out = retry_hdr_target(
+                adapter_low=int(adapter_low),
+                adapter_high=int(adapter_high or 0),
+                target_id=int(target_id),
+                enable=enable,
+                dry_run=False,
+            )
+            if out.get("ok"):
+                QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+            else:
+                QMessageBox.warning(
+                    self,
+                    "buusdo",
+                    t("display.rollback_failed", devices=f"HDR target {target_id}"),
+                )
+
         retry.clicked.connect(_retry)
+        retry_hdr.clicked.connect(_retry_hdr)
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
         row.addWidget(retry)
+        row.addWidget(retry_hdr)
         row.addWidget(close)
         layout.addLayout(row)
-        dlg.resize(640, 320)
+        dlg.resize(720, 320)
         dlg.exec()
 
     def _export_crash_audit(self) -> None:
-        suggested = "buusdo-crash-audit.jsonl"
+        data = load_settings()
+        last_dir = str(data.get("crash_audit_export_dir") or "")
+        suggested = str(Path(last_dir) / "buusdo-crash-audit.jsonl") if last_dir else "buusdo-crash-audit.jsonl"
         while True:
             path, _ = QFileDialog.getSaveFileName(
                 self, t("action.export_audit"), suggested, "JSONL (*.jsonl)"
@@ -947,6 +1034,9 @@ class MainWindow(QMainWindow):
                 return
             try:
                 export_crash_opt_in_audit(Path(path))
+                settings = load_settings()
+                settings["crash_audit_export_dir"] = str(Path(path).expanduser().parent)
+                save_settings(settings)
                 self._status.setText(t("action.export_audit"))
                 return
             except OSError as exc:
@@ -961,7 +1051,12 @@ class MainWindow(QMainWindow):
                 box.exec()
                 if box.clickedButton() is not retry:
                     return
-                suggested = path
+                # Remember the failed directory so the next dialog opens there.
+                failed_dir = str(Path(path).expanduser().parent)
+                settings = load_settings()
+                settings["crash_audit_export_dir"] = failed_dir
+                save_settings(settings)
+                suggested = str(Path(failed_dir) / Path(path).name)
 
     def _clear_crash_audit(self) -> None:
         clear_crash_opt_in_audit()
