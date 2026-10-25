@@ -32,6 +32,7 @@ deployment/
 *.app/
 *.exe
 *.bin
+tests/fixtures/*.exe
 
 # Local config dumps
 *.local.json
