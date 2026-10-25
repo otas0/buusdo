@@ -3,10 +3,11 @@
 
 Compiles/materializes into --out (default under the system temp dir), then checks:
 - manifest.json exists and has status
-- hlsl_sources.zip is present
-- each manifest hlsl_sha256[] entry matches bytes inside the zip
+- hlsl_sources.zip when present; else fall back to source/out copies
+- each manifest hlsl_sha256[] entry matches bytes
 
 Exit 0 on match; non-zero on failure.
+Use ``--json`` for a single machine-readable summary object on stdout.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import sys
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,26 +34,34 @@ def _compile(out: Path) -> int:
         return 2
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    # Prefer main([...]) when available.
     if hasattr(mod, "main"):
         return int(mod.main(["--out", str(out)]))
     print("compile_dwm_hdr_poc.main missing", file=sys.stderr)
     return 2
 
 
-def verify_tree(root: Path) -> int:
+def verify_tree(root: Path, *, as_json: bool = False) -> int:
     man_path = root / "manifest.json"
     zip_path = root / "hlsl_sources.zip"
     src_root = ROOT / "buusdo" / "core" / "dwm_hdr_shaders"
+    summary: dict[str, Any] = {
+        "ok": False,
+        "out": str(root),
+        "status": None,
+        "zip": zip_path.is_file(),
+        "entries": [],
+        "error": None,
+    }
     if not man_path.is_file():
-        print(f"missing {man_path}", file=sys.stderr)
-        return 1
+        summary["error"] = f"missing {man_path}"
+        return _emit(summary, as_json=as_json, rc=1)
     man = json.loads(man_path.read_text(encoding="utf-8"))
     status = man.get("status")
+    summary["status"] = status
     entries = man.get("hlsl_sha256") or []
     if not isinstance(entries, list) or not entries:
-        print(f"manifest hlsl_sha256 empty (status={status})", file=sys.stderr)
-        return 1
+        summary["error"] = f"manifest hlsl_sha256 empty (status={status})"
+        return _emit(summary, as_json=as_json, rc=1)
     zf: zipfile.ZipFile | None = None
     if zip_path.is_file():
         zf = zipfile.ZipFile(zip_path)
@@ -63,12 +73,13 @@ def verify_tree(root: Path) -> int:
             path = entry.get("path")
             expect = entry.get("sha256")
             if not path or not expect:
-                print(f"bad hlsl_sha256 entry: {entry}", file=sys.stderr)
-                return 1
-            if zf is not None and path in names:
+                summary["error"] = f"bad hlsl_sha256 entry: {entry}"
+                return _emit(summary, as_json=as_json, rc=1)
+            source = "zip" if zf is not None and path in names else "disk"
+            if source == "zip":
+                assert zf is not None
                 data = zf.read(path)
             else:
-                # status=ok compile path may omit zip — fall back to source tree / out copy.
                 candidates = [root / path, root / "hlsl_sources" / path, src_root / path]
                 data = None
                 for cand in candidates:
@@ -76,18 +87,34 @@ def verify_tree(root: Path) -> int:
                         data = cand.read_bytes()
                         break
                 if data is None:
-                    print(f"{path} missing from zip and disk", file=sys.stderr)
-                    return 1
+                    summary["error"] = f"{path} missing from zip and disk"
+                    return _emit(summary, as_json=as_json, rc=1)
             dig = hashlib.sha256(data).hexdigest()
+            row = {"path": path, "sha256": dig, "match": dig == expect, "source": source}
+            summary["entries"].append(row)
             if dig != expect:
-                print(f"sha mismatch {path}: {dig} != {expect}", file=sys.stderr)
-                return 1
-            print(f"ok {path} {dig}")
+                summary["error"] = f"sha mismatch {path}: {dig} != {expect}"
+                return _emit(summary, as_json=as_json, rc=1)
+            if not as_json:
+                print(f"ok {path} {dig}")
     finally:
         if zf is not None:
             zf.close()
-    print(f"VERIFY OK status={status} entries={len(entries)} zip={'yes' if zip_path.is_file() else 'no'}")
-    return 0
+    summary["ok"] = True
+    if not as_json:
+        print(
+            f"VERIFY OK status={status} entries={len(entries)} "
+            f"zip={'yes' if zip_path.is_file() else 'no'}"
+        )
+    return _emit(summary, as_json=as_json, rc=0)
+
+
+def _emit(summary: dict[str, Any], *, as_json: bool, rc: int) -> int:
+    if as_json:
+        print(json.dumps(summary, ensure_ascii=False))
+    elif summary.get("error") and rc != 0:
+        print(str(summary["error"]), file=sys.stderr)
+    return rc
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -103,17 +130,36 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Only verify an existing --out tree",
     )
+    p.add_argument(
+        "--json",
+        action="store_true",
+        help="Print one JSON summary object on stdout (machine-readable)",
+    )
     args = p.parse_args(argv)
     out = args.out
     if out is None:
         out = Path(tempfile.gettempdir()) / "buusdo-dwm-hdr-poc"
     if not args.skip_compile:
-        rc = _compile(out)
-        if rc != 0:
-            # compile may still write skipped_no_compiler material; verify anyway if present.
-            if not (out / "manifest.json").is_file():
-                return rc
-    return verify_tree(out)
+        # Suppress compile JSON noise when --json requested.
+        if args.json:
+            import contextlib
+            import io
+
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = _compile(out)
+        else:
+            rc = _compile(out)
+        if rc != 0 and not (out / "manifest.json").is_file():
+            if args.json:
+                print(
+                    json.dumps(
+                        {"ok": False, "out": str(out), "error": f"compile failed rc={rc}"},
+                        ensure_ascii=False,
+                    )
+                )
+            return rc
+    return verify_tree(out, as_json=args.json)
 
 
 if __name__ == "__main__":

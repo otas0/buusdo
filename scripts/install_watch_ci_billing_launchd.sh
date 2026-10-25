@@ -3,6 +3,9 @@
 # Usage:
 #   bash scripts/install_watch_ci_billing_launchd.sh
 #   bash scripts/install_watch_ci_billing_launchd.sh --uninstall
+#
+# Logging: uses scripts/run_watch_ci_billing_launchd.sh so each run *appends*
+# to ~/Library/Logs/buusdo/watch-ci-billing.*.log (launchd StandardOutPath truncates).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,8 +13,10 @@ LABEL="com.buusdo.watch-ci-billing"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 PYTHON="${ROOT}/.venv/bin/python"
 WATCH="${ROOT}/scripts/watch_ci_billing.py"
+WRAPPER="${ROOT}/scripts/run_watch_ci_billing_launchd.sh"
 LOG_DIR="${HOME}/Library/Logs/buusdo"
 mkdir -p "${LOG_DIR}"
+chmod +x "${WRAPPER}"
 
 if [[ "${1:-}" == "--uninstall" ]]; then
   launchctl bootout "gui/$(id -u)/${LABEL}" 2>/dev/null || true
@@ -38,12 +43,8 @@ cat > "${PLIST}" <<EOF
   <string>${LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${PYTHON}</string>
-    <string>${WATCH}</string>
-    <string>--notify</string>
-    <string>--once</string>
-    <string>--limit</string>
-    <string>3</string>
+    <string>/bin/bash</string>
+    <string>${WRAPPER}</string>
   </array>
   <key>WorkingDirectory</key>
   <string>${ROOT}</string>
@@ -51,10 +52,6 @@ cat > "${PLIST}" <<EOF
   <integer>3600</integer>
   <key>RunAtLoad</key>
   <true/>
-  <key>StandardOutPath</key>
-  <string>${LOG_DIR}/watch-ci-billing.out.log</string>
-  <key>StandardErrorPath</key>
-  <string>${LOG_DIR}/watch-ci-billing.err.log</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
@@ -67,9 +64,9 @@ EOF
 launchctl bootout "gui/$(id -u)/${LABEL}" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "${PLIST}"
 launchctl enable "gui/$(id -u)/${LABEL}" 2>/dev/null || true
-echo "Installed ${PLIST} (hourly --notify --once)."
+echo "Installed ${PLIST} (hourly; append logs via ${WRAPPER})."
 echo "Logs: ${LOG_DIR}/watch-ci-billing.*.log"
+echo "Kick once: launchctl kickstart -k gui/\$(id -u)/${LABEL}"
 echo "Uninstall: bash scripts/install_watch_ci_billing_launchd.sh --uninstall"
-# Also print a crontab-equivalent for Linux/docs.
-echo "# crontab alternative (hourly):"
-echo "0 * * * * cd ${ROOT} && ${PYTHON} ${WATCH} --notify --once >> ${LOG_DIR}/watch-ci-billing.cron.log 2>&1"
+echo "# crontab alternative (hourly, also appends):"
+echo "0 * * * * ${WRAPPER}"
