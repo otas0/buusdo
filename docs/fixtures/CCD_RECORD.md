@@ -32,6 +32,7 @@ git commit -m "Record real dual-monitor CCD adapterId/targetId."
 Status: still ILLUSTRATIVE on this machine — no dual-monitor Windows host available in CI/dev.
 Do not mark `--require-live` green until a real dual-monitor Windows record overwrites adapter/target IDs.
 Do not pass `--require-live` until a real dual-monitor overwrite lands.
+This agent cannot execute `scripts/ccd_record_windows.bat`; run it on a dual-monitor Windows PC, then commit the fixture.
 
 ## Windows host checklist (real dual-monitor)
 

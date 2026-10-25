@@ -69,9 +69,11 @@ bash scripts/setup_artifact_prune_token.sh otas0/buusdo
 ## Billing / spending limit (0s empty-step fails)
 
 API cannot raise the spending limit for this account (`/users/.../settings/billing/actions` → 404).
-Fix in the browser: **https://github.com/settings/billing** → Spending limits / payment method.
+Only a human can fix it in the browser: **https://github.com/settings/billing** → Spending limits / payment method.
 Until runners start, `workflow_dispatch` returns 204 but jobs die in ~3s with `steps=[]` and Artifacts stay 0.
 CI `run-name` + each job's first step write this tip into the Actions summary when runners *do* start.
+`scripts/watch_ci_billing.py` (and the hourly LaunchAgent) exit 1 / notify when the newest run looks blocked.
+Local `python scripts/prune_actions_artifacts.py --list` still works without runners; the `prune-artifacts` workflow needs billing fixed too.
 
 Local detector (bell + optional macOS notification):
 
