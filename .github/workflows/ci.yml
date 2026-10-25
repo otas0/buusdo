@@ -90,10 +90,12 @@ jobs:
           name: qt-diag-macos
           path: qt-diag/
           if-no-files-found: warn
+          retention-days: 3
       - name: Upload Qt plugin dirs tarball on smoke failure
         # always() relative to job end is unnecessary; failure() covers smoke step failure.
         # Bundle includes qt-plugin-dirs.txt + qt-plugins.txt + devui-macos.log.
         # continue-on-error: org artifact quota must not fail the job.
+        # See docs/CI_ARTIFACTS.md for quota behavior.
         if: failure()
         continue-on-error: true
         uses: actions/upload-artifact@v4
@@ -103,6 +105,7 @@ jobs:
             qt-plugin-dirs.tgz
             qt-diag/devui-macos.log
           if-no-files-found: warn
+          retention-days: 3
 
   dwm-hdr-poc:
     # continue-on-error is explicitly false: missing Kits may skip compile, but a failed
@@ -181,6 +184,7 @@ jobs:
           name: dwm-hdr-poc
           path: dist/dwm_hdr_poc/
           if-no-files-found: warn
+          retention-days: 3
       - name: Upload HLSL sources zip when present
         if: always() && steps.hlsl.outputs.present == 'true'
         continue-on-error: true
@@ -191,3 +195,4 @@ jobs:
             dist/dwm_hdr_poc/hlsl_sources/
             dist/dwm_hdr_poc/hlsl_sources.zip
           if-no-files-found: ignore
+          retention-days: 3

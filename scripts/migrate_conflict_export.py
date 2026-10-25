@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Upgrade conflict-export JSON files to the current schema_version."""
+"""Upgrade conflict-export JSON files to the current schema_version.
+
+Supports a single file or a directory of JSON files (optionally recursive).
+"""
 
 from __future__ import annotations
 
@@ -14,44 +17,96 @@ from buusdo.core.conflict_preview import (
 )
 
 
+def _iter_inputs(path: Path, *, recursive: bool, pattern: str) -> list[Path]:
+    if path.is_file():
+        return [path]
+    if not path.is_dir():
+        return []
+    globber = path.rglob if recursive else path.glob
+    return sorted(p for p in globber(pattern) if p.is_file())
+
+
+def _migrate_one(src: Path, *, dest: Path | None, in_place: bool) -> int:
+    raw = json.loads(src.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        print(f"{src}: expected a JSON object", file=sys.stderr)
+        return 2
+    before = int(raw.get("schema_version") or 1)
+    migrated = migrate_conflict_export(raw)
+    out = dest
+    if out is None:
+        if in_place:
+            out = src
+        else:
+            print(json.dumps(migrated, indent=2, ensure_ascii=False))
+            print(
+                f"# {src}: migrated {before} -> {migrated.get('schema_version')} "
+                f"(current={CONFLICT_EXPORT_SCHEMA_VERSION})",
+                file=sys.stderr,
+            )
+            return 0
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(migrated, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"wrote {out} ({before} -> {migrated.get('schema_version')})")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("path", type=Path, help="Input conflict-export JSON")
+    p.add_argument(
+        "path",
+        type=Path,
+        help="Input conflict-export JSON file, or a directory of JSON files",
+    )
     p.add_argument(
         "-o",
         "--output",
         type=Path,
         default=None,
-        help="Write migrated JSON here (default: overwrite input with --in-place)",
+        help="Write migrated JSON here (file→file, or directory→directory when input is a dir)",
     )
     p.add_argument(
         "--in-place",
         action="store_true",
-        help="Overwrite the input file",
+        help="Overwrite each input file",
+    )
+    p.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="When path is a directory, recurse into subfolders",
+    )
+    p.add_argument(
+        "--glob",
+        default="*.json",
+        help="Filename glob when path is a directory (default: *.json)",
     )
     args = p.parse_args(argv)
-    raw = json.loads(args.path.read_text(encoding="utf-8"))
-    if not isinstance(raw, dict):
-        print("expected a JSON object", file=sys.stderr)
+
+    inputs = _iter_inputs(args.path, recursive=args.recursive, pattern=args.glob)
+    if not inputs:
+        print(f"no inputs matched under {args.path}", file=sys.stderr)
         return 2
-    before = int(raw.get("schema_version") or 1)
-    migrated = migrate_conflict_export(raw)
-    dest = args.output
-    if dest is None:
+
+    if args.path.is_file():
+        return _migrate_one(args.path, dest=args.output, in_place=args.in_place)
+
+    # Directory batch
+    if args.output is not None and args.output.exists() and not args.output.is_dir():
+        print("--output must be a directory when migrating a directory", file=sys.stderr)
+        return 2
+    rc = 0
+    for src in inputs:
         if args.in_place:
-            dest = args.path
+            dest: Path | None = src
+        elif args.output is not None:
+            dest = args.output / src.relative_to(args.path)
         else:
-            print(json.dumps(migrated, indent=2, ensure_ascii=False))
-            print(
-                f"# migrated {before} -> {migrated.get('schema_version')} "
-                f"(current={CONFLICT_EXPORT_SCHEMA_VERSION})",
-                file=sys.stderr,
-            )
-            return 0
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(json.dumps(migrated, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"wrote {dest} ({before} -> {migrated.get('schema_version')})")
-    return 0
+            dest = None
+        step = _migrate_one(src, dest=dest, in_place=False if dest is None else True)
+        if step != 0:
+            rc = step
+    return rc
 
 
 if __name__ == "__main__":
