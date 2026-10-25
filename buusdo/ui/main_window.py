@@ -558,12 +558,25 @@ class MainWindow(QMainWindow):
         if remaining <= 0 and getattr(self, "_steam_uri_try_index", 0) > 0:
             self._btn_steam_try_next.setEnabled(False)
             self._btn_steam_try_next.setText(t("settings.steam_uri_try_next"))
+            self._btn_steam_try_next.setToolTip(t("settings.steam_uri_try_exhausted", total=len(self._steam_uri_candidates())))
         elif can_next:
             self._btn_steam_try_next.setText(
                 t("settings.steam_uri_try_next_count", remaining=remaining)
             )
+            uris = self._steam_uri_candidates()
+            idx = int(getattr(self, "_steam_uri_try_index", 0))
+            next_uri = uris[idx] if 0 <= idx < len(uris) else ""
+            self._btn_steam_try_next.setToolTip(
+                t(
+                    "settings.steam_uri_try_next_tip",
+                    index=idx + 1,
+                    total=len(uris),
+                    uri=next_uri,
+                )
+            )
         else:
             self._btn_steam_try_next.setText(t("settings.steam_uri_try_next"))
+            self._btn_steam_try_next.setToolTip(t("settings.steam_uri_try_next"))
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
 
@@ -1070,6 +1083,7 @@ class MainWindow(QMainWindow):
                 table.setItem(i, col, cell)
         table.resizeColumnsToContents()
         layout.addWidget(table)
+        layout.addWidget(QLabel(t("ui.clear_selection_tip")))
         payload = migrate_conflict_export(
             {
                 "schema_version": details.get("schema_version", 1),
@@ -1082,6 +1096,7 @@ class MainWindow(QMainWindow):
         actions = QHBoxLayout()
         copy_btn = QPushButton(t("action.copy_json"))
         export_btn = QPushButton(t("action.export_json"))
+        clear_sel = QPushButton(t("action.clear_selection"))
         close = QPushButton("OK")
 
         def _copy() -> None:
@@ -1101,11 +1116,19 @@ class MainWindow(QMainWindow):
                     _json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
                 )
 
+        def _clear_conflict_selection() -> None:
+            clear_row_selections(table)
+
         copy_btn.clicked.connect(_copy)
         export_btn.clicked.connect(_export)
+        clear_sel.clicked.connect(_clear_conflict_selection)
         close.clicked.connect(dlg.accept)
+        QShortcut(QKeySequence(Qt.Key.Key_Escape), table, activated=_clear_conflict_selection)
+        table.setToolTip(t("ui.clear_selection_tip"))
+        clear_sel.setToolTip(t("ui.clear_selection_tip"))
         actions.addWidget(copy_btn)
         actions.addWidget(export_btn)
+        actions.addWidget(clear_sel)
         actions.addWidget(close)
         layout.addLayout(actions)
         dlg.resize(720, 420)
