@@ -40,5 +40,30 @@ failure (when Windows Kits / fxc / dxc are present) still fails the job.
 
 ## After quota recovers
 
-1. Re-run CI on `main` / `phase3/dwm-hdr`.
+1. Re-run CI on `main` / `phase3/dwm-hdr` (push, or **Actions → ci → Run workflow** via `workflow_dispatch`).
 2. Download `dwm-hdr-poc` and confirm `hlsl_sources.zip` + `manifest.json` → `hlsl_sha256`.
+3. Offline check without waiting for uploads:
+
+```bash
+python scripts/compile_dwm_hdr_poc.py --out /tmp/buusdo-dwm-hdr-poc
+python -c "import json,zipfile; from pathlib import Path; r=Path('/tmp/buusdo-dwm-hdr-poc'); print(json.loads((r/'manifest.json').read_text())['hlsl_sha256']); print(zipfile.ZipFile(r/'hlsl_sources.zip').namelist())"
+```
+
+## Prune sibling-repo artifacts (quota hygiene)
+
+Do **not** let other otas0 repos (especially Zintriq desktop logs) fill the shared Actions storage:
+
+```bash
+python scripts/prune_actions_artifacts.py --list
+python scripts/prune_actions_artifacts.py --delete --older-than-days 3 --yes
+```
+
+## Stabilizing `gh` Actions API (avoid Forbidden)
+
+Intermittent `Forbidden` on `repos/*/actions/*` is usually auth/account context, not ACL:
+
+1. Prefer a single active login: `gh auth status` (expect `repo` + `workflow` scopes).
+2. If you use multiple accounts: `gh auth switch` to the org owner that can manage Actions.
+3. Retry listing with: `gh api repos/otas0/buusdo/actions/artifacts` — HTTP 200 means OK.
+4. Avoid sandboxed shells that block GitHub HTTPS CONNECT (shows up as 502 / Forbidden).
+5. For CI triggers without push: `gh workflow run ci.yml --ref main` (requires `workflow_dispatch`).

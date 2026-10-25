@@ -101,3 +101,4 @@ def test_migrate_conflict_cli(tmp_path: Path) -> None:
     assert mod.main([str(batch_in), "-o", str(batch_out)]) == 0
     assert (batch_out / "a.json").is_file()
     assert json.loads((batch_out / "b.json").read_text(encoding="utf-8"))["schema_version"] == 2
+    assert mod.main([str(batch_in), "--dry-run"]) == 0

@@ -53,10 +53,13 @@ def _pack_hlsl_sources(src_root: Path, out_dir: Path) -> tuple[Path, list[dict[s
     hashes = _hlsl_sha256_list(src_root)
     if src_root.is_dir():
         for p in src_root.rglob("*"):
-            if p.is_file():
-                dest = pack / p.relative_to(src_root)
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(p, dest)
+            if not p.is_file():
+                continue
+            if "__pycache__" in p.parts or p.suffix == ".pyc":
+                continue
+            dest = pack / p.relative_to(src_root)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, dest)
     (pack / "README.txt").write_text(
         "HLSL sources packaged for offline Kits comparison (skipped_no_compiler or always).\n",
         encoding="utf-8",
@@ -64,7 +67,7 @@ def _pack_hlsl_sources(src_root: Path, out_dir: Path) -> tuple[Path, list[dict[s
     zpath = out_dir / "hlsl_sources.zip"
     with zipfile.ZipFile(zpath, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in sorted(pack.rglob("*")):
-            if p.is_file():
+            if p.is_file() and "__pycache__" not in p.parts:
                 zf.write(p, arcname=str(p.relative_to(pack)).replace("\\", "/"))
     return zpath, hashes
 
