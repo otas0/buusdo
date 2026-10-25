@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
@@ -23,27 +26,50 @@ DEFAULT_REPOS = (
     "otas0/buusdo",
     "otas0/Zintriq",
 )
+API = "https://api.github.com"
+
+
+def _token() -> str:
+    env = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if env:
+        return env.strip()
+    proc = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise RuntimeError(
+            "No GH_TOKEN/GITHUB_TOKEN and `gh auth token` failed. "
+            "Run: gh auth login -s repo,workflow"
+        )
+    return proc.stdout.strip()
+
+
+def _request(method: str, path: str) -> Any:
+    """Call GitHub REST with Bearer token (avoids intermittent `gh api` Forbidden)."""
+    url = path if path.startswith("http") else f"{API}/{path.lstrip('/')}"
+    req = urllib.request.Request(
+        url,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {_token()}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "buusdo-prune-actions-artifacts",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = resp.read().decode("utf-8")
+            return json.loads(body) if body.strip() else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"{method} {url} -> HTTP {exc.code}: {detail}") from exc
 
 
 def _gh_api(path: str) -> Any:
-    proc = subprocess.run(
-        ["gh", "api", path],
-        capture_output=True,
-        text=True,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or f"gh api failed: {path}")
-    return json.loads(proc.stdout) if proc.stdout.strip() else {}
+    return _request("GET", f"repos/{path}" if not path.startswith("repos/") else path)
 
 
 def _gh_delete(path: str) -> None:
-    proc = subprocess.run(
-        ["gh", "api", "-X", "DELETE", path],
-        capture_output=True,
-        text=True,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or f"delete failed: {path}")
+    _request("DELETE", f"repos/{path}" if not path.startswith("repos/") else path)
 
 
 def _list_artifacts(repo: str) -> list[dict[str, Any]]:
