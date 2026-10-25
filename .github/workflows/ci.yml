@@ -1,5 +1,11 @@
 name: ci
 
+# If every job fails in ~2–4s with steps=[] and annotation about spending limit /
+# failed payments, fix Settings → Billing & plans first — no artifact can upload.
+run-name: >-
+  ci (${{ github.event_name }}) —
+  0s empty-step fails ⇒ raise Actions spending limit (Billing)
+
 on:
   push:
     branches: [main, "phase3/**"]
@@ -18,6 +24,15 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
+      - name: Billing / spending-limit tip
+        run: |
+          {
+            echo "## Runner preflight"
+            echo "If this job (or siblings) dies in **~2–4 seconds** with **no steps** and a"
+            echo "spending-limit / failed-payments annotation, open"
+            echo "**Settings → Billing & plans** and raise the Actions spending limit."
+            echo "Until runners start, \`dwm-hdr-poc\` will not appear under Artifacts."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -36,6 +51,12 @@ jobs:
   devui:
     runs-on: ubuntu-latest
     steps:
+      - name: Billing / spending-limit tip
+        run: |
+          {
+            echo "## Runner preflight"
+            echo "0s empty-step failures ⇒ raise Actions spending limit (Billing & plans)."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -56,6 +77,12 @@ jobs:
   devui-macos:
     runs-on: macos-latest
     steps:
+      - name: Billing / spending-limit tip
+        run: |
+          {
+            echo "## Runner preflight"
+            echo "0s empty-step failures ⇒ raise Actions spending limit (Billing & plans)."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -120,6 +147,14 @@ jobs:
     runs-on: windows-latest
     continue-on-error: false
     steps:
+      - name: Billing / spending-limit tip
+        shell: bash
+        run: |
+          {
+            echo "## Runner preflight"
+            echo "If this Windows job never starts (empty steps / ~3s fail), raise the"
+            echo "Actions spending limit — \`dwm-hdr-poc\` artifact cannot upload otherwise."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - name: Detect HLSL PoC sources
         id: hlsl

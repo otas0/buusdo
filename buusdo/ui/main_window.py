@@ -86,6 +86,7 @@ from buusdo.core.steam_uris import (
     game_properties_uri_candidates,
     probe_open_uris,
     set_steam_uri_cache_ttl_s,
+    steam_uri_cache_status,
     steam_uri_cache_ttl_s,
 )
 from buusdo.core.transaction import Transaction
@@ -266,8 +267,11 @@ class MainWindow(QMainWindow):
         self._btn_clear_steam_uri = QPushButton(t("settings.steam_uri_clear"))
         self._btn_clear_steam_uri.clicked.connect(self._clear_steam_uri_cache)
         ttl_row.addWidget(self._btn_clear_steam_uri)
-        ttl_row.addStretch(1)
+        self._steam_uri_cache_label = QLabel("")
+        self._steam_uri_cache_label.setWordWrap(True)
+        ttl_row.addWidget(self._steam_uri_cache_label, stretch=1)
         home.addLayout(ttl_row)
+        self._refresh_steam_uri_controls()
 
         self._session_banner = QLabel("")
         self._session_banner.setWordWrap(True)
@@ -427,6 +431,16 @@ class MainWindow(QMainWindow):
             get_optiscaler_kit_path()
         ).ok
 
+    def _missing_kit_side(self) -> str | None:
+        """When exactly one kit is valid, return the side that still needs a path."""
+        r_ok = validate_reshade_kit(get_reshade_kit_path()).ok
+        o_ok = validate_optiscaler_kit(get_optiscaler_kit_path()).ok
+        if r_ok and not o_ok:
+            return "optiscaler"
+        if o_ok and not r_ok:
+            return "reshade"
+        return None
+
     def _kit_banner_state(self) -> tuple[str, str]:
         """Return (text, severity): empty | one_side | incomplete."""
         r_path = get_reshade_kit_path()
@@ -491,20 +505,52 @@ class MainWindow(QMainWindow):
             self._kits_banner.setStyleSheet("color: #2E86AB; font-weight: 600;")
         else:
             self._kits_banner.setStyleSheet("color: #B08900;")
+        missing = self._missing_kit_side()
+        if missing == "reshade":
+            self._btn_complete_kits.setText(t("settings.complete_kits_reshade"))
+        elif missing == "optiscaler":
+            self._btn_complete_kits.setText(t("settings.complete_kits_optiscaler"))
+        else:
+            self._btn_complete_kits.setText(t("settings.complete_kits"))
         self._btn_complete_kits.setVisible(True)
 
     def _on_steam_ttl_changed(self, days: int) -> None:
         set_steam_uri_cache_ttl_s(int(days) * 86400)
+        self._refresh_steam_uri_controls()
         self._status.setText(t("settings.steam_uri_ttl_saved", days=int(days)))
+
+    def _refresh_steam_uri_controls(self) -> None:
+        st = steam_uri_cache_status()
+        if st.get("cached"):
+            self._steam_uri_cache_label.setText(
+                t("settings.steam_uri_cache_on", template=str(st.get("template") or ""))
+            )
+            self._btn_clear_steam_uri.setEnabled(True)
+            tip = str(st.get("template") or "")
+        else:
+            self._steam_uri_cache_label.setText(t("settings.steam_uri_cache_off"))
+            self._btn_clear_steam_uri.setEnabled(False)
+            tip = t("settings.steam_uri_cache_off")
+        self._btn_clear_steam_uri.setToolTip(tip)
+        if hasattr(self, "_btn_steam"):
+            self._btn_steam.setToolTip(tip)
 
     def _clear_steam_uri_cache(self) -> None:
         cleared = clear_properties_uri_cache()
+        self._refresh_steam_uri_controls()
         self._status.setText(
             t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
         )
 
     def _complete_kits_setup(self) -> None:
-        FirstRunWizard(self).exec()
+        focus = self._missing_kit_side()
+        if focus == "reshade":
+            # One-side CTA: jump straight to the missing side picker.
+            self._pick_reshade_kit()
+        elif focus == "optiscaler":
+            self._pick_optiscaler_kit()
+        else:
+            FirstRunWizard(self, focus_side=focus).exec()
         data = load_settings()
         if self._kits_both_valid():
             data["wizard_skipped_kits"] = False
@@ -708,6 +754,7 @@ class MainWindow(QMainWindow):
             return bool(QDesktopServices.openUrl(QUrl(uri)))
 
         probe_open_uris(game_properties_uri_candidates(app_id), opener=_open)
+        self._refresh_steam_uri_controls()
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -972,7 +1019,14 @@ class MainWindow(QMainWindow):
         self._btn_clear_session.setEnabled(True)
         self._btn_rollback_now.setEnabled(True)
         mins = max(1, int((st.get("ttl_remaining_s") or 0) / 60))
-        self._session_banner.setText(t("display.session_warn", minutes=mins))
+        self._session_banner.setText(
+            t(
+                "display.session_warn",
+                minutes=mins,
+                displays=int(st.get("displays") or 0),
+                targets=int(st.get("targets") or 0),
+            )
+        )
 
     def _clear_display_session(self) -> None:
         clear_display_session()
@@ -1094,6 +1148,7 @@ class MainWindow(QMainWindow):
                     adapter_high=int(adapter_high or 0),
                     target_id=int(target_id),
                 )
+                # Sync banner (target/display counts) after session prune or clear.
                 self._refresh_session_banner()
                 # Drop the selected mode-failure row when its CCD target HDR retry succeeds.
                 if row is not None and 0 <= r < len(failed):

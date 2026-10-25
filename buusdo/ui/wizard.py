@@ -41,8 +41,10 @@ def needs_wizard() -> bool:
 
 
 class FirstRunWizard(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, focus_side: str | None = None):
         super().__init__(parent)
+        # focus_side: "reshade" | "optiscaler" | None — highlight / auto-open missing side.
+        self._focus_side = focus_side if focus_side in ("reshade", "optiscaler") else None
         self.setWindowTitle(t("wizard.title"))
         self.setModal(True)
         layout = QVBoxLayout(self)
@@ -94,6 +96,17 @@ class FirstRunWizard(QDialog):
         layout.addLayout(actions)
 
         self._refresh_status()
+        self._apply_focus_side()
+
+    def _apply_focus_side(self) -> None:
+        if self._focus_side == "reshade":
+            self._set_highlight(self._pick_reshade_btn, True)
+            self._pick_reshade_btn.setDefault(True)
+            self._pick_reshade_btn.setFocus()
+        elif self._focus_side == "optiscaler":
+            self._set_highlight(self._pick_opti_btn, True)
+            self._pick_opti_btn.setDefault(True)
+            self._pick_opti_btn.setFocus()
 
     def _has_valid_kit(self) -> bool:
         return validate_reshade_kit(get_reshade_kit_path()).ok or validate_optiscaler_kit(

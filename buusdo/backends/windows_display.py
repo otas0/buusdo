@@ -201,12 +201,14 @@ def display_session_status() -> dict[str, Any]:
     status = heal_display_session()
     if status.get("action") != "kept":
         return {"present": False, "healed": status}
+    snap = status.get("snap") or {}
     return {
         "present": True,
         "warn_expiring": bool(status.get("warn_expiring")),
         "age_s": status.get("age_s"),
         "ttl_remaining_s": status.get("ttl_remaining_s"),
-        "displays": len((status.get("snap") or {}).get("displays") or []),
+        "displays": len(snap.get("displays") or []),
+        "targets": len(snap.get("targets") or []),
     }
 
 

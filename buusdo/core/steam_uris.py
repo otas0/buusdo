@@ -120,6 +120,19 @@ def clear_properties_uri_cache() -> bool:
     return changed
 
 
+def steam_uri_cache_status(*, now: datetime | None = None) -> dict:
+    """UI helper: whether a preferred properties URI template is active."""
+    tpl = cached_properties_template(now=now)
+    data = load_settings()
+    probed = _parse_probed_at(data.get("steam_properties_uri_probed_at")) if tpl else None
+    return {
+        "cached": bool(tpl),
+        "template": tpl,
+        "probed_at": probed.isoformat() if probed else None,
+        "ttl_s": steam_uri_cache_ttl_s(),
+    }
+
+
 def probe_open_uris(
     uris: Iterable[str],
     *,
