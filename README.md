@@ -54,11 +54,14 @@ GitHub Actions artifacts (`dwm-hdr-poc`, Qt diag tarballs) and common failure mo
 documented in [docs/CI_ARTIFACTS.md](docs/CI_ARTIFACTS.md).
 
 After fixing Billing, **one** `workflow_dispatch` is enough — do not poll Actions from agents.
+Billing awareness for local machines: **LaunchAgent only** (`install_watch_ci_billing_launchd.sh`); do not agent-poll Actions.
 
 Quick local checks:
 
 ```bash
 python scripts/watch_ci_billing.py --notify --once   # exit 1 if newest run looks billing-blocked
-bash scripts/install_watch_ci_billing_launchd.sh     # hourly macOS LaunchAgent
+bash scripts/install_watch_ci_billing_launchd.sh     # hourly macOS LaunchAgent (appending logs)
 python scripts/verify_dwm_hdr_poc_local.py            # offline zip + hlsl_sha256 (no network)
+python scripts/verify_dwm_hdr_poc_local.py --json     # machine-readable summary
+bash scripts/push_when_online.sh                     # finite-retry git push (flaky HTTPS)
 ```

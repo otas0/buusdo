@@ -49,6 +49,8 @@ jobs:
         run: python scripts/check_conflict_export_schema_drift.py
       - name: Docs language (no Han under docs/)
         run: python scripts/check_docs_language.py
+      - name: Offline dwm-hdr PoC verify (JSON)
+        run: python scripts/verify_dwm_hdr_poc_local.py --json
       - name: Pytest
         run: pytest -q --ignore=tests/test_ui_blocked_smoke.py
 

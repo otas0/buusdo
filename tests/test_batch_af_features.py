@@ -61,3 +61,8 @@ def test_clear_row_selections_list_and_table() -> None:
     assert lst.currentRow() == -1
     assert table.currentRow() == -1
     assert lst.selectedItems() == []
+    # Conflict-style single table clear (multi-select fail tables share the helper).
+    table.setCurrentCell(0, 1)
+    clear_row_selections(table)
+    app.processEvents()
+    assert table.currentRow() == -1

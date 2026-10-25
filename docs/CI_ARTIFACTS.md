@@ -138,7 +138,9 @@ python -c "import json,zipfile; from pathlib import Path; r=Path('/tmp/buusdo-dw
 
 - **Do not** agent-poll GitHub Actions for green builds or artifacts.
 - Billing/spending-limit recovery is human-only; after fix, **one** `workflow_dispatch` (or push) is enough.
-- Local awareness of 0-step failures: macOS LaunchAgent via `scripts/install_watch_ci_billing_launchd.sh` only (appending logs).
+- Local awareness of 0-step failures: macOS LaunchAgent via `scripts/install_watch_ci_billing_launchd.sh` only (appending logs). Do **not** agent-poll Actions.
+- After Billing is fixed by a human: **one** `workflow_dispatch` (or push), then stop.
+- Verify LaunchAgent append markers: `bash scripts/assert_watch_ci_billing_log_append.sh`
 - Flaky `git push` HTTPS: `bash scripts/push_when_online.sh` (finite retries).
 
 ## Current status (checked offline)
