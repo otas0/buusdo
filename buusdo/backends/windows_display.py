@@ -333,8 +333,8 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
         for s in steps
         if s.get("action") in {"ChangeDisplaySettingsW", "ChangeDisplaySettingsExW"}
     ]
-    failed_displays = [
-        {
+    def _row(s: dict[str, Any]) -> dict[str, Any]:
+        return {
             "device": s.get("device"),
             "device_string": s.get("device_string"),
             "primary": s.get("primary"),
@@ -345,19 +345,59 @@ def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
             "height": s.get("height"),
             "refresh_hz": s.get("refresh_hz"),
         }
-        for s in mode_steps
-        if not s.get("ok")
-    ]
+
+    failed_displays = [_row(s) for s in mode_steps if not s.get("ok")]
+    succeeded_displays = [_row(s) for s in mode_steps if s.get("ok")]
     mode_ok = bool(mode_steps) and all(s.get("ok") for s in mode_steps)
+    partial = bool(succeeded_displays) and bool(failed_displays)
     applied = bool(mode_ok or (not snap.get("displays") and hdr_step.get("ok")))
-    if applied and not dry_run:
-        clear_display_session()
+    # Full restore clears session; partial rewrites session with failed displays only.
+    if not dry_run:
+        if applied:
+            clear_display_session()
+        elif partial:
+            _prune_session_to_failed(snap, failed_displays)
     return {
         "restored": applied,
+        "partial": partial,
         "failed_displays": failed_displays,
-        "details": {"steps": steps, "hdr": hdr_step, "failed_displays": failed_displays},
+        "succeeded_displays": succeeded_displays,
+        "details": {
+            "steps": steps,
+            "hdr": hdr_step,
+            "failed_displays": failed_displays,
+            "succeeded_displays": succeeded_displays,
+        },
         "snap": snap,
     }
+
+
+def _prune_session_to_failed(
+    snap: dict[str, Any], failed_displays: list[dict[str, Any]]
+) -> None:
+    """Keep only failed monitors in the session so retries do not re-touch successes."""
+    fail_devices = {d.get("device") for d in failed_displays}
+    remaining = [
+        d
+        for d in (snap.get("displays") or [])
+        if d.get("device") in fail_devices
+        or (
+            d.get("device") is None
+            and any(f.get("device") is None for f in failed_displays)
+        )
+    ]
+    if not remaining:
+        clear_display_session()
+        return
+    snap = dict(snap)
+    snap["displays"] = remaining
+    primary = next((d for d in remaining if d.get("primary")), remaining[0])
+    snap["width"] = primary.get("width")
+    snap["height"] = primary.get("height")
+    snap["refresh_hz"] = primary.get("refresh_hz")
+    path = _session_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")
 
 
 def list_advanced_color_targets() -> list[dict[str, Any]]:
@@ -467,6 +507,62 @@ def apply_display_profile(
         "不宣称「已开启光线追踪」。"
     )
     return result
+
+
+def retry_display_mode(
+    *,
+    device: str | None,
+    width: int,
+    height: int,
+    refresh_hz: int | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Retry ChangeDisplaySettings(Ex)W for a single monitor."""
+    return _apply_mode(width, height, refresh_hz, dry_run=dry_run, device=device)
+
+
+def retry_hdr_target(
+    *,
+    adapter_low: int,
+    adapter_high: int = 0,
+    target_id: int,
+    enable: bool,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Retry SET_ADVANCED_COLOR_STATE for a single CCD adapter/target pair."""
+    try:
+        user32 = ctypes.windll.user32
+    except AttributeError:
+        return {"ok": False, "action": "hdr_retry", "error": "user32 missing"}
+
+    if dry_run:
+        return {
+            "ok": True,
+            "action": "hdr_retry_dry_run",
+            "enable": enable,
+            "adapterLow": int(adapter_low),
+            "adapterHigh": int(adapter_high),
+            "targetId": int(target_id),
+            "dry_run": True,
+        }
+
+    req = DISPLAYCONFIG_SET_ADVANCED_COLOR_STATE()
+    req.header.type = DISPLAYCONFIG_DEVICE_INFO_SET_ADVANCED_COLOR_STATE
+    req.header.size = ctypes.sizeof(DISPLAYCONFIG_SET_ADVANCED_COLOR_STATE)
+    req.header.adapterId = LUID(int(adapter_low), int(adapter_high))
+    req.header.id = int(target_id)
+    req.enableAdvancedColor = bool(enable)
+    status = user32.DisplayConfigSetDeviceInfo(ctypes.byref(req))
+    return {
+        "ok": status == 0,
+        "action": "SET_ADVANCED_COLOR_STATE",
+        "enable": enable,
+        "adapterLow": int(adapter_low),
+        "adapterHigh": int(adapter_high),
+        "targetId": int(target_id),
+        "status": int(status),
+        "dry_run": False,
+    }
 
 
 def _apply_mode(

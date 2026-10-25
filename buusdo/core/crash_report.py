@@ -60,6 +60,50 @@ def append_crash_opt_in_audit(*, enabled: bool, note: str = "") -> Path:
     return path
 
 
+def export_crash_opt_in_audit(dest: Path) -> Path:
+    """Copy redacted audit log to dest (creates empty file if none).
+
+    Runs redact twice (read + write) so residual home/token patterns cannot leak.
+    Raises OSError if dest cannot be opened for write.
+    """
+    src = _audit_path()
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if src.is_file():
+        text = redact(src.read_text(encoding="utf-8", errors="replace"))
+    else:
+        text = ""
+    text = redact(text)
+    with dest.open("w", encoding="utf-8") as fh:
+        fh.write(text)
+    return dest
+
+
+def clear_crash_opt_in_audit() -> bool:
+    """Delete audit log. Returns True if a file was removed."""
+    path = _audit_path()
+    if path.is_file():
+        path.unlink()
+        return True
+    return False
+
+
+def read_crash_opt_in_audit_lines(*, limit: int = 200) -> list[dict[str, Any]]:
+    path = _audit_path()
+    if not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return out[-limit:]
+
+
 def set_crash_upload_opt_in(enabled: bool) -> None:
     data = load_settings()
     prev = bool(data.get("crash_upload_opt_in"))

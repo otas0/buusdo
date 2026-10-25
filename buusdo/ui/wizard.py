@@ -162,8 +162,18 @@ class FirstRunWizard(QDialog):
             self._refresh_status()
 
     def _finish_skip(self) -> None:
+        reply = QMessageBox.question(
+            self,
+            "buusdo",
+            t("wizard.skip_confirm"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         data = load_settings()
         data["wizard_completed"] = True
+        data["wizard_skipped_kits"] = True
         save_settings(data)
         self.accept()
 
@@ -173,5 +183,6 @@ class FirstRunWizard(QDialog):
             return
         data = load_settings()
         data["wizard_completed"] = True
+        data["wizard_skipped_kits"] = False
         save_settings(data)
         self.accept()

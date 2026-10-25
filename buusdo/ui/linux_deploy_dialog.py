@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from buusdo.core.i18n import t
+from buusdo.core.vkbasalt_prefs import get_remembered_config_path, set_remembered_config_path
 from buusdo.core.vkbasalt_template import list_presets
 
 
@@ -48,7 +49,7 @@ class LinuxDeployDialog(QDialog):
         self._sharp.setValue(float(sharpness))
         form.addRow(t("linux.sharpness"), self._sharp)
         path_row = QHBoxLayout()
-        self._config = QLineEdit(config_path)
+        self._config = QLineEdit(config_path or get_remembered_config_path())
         self._config.setPlaceholderText("vkBasalt.conf")
         browse = QPushButton(t("linux.browse_config"))
         browse.clicked.connect(self._browse)
@@ -82,4 +83,5 @@ class LinuxDeployDialog(QDialog):
         conf = self._config.text().strip()
         if conf:
             opts["VKBASALT_CONFIG_FILE"] = str(Path(conf).expanduser())
+            set_remembered_config_path(opts["VKBASALT_CONFIG_FILE"])
         return opts
