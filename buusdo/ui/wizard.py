@@ -26,6 +26,11 @@ from buusdo.core.config_store import (
 from buusdo.core.i18n import t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 
+_HIGHLIGHT = (
+    "color: #C73E1D; font-weight: 600; border: 1px solid #C73E1D; padding: 4px;"
+)
+_NORMAL = ""
+
 
 def needs_wizard() -> bool:
     settings = load_settings()
@@ -51,23 +56,29 @@ class FirstRunWizard(QDialog):
         self._opti_status = QLabel("")
 
         row1 = QHBoxLayout()
-        b1 = QPushButton("ReShade…")
-        b1.clicked.connect(self._pick_reshade)
+        self._pick_reshade_btn = QPushButton("ReShade…")
+        self._pick_reshade_btn.clicked.connect(self._pick_reshade)
+        self._reselect_reshade = QPushButton(t("action.reselect_kit"))
+        self._reselect_reshade.clicked.connect(self._pick_reshade)
         self._open_reshade = QPushButton(t("action.open_kit_folder"))
         self._open_reshade.clicked.connect(lambda: self._open_folder(get_reshade_kit_path()))
-        row1.addWidget(b1)
+        row1.addWidget(self._pick_reshade_btn)
         row1.addWidget(self._reshade)
+        row1.addWidget(self._reselect_reshade)
         row1.addWidget(self._open_reshade)
         layout.addLayout(row1)
         layout.addWidget(self._reshade_status)
 
         row2 = QHBoxLayout()
-        b2 = QPushButton("OptiScaler…")
-        b2.clicked.connect(self._pick_opti)
+        self._pick_opti_btn = QPushButton("OptiScaler…")
+        self._pick_opti_btn.clicked.connect(self._pick_opti)
+        self._reselect_opti = QPushButton(t("action.reselect_kit"))
+        self._reselect_opti.clicked.connect(self._pick_opti)
         self._open_opti = QPushButton(t("action.open_kit_folder"))
         self._open_opti.clicked.connect(lambda: self._open_folder(get_optiscaler_kit_path()))
-        row2.addWidget(b2)
+        row2.addWidget(self._pick_opti_btn)
         row2.addWidget(self._opti)
+        row2.addWidget(self._reselect_opti)
         row2.addWidget(self._open_opti)
         layout.addLayout(row2)
         layout.addWidget(self._opti_status)
@@ -100,6 +111,11 @@ class FirstRunWizard(QDialog):
             label.setText(f"{t('wizard.kit_bad')}: {detail}")
             label.setStyleSheet("color: #C73E1D; font-weight: 600;")
 
+    @staticmethod
+    def _set_highlight(btn: QPushButton, on: bool) -> None:
+        btn.setStyleSheet(_HIGHLIGHT if on else _NORMAL)
+        btn.setEnabled(True)
+
     def _refresh_status(self) -> None:
         rs = validate_reshade_kit(get_reshade_kit_path())
         self._set_status(
@@ -107,14 +123,21 @@ class FirstRunWizard(QDialog):
             rs.ok,
             ", ".join(rs.found) if rs.ok else ", ".join(rs.missing) or rs.message,
         )
-        self._open_reshade.setEnabled(bool(get_reshade_kit_path()) and not rs.ok)
+        missing_r = bool(get_reshade_kit_path()) and not rs.ok
+        self._open_reshade.setEnabled(bool(get_reshade_kit_path()))
+        self._set_highlight(self._open_reshade, missing_r)
+        self._set_highlight(self._reselect_reshade, missing_r or get_reshade_kit_path() is None)
+
         op = validate_optiscaler_kit(get_optiscaler_kit_path())
         self._set_status(
             self._opti_status,
             op.ok,
             ", ".join(op.found) if op.ok else ", ".join(op.missing) or op.message,
         )
-        self._open_opti.setEnabled(bool(get_optiscaler_kit_path()) and not op.ok)
+        missing_o = bool(get_optiscaler_kit_path()) and not op.ok
+        self._open_opti.setEnabled(bool(get_optiscaler_kit_path()))
+        self._set_highlight(self._open_opti, missing_o)
+        self._set_highlight(self._reselect_opti, missing_o or get_optiscaler_kit_path() is None)
 
     def _pick_reshade(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "ReShade kit")

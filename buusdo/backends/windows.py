@@ -187,7 +187,7 @@ class WindowsBackend(EnhancementBackend):
     def _install_reshade(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kit_path = options.get("reshade_kit") or get_reshade_kit_path()
         if not kit_path:
-            raise BuusdoError("未配置 ReShade 工具包路径。")
+            raise BuusdoError(t("err.reshade_kit"))
         api = self._resolve_api(options, target)
         report = preflight.check_install_preflight(target, api=api)
         if not report.ok:
@@ -226,7 +226,7 @@ class WindowsBackend(EnhancementBackend):
     def _install_optiscaler(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kit_path = options.get("optiscaler_kit") or get_optiscaler_kit_path()
         if not kit_path:
-            raise BuusdoError("未配置 OptiScaler 工具包路径。")
+            raise BuusdoError(t("err.optiscaler_kit"))
         kit = Path(kit_path)
         conflicts = conflict.check_install_conflicts(
             target, mode="optiscaler", optiscaler_kit=kit
@@ -312,11 +312,11 @@ class WindowsBackend(EnhancementBackend):
             )
         elif kind == "optiscaler":
             if not o_kit:
-                raise BuusdoError("未配置 OptiScaler 工具包路径。")
+                raise BuusdoError(t("err.optiscaler_kit"))
             details = preview_optiscaler_deploy(target, Path(o_kit))
         else:
             if not r_kit:
-                raise BuusdoError("未配置 ReShade 工具包路径。")
+                raise BuusdoError(t("err.reshade_kit"))
             details = preview_reshade_deploy(
                 target, Path(r_kit), api=self._resolve_api(options, target)
             )

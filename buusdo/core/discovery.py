@@ -13,10 +13,6 @@ from buusdo.core.vdf import parse_vdf
 CancelCb = Callable[[], bool]
 
 
-class DiscoveryCancelled(BuusdoError):
-    """Raised when a caller aborts discover_steam_games mid-scan."""
-
-
 @dataclass(frozen=True)
 class DiscoveredGame:
     name: str
@@ -46,35 +42,73 @@ class DiscoveredGame:
         )
 
 
+class DiscoveryCancelled(BuusdoError):
+    """Raised when a caller aborts discover_steam_games mid-scan."""
+
+    def __init__(
+        self,
+        message: str = "scan cancelled",
+        *,
+        games: list[DiscoveredGame] | None = None,
+        scanned_manifests: dict[str, float] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.games = list(games or [])
+        self.scanned_manifests = dict(scanned_manifests or {})
+
+
 def discover_steam_games(
     steam_roots: list[Path],
     *,
     should_cancel: CancelCb | None = None,
+    prior_games: list[DiscoveredGame] | None = None,
+    prior_scanned: dict[str, float] | None = None,
 ) -> list[DiscoveredGame]:
-    """Scan Steam library folders under the given client roots."""
-    games: list[DiscoveredGame] = []
-    seen: set[str] = set()
+    """Scan Steam library folders under the given client roots.
+
+    prior_scanned maps manifest path → mtime from a cancelled run; matching
+    manifests are skipped and prior_games reused to avoid a full rescan.
+    """
+    games: list[DiscoveredGame] = list(prior_games or [])
+    seen: set[str] = {g.app_id for g in games}
+    scanned: dict[str, float] = dict(prior_scanned or {})
+    prior = dict(prior_scanned or {})
+
+    def _cancel() -> None:
+        raise DiscoveryCancelled(
+            "scan cancelled", games=games, scanned_manifests=scanned
+        )
+
     for root in steam_roots:
         if should_cancel and should_cancel():
-            raise DiscoveryCancelled("scan cancelled")
+            _cancel()
         if not root.exists():
             continue
         for library in _library_paths(root):
             if should_cancel and should_cancel():
-                raise DiscoveryCancelled("scan cancelled")
+                _cancel()
             steamapps = library / "steamapps"
             if not steamapps.is_dir():
                 continue
             for manifest in sorted(steamapps.glob("appmanifest_*.acf")):
                 if should_cancel and should_cancel():
-                    raise DiscoveryCancelled("scan cancelled")
+                    _cancel()
+                try:
+                    mtime = manifest.stat().st_mtime
+                    key = str(manifest.resolve())
+                except OSError:
+                    mtime = 0.0
+                    key = str(manifest)
+                if key in prior and prior[key] == mtime:
+                    scanned[key] = mtime
+                    continue
                 game = _game_from_manifest(manifest, library)
+                scanned[key] = mtime
                 if game is None:
                     continue
-                key = game.app_id
-                if key in seen:
+                if game.app_id in seen:
                     continue
-                seen.add(key)
+                seen.add(game.app_id)
                 games.append(game)
     games.sort(key=lambda g: g.name.lower())
     return games

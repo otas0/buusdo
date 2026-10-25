@@ -107,7 +107,7 @@ class LinuxBackend(EnhancementBackend):
             elif mode == "goverlay":
                 launched = launch_goverlay()
                 if not launched.get("launched"):
-                    raise BuusdoError("未找到 Goverlay，请先安装 goverlay。")
+                    raise BuusdoError(t("err.goverlay_missing"))
                 result = InstallResult(
                     success=True,
                     message=t("msg.goverlay_launched", path=launched["path"]),
@@ -214,7 +214,7 @@ class LinuxBackend(EnhancementBackend):
     def _install_reshade(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kit_path = options.get("reshade_kit") or get_reshade_kit_path()
         if not kit_path:
-            raise BuusdoError("未配置 ReShade 工具包路径。")
+            raise BuusdoError(t("err.reshade_kit"))
         api = self._resolve_api(options, target)
         report = preflight.check_install_preflight(target, api=api)
         if not report.ok:
@@ -312,9 +312,7 @@ class LinuxBackend(EnhancementBackend):
                     steam_roots(HostPlatform.LINUX), steam_id3=steam_id3
                 )
                 if localconfig is None:
-                    raise BuusdoError(
-                        "未找到 Steam localconfig.vdf；若有多用户请先选择 steam_id3。"
-                    )
+                    raise BuusdoError(t("err.localconfig"))
                 details["launch_options"] = set_launch_options(
                     tx, localconfig, str(app_id), launch
                 )

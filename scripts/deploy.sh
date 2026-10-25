@@ -31,11 +31,21 @@ if [[ "${BUUSDO_CODESIGN:-}" == "1" ]] || [[ -f "${ROOT}/scripts/codesign.env" ]
     while IFS= read -r art; do
       [[ -z "${art}" ]] && continue
       echo "codesign: signing ${art}"
-      "${HOOK}" "${art}" || echo "codesign: hook failed for ${art} (non-fatal)" >&2
+      if ! "${HOOK}" "${art}"; then
+        echo "codesign: hook failed for ${art}" >&2
+        if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
+          exit 1
+        fi
+        echo "codesign: continuing (set BUUSDO_CODESIGN_STRICT=1 to fail the build)" >&2
+      fi
       signed_any=1
     done < <(find "${OUT}" -maxdepth 3 \( -name 'buusdo' -o -name 'buusdo.exe' -o -name 'buusdo.app' \) 2>/dev/null | head -5)
     if [[ "${signed_any}" -eq 0 ]]; then
       echo "codesign: no buusdo artifact found under ${OUT}; skip."
+      if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
+        echo "codesign: strict mode requires an artifact to sign" >&2
+        exit 1
+      fi
     fi
   fi
 fi

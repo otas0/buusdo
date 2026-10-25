@@ -82,6 +82,26 @@ def _fingerprint(steam_roots: list[Path]) -> dict[str, float]:
     return stamps
 
 
+def _write_cache(
+    *,
+    fingerprint: dict[str, float],
+    games: list[DiscoveredGame],
+    partial: bool = False,
+    scanned_manifests: dict[str, float] | None = None,
+) -> None:
+    cache_file = _cache_path()
+    payload: dict[str, Any] = {
+        "saved_at": time.time(),
+        "fingerprint": fingerprint,
+        "games": [_game_to_cache(g) for g in games],
+        "partial": partial,
+    }
+    if scanned_manifests is not None:
+        payload["scanned_manifests"] = scanned_manifests
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
 def load_cached_games(
     steam_roots: list[Path],
     *,
@@ -97,30 +117,51 @@ def load_cached_games(
     fp = _fingerprint(steam_roots)
     if should_cancel and should_cancel():
         raise DiscoveryCancelled("scan cancelled")
+
+    prior_games: list[DiscoveredGame] = []
+    prior_scanned: dict[str, float] = {}
     if not force and cache_file.is_file():
         try:
             raw = json.loads(cache_file.read_text(encoding="utf-8"))
-            if raw.get("fingerprint") == fp:
+            if raw.get("fingerprint") == fp and not raw.get("partial"):
                 if progress:
                     progress("cache_hit", 1.0)
                 return [_game_from_cache(item) for item in raw.get("games") or []]
+            # Resume from cancelled partial scan when fingerprint still matches.
+            if raw.get("partial") and raw.get("fingerprint") == fp:
+                prior_games = [_game_from_cache(item) for item in raw.get("games") or []]
+                prior_scanned = dict(raw.get("scanned_manifests") or {})
         except (OSError, json.JSONDecodeError, KeyError, TypeError):
             pass
 
     if progress:
         progress("discover", 0.4)
-    games = discover_steam_games(steam_roots, should_cancel=should_cancel)
+    try:
+        games = discover_steam_games(
+            steam_roots,
+            should_cancel=should_cancel,
+            prior_games=prior_games or None,
+            prior_scanned=prior_scanned or None,
+        )
+    except DiscoveryCancelled as exc:
+        # Keep partial fingerprint so the next scan resumes instead of full rescan.
+        _write_cache(
+            fingerprint=fp,
+            games=exc.games,
+            partial=True,
+            scanned_manifests=exc.scanned_manifests,
+        )
+        raise
+
     if should_cancel and should_cancel():
-        raise DiscoveryCancelled("scan cancelled")
+        raise DiscoveryCancelled(
+            "scan cancelled",
+            games=games,
+            scanned_manifests=prior_scanned,
+        )
     if progress:
         progress("write_cache", 0.85)
-    payload = {
-        "saved_at": time.time(),
-        "fingerprint": fp,
-        "games": [_game_to_cache(g) for g in games],
-    }
-    cache_file.parent.mkdir(parents=True, exist_ok=True)
-    cache_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    _write_cache(fingerprint=fp, games=games, partial=False, scanned_manifests=None)
     if progress:
         progress("done", 1.0)
     return games

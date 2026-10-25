@@ -125,9 +125,9 @@ def set_launch_options(
         app_block = re.compile(rf'("{re.escape(app_id)}"\s*\{{)', re.DOTALL)
         match = app_block.search(text)
         if not match:
-            raise BuusdoError(
-                f"localconfig.vdf 中未找到 app {app_id}；请先在 Steam 中至少启动过该游戏。"
-            )
+            from buusdo.core.i18n import t
+
+            raise BuusdoError(t("err.app_not_in_localconfig", app_id=app_id))
         insert = f'\n\t\t\t\t"LaunchOptions"\t\t"{launch_options}"'
         new_text = text[: match.end()] + insert + text[match.end() :]
 

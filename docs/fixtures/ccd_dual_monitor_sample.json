@@ -1,0 +1,53 @@
+{
+  "recorded_at": "2026-10-25T00:00:00+00:00",
+  "note": "Sample shape from scripts/verify_ccd_hdr.py --record on a dual-monitor Windows host. Replace with a real run; values below are illustrative.",
+  "targets": [
+    {
+      "adapterLow": 12345,
+      "adapterHigh": 0,
+      "targetId": 0,
+      "get_status": 0,
+      "advancedColorSupported": true,
+      "advancedColorEnabled": false
+    },
+    {
+      "adapterLow": 12345,
+      "adapterHigh": 0,
+      "targetId": 1,
+      "get_status": 0,
+      "advancedColorSupported": true,
+      "advancedColorEnabled": false
+    }
+  ],
+  "target_count": 2,
+  "displays": [
+    {
+      "device": "\\\\.\\DISPLAY1",
+      "device_string": "Primary",
+      "width": 2560,
+      "height": 1440,
+      "refresh_hz": 144,
+      "primary": true
+    },
+    {
+      "device": "\\\\.\\DISPLAY2",
+      "device_string": "Secondary",
+      "width": 1920,
+      "height": 1080,
+      "refresh_hz": 60,
+      "primary": false
+    }
+  ],
+  "display_count": 2,
+  "adapter_target_ids": [
+    {"adapterLow": 12345, "adapterHigh": 0, "targetId": 0, "advancedColorEnabled": false, "advancedColorSupported": true},
+    {"adapterLow": 12345, "adapterHigh": 0, "targetId": 1, "advancedColorEnabled": false, "advancedColorSupported": true}
+  ],
+  "verify": {
+    "ok": true,
+    "dry_run": true,
+    "enable": true,
+    "multi_monitor": true
+  },
+  "apply": null
+}
