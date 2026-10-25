@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Iterable
 
 from buusdo.core.config_store import load_settings, save_settings
+
+# Prefer re-probing after a week so a Steam client update cannot pin a dead scheme forever.
+STEAM_URI_CACHE_TTL_S = 7 * 24 * 3600
 
 
 def game_properties_uri_candidates(app_id: str | int) -> list[str]:
@@ -38,32 +42,61 @@ def run_uri(app_id: str | int) -> str:
     return f"steam://run/{app_id}"
 
 
-def cached_properties_template() -> str | None:
-    tpl = load_settings().get("steam_properties_uri_template")
-    return str(tpl) if tpl else None
+def _parse_probed_at(raw: object) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        text = str(raw)
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        return datetime.fromisoformat(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def cached_properties_template(*, now: datetime | None = None) -> str | None:
+    """Return cached template, or None if missing / TTL expired (auto-clears)."""
+    data = load_settings()
+    tpl = data.get("steam_properties_uri_template")
+    if not tpl:
+        return None
+    probed = _parse_probed_at(data.get("steam_properties_uri_probed_at"))
+    clock = now or datetime.now(timezone.utc)
+    if probed is not None:
+        if probed.tzinfo is None:
+            probed = probed.replace(tzinfo=timezone.utc)
+        age = (clock - probed).total_seconds()
+        if age < 0 or age > STEAM_URI_CACHE_TTL_S:
+            clear_properties_uri_cache()
+            return None
+    return str(tpl)
 
 
 def cache_properties_uri(uri: str) -> None:
-    """Persist working URI as a template with {app_id} placeholder."""
-    # Replace trailing numeric app id with placeholder.
+    """Persist working URI as a template with {app_id} placeholder + probed_at."""
     import re
 
     templated = re.sub(r"/\d+$", "/{app_id}", uri)
     if "{app_id}" not in templated:
-        # GameHub style may embed id differently
         templated = re.sub(r"(\D)\d+$", r"\1{app_id}", uri)
     data = load_settings()
     data["steam_properties_uri_template"] = templated
     data["steam_properties_uri_last"] = uri
+    data["steam_properties_uri_probed_at"] = datetime.now(timezone.utc).isoformat()
     save_settings(data)
 
 
 def clear_properties_uri_cache() -> bool:
     """Drop cached Steam properties URI template (e.g. after all probes fail)."""
     data = load_settings()
-    changed = "steam_properties_uri_template" in data or "steam_properties_uri_last" in data
-    data.pop("steam_properties_uri_template", None)
-    data.pop("steam_properties_uri_last", None)
+    keys = (
+        "steam_properties_uri_template",
+        "steam_properties_uri_last",
+        "steam_properties_uri_probed_at",
+    )
+    changed = any(k in data for k in keys)
+    for k in keys:
+        data.pop(k, None)
     if changed:
         save_settings(data)
     return changed

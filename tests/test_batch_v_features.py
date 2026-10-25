@@ -64,7 +64,7 @@ def test_triple_matrix_schema_version(tmp_path: Path) -> None:
     game = tmp_path / "g"
     game.mkdir()
     details = preview_triple_matrix(EnhancementTarget(name="G", install_path=game))
-    assert details.get("schema_version") == 1
+    assert details.get("schema_version") == 2
 
 
 def test_export_audit_double_redact(tmp_path: Path) -> None:

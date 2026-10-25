@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI gate: err.* keys must exist and match between zh and en (dual with pytest)."""
+"""CI gate: err.* / cap.* / action.* keys must match between zh and en (dual with pytest)."""
 
 from __future__ import annotations
 
@@ -7,10 +7,13 @@ import sys
 
 from buusdo.core.i18n import _STRINGS
 
+_PREFIXES = ("err.", "cap.", "action.")
 
-def main() -> int:
-    zh = {k for k in _STRINGS["zh"] if k.startswith("err.")}
-    en = {k for k in _STRINGS["en"] if k.startswith("err.")}
+
+def _check_prefix(prefix: str) -> list[str]:
+    zh = {k for k in _STRINGS["zh"] if k.startswith(prefix)}
+    en = {k for k in _STRINGS["en"] if k.startswith(prefix)}
+    errors: list[str] = []
     missing_en = sorted(zh - en)
     missing_zh = sorted(en - zh)
     empty = [
@@ -18,23 +21,27 @@ def main() -> int:
         for k in sorted(zh & en)
         if not str(_STRINGS["zh"][k]).strip() or not str(_STRINGS["en"][k]).strip()
     ]
-    ok = True
     if missing_en:
-        print("err.* missing in en:", ", ".join(missing_en), file=sys.stderr)
-        ok = False
+        errors.append(f"{prefix}* missing in en: {', '.join(missing_en)}")
     if missing_zh:
-        print("err.* missing in zh:", ", ".join(missing_zh), file=sys.stderr)
-        ok = False
+        errors.append(f"{prefix}* missing in zh: {', '.join(missing_zh)}")
     if empty:
-        print("err.* empty string:", ", ".join(empty), file=sys.stderr)
-        ok = False
+        errors.append(f"{prefix}* empty string: {', '.join(empty)}")
     if not zh:
-        print("no err.* keys found", file=sys.stderr)
-        ok = False
-    if ok:
-        print(f"err.* i18n OK ({len(zh)} keys)")
-        return 0
-    return 1
+        errors.append(f"no {prefix}* keys found")
+    else:
+        print(f"{prefix}* i18n OK ({len(zh)} keys)")
+    return errors
+
+
+def main() -> int:
+    errors: list[str] = []
+    for prefix in _PREFIXES:
+        errors.extend(_check_prefix(prefix))
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

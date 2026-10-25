@@ -83,3 +83,16 @@ def test_retry_display_mode_change_fail(monkeypatch) -> None:
     )
     assert out["ok"] is False
     assert out["code"] == 1
+
+
+def test_retry_hdr_target_failure(monkeypatch) -> None:
+    class FakeUser32:
+        def DisplayConfigSetDeviceInfo(self, req_ref):
+            return 87  # ERROR_INVALID_PARAMETER-ish
+
+    monkeypatch.setattr(ctypes, "windll", SimpleNamespace(user32=FakeUser32()), raising=False)
+    out = wd.retry_hdr_target(
+        adapter_low=9, adapter_high=0, target_id=2, enable=False, dry_run=False
+    )
+    assert out["ok"] is False
+    assert out["status"] == 87

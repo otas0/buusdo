@@ -18,3 +18,5 @@ python scripts/validate_ccd_fixture.py docs/fixtures/ccd_dual_monitor_sample.jso
 ```
 
 `--require-live` fails until `host_windows` is true and the fixture is no longer marked ILLUSTRATIVE.
+
+This macOS/Linux checkout cannot capture live CCD IDs; keep the ILLUSTRATIVE sample until a dual-monitor Windows host overwrites it and the validate gate passes.

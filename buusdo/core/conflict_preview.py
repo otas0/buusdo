@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from buusdo.core import conflict, optiscaler, reshade, rtx_remix
 from buusdo.core.backend import EnhancementTarget
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.reshade import plan_deploy, resolve_kit
+
+# Export JSON schema for conflict preview payloads (UI copy/export).
+# v1: mode/blocked/diffs (+ optional triple_matrix_summary)
+# v2: requires triple_matrix_summary.issue_counts + schema_version field
+CONFLICT_EXPORT_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -16,6 +22,25 @@ class FileDiff:
     path: str
     action: str  # create | overwrite | restore | conflict
     detail: str = ""
+
+
+def migrate_conflict_export(payload: dict[str, Any]) -> dict[str, Any]:
+    """Upgrade a conflict-export dict in-place-ish to CONFLICT_EXPORT_SCHEMA_VERSION."""
+    out = dict(payload)
+    version = int(out.get("schema_version") or 1)
+    if version < 2:
+        summary = dict(out.get("triple_matrix_summary") or {})
+        summary.setdefault(
+            "issue_counts",
+            {"block": 0, "warning": 0, "info": 0},
+        )
+        summary.setdefault("issue_codes", [])
+        summary.setdefault("blocked", bool(out.get("blocked")))
+        out["triple_matrix_summary"] = summary
+        out["schema_version"] = 2
+        version = 2
+    out["schema_version"] = CONFLICT_EXPORT_SCHEMA_VERSION
+    return out
 
 
 def preview_reshade_deploy(
@@ -130,7 +155,7 @@ def preview_triple_matrix(
         "issue_codes": [i.code for i in report.issues],
     }
     return {
-        "schema_version": 1,
+        "schema_version": CONFLICT_EXPORT_SCHEMA_VERSION,
         "mode": "triple_matrix",
         "blocked": report.blocked,
         "remix": remix,

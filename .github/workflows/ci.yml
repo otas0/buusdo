@@ -79,8 +79,8 @@ jobs:
                       print(p.relative_to(root))
           PY
           pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
-          # Compress Qt plugin directory listing for a dedicated failure artifact.
-          tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt 2>/dev/null || true
+          # Compress Qt plugin listing + smoke log for the dedicated failure artifact.
+          tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt devui-macos.log 2>/dev/null || true
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
       - name: Upload Qt diagnostic artifact on failure
         if: failure()
@@ -89,12 +89,16 @@ jobs:
           name: qt-diag-macos
           path: qt-diag/
           if-no-files-found: warn
-      - name: Upload Qt plugin dirs tarball on failure
+      - name: Upload Qt plugin dirs tarball on smoke failure
+        # always() relative to job end is unnecessary; failure() covers smoke step failure.
+        # Bundle includes qt-plugin-dirs.txt + qt-plugins.txt + devui-macos.log.
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: qt-plugin-dirs-macos
-          path: qt-plugin-dirs.tgz
+          path: |
+            qt-plugin-dirs.tgz
+            qt-diag/devui-macos.log
           if-no-files-found: warn
 
   dwm-hdr-poc:
@@ -136,25 +140,13 @@ jobs:
               print("sha256 ok", digest)
           elif man.get("status") == "skipped_no_compiler":
               print("compiler missing on runner; HLSL materialize-only accepted")
-              # Package HLSL sources for offline Kits comparison.
-              import shutil
-              src_root = pathlib.Path("buusdo/core/dwm_hdr_shaders")
-              pack = root / "hlsl_sources"
-              pack.mkdir(parents=True, exist_ok=True)
-              if src_root.is_dir():
-                  for p in src_root.rglob("*"):
-                      if p.is_file():
-                          dest = pack / p.relative_to(src_root)
-                          dest.parent.mkdir(parents=True, exist_ok=True)
-                          shutil.copy2(p, dest)
-              (pack / "README.txt").write_text(
-                  "HLSL sources uploaded because compile was skipped_no_compiler.\n",
-                  encoding="utf-8",
-              )
-              print("packed HLSL sources under", pack)
+              assert (root / "hlsl_sources.zip").is_file(), "hlsl_sources.zip missing"
+              assert isinstance(man.get("hlsl_sha256"), list) and man["hlsl_sha256"], man
+              print("hlsl_sha256", man["hlsl_sha256"])
           elif man.get("status") == "ok":
               digest = hashlib.sha256(cso.read_bytes()).hexdigest()
               assert man.get("sha256") == digest
+              assert isinstance(man.get("hlsl_sha256"), list)
               print("sha256 ok", digest)
           else:
               print(man)
@@ -166,10 +158,12 @@ jobs:
           name: dwm-hdr-poc
           path: dist/dwm_hdr_poc/
           if-no-files-found: warn
-      - name: Upload HLSL sources when compile skipped
+      - name: Upload HLSL sources zip when present
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dwm-hdr-hlsl-sources
-          path: dist/dwm_hdr_poc/hlsl_sources/
+          path: |
+            dist/dwm_hdr_poc/hlsl_sources/
+            dist/dwm_hdr_poc/hlsl_sources.zip
           if-no-files-found: ignore

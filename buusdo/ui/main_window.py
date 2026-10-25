@@ -43,6 +43,7 @@ from buusdo.core.config_store import (
     update_game_config,
 )
 from buusdo.core.conflict_preview import (
+    migrate_conflict_export,
     preview_optiscaler_deploy,
     preview_reshade_deploy,
     preview_triple_matrix,
@@ -65,6 +66,7 @@ from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
+from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 from buusdo.core.library_progress import resume_scan_status
 from buusdo.core.platform_detect import steam_roots
 from buusdo.core.recent_games import clear_uninstalled, is_greyed, list_recent, mark_uninstalled
@@ -365,21 +367,35 @@ class MainWindow(QMainWindow):
             menu.addAction(empty)
 
     def _tray_clear_uninstalled(self, data: dict) -> None:
+        name = str(data.get("name") or "game")
+        reply = QMessageBox.question(
+            self,
+            "buusdo",
+            t("tray.clear_uninstalled_confirm", name=name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         if clear_uninstalled(data):
             self._rebuild_tray_recent()
             self._status.setText(t("tray.clear_uninstalled"))
 
+    def _has_valid_kit(self) -> bool:
+        return validate_reshade_kit(get_reshade_kit_path()).ok or validate_optiscaler_kit(
+            get_optiscaler_kit_path()
+        ).ok
+
     def _refresh_kits_banner(self) -> None:
         skipped = bool(load_settings().get("wizard_skipped_kits"))
-        has_kit = get_reshade_kit_path() is not None or get_optiscaler_kit_path() is not None
-        show = skipped and not has_kit
+        show = skipped and not self._has_valid_kit()
         self._kits_banner.setText(t("settings.kits_banner") if show else "")
         self._btn_complete_kits.setVisible(show)
 
     def _complete_kits_setup(self) -> None:
         FirstRunWizard(self).exec()
         data = load_settings()
-        if get_reshade_kit_path() or get_optiscaler_kit_path():
+        if self._has_valid_kit():
             data["wizard_skipped_kits"] = False
             data["wizard_completed"] = True
             save_settings(data)
@@ -511,6 +527,14 @@ class MainWindow(QMainWindow):
     def _cancel_scan(self) -> None:
         if self._scan_worker is not None:
             self._scan_worker.cancel()
+        # Indeterminate flash then clear so a cancelled resume does not leave a stale %.
+        self._progress.setVisible(True)
+        self._progress.setRange(0, 0)
+        self._progress.repaint()
+        self._progress.setRange(0, 100)
+        self._progress.setValue(0)
+        self._progress.setFormat("%p%")
+        self._progress.setVisible(False)
         self._status.setText(t("action.cancel_scan"))
 
     def _open_steam_for_target(self) -> None:
@@ -646,9 +670,10 @@ class MainWindow(QMainWindow):
         if path:
             set_reshade_kit_path(path)
             self._status.setText(path)
-            data = load_settings()
-            data["wizard_skipped_kits"] = False
-            save_settings(data)
+            if self._has_valid_kit():
+                data = load_settings()
+                data["wizard_skipped_kits"] = False
+                save_settings(data)
             self._refresh_kits_banner()
 
     def _pick_optiscaler_kit(self) -> None:
@@ -656,9 +681,10 @@ class MainWindow(QMainWindow):
         if path:
             set_optiscaler_kit_path(path)
             self._status.setText(path)
-            data = load_settings()
-            data["wizard_skipped_kits"] = False
-            save_settings(data)
+            if self._has_valid_kit():
+                data = load_settings()
+                data["wizard_skipped_kits"] = False
+                save_settings(data)
             self._refresh_kits_banner()
 
     def _install_options(self) -> dict:
@@ -747,13 +773,15 @@ class MainWindow(QMainWindow):
                 table.setItem(i, col, cell)
         table.resizeColumnsToContents()
         layout.addWidget(table)
-        payload = {
-            "schema_version": details.get("schema_version", 1),
-            "mode": details.get("mode"),
-            "blocked": details.get("blocked"),
-            "triple_matrix_summary": details.get("triple_matrix_summary"),
-            "diffs": details.get("diffs") or [],
-        }
+        payload = migrate_conflict_export(
+            {
+                "schema_version": details.get("schema_version", 1),
+                "mode": details.get("mode"),
+                "blocked": details.get("blocked"),
+                "triple_matrix_summary": details.get("triple_matrix_summary"),
+                "diffs": details.get("diffs") or [],
+            }
+        )
         actions = QHBoxLayout()
         copy_btn = QPushButton(t("action.copy_json"))
         export_btn = QPushButton(t("action.export_json"))
@@ -910,18 +938,30 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def _export_crash_audit(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(
-            self, t("action.export_audit"), "buusdo-crash-audit.jsonl", "JSONL (*.jsonl)"
-        )
-        if not path:
-            return
-        try:
-            export_crash_opt_in_audit(Path(path))
-            self._status.setText(t("action.export_audit"))
-        except OSError as exc:
-            QMessageBox.warning(
-                self, "buusdo", t("action.export_audit_failed", error=str(exc))
+        suggested = "buusdo-crash-audit.jsonl"
+        while True:
+            path, _ = QFileDialog.getSaveFileName(
+                self, t("action.export_audit"), suggested, "JSONL (*.jsonl)"
             )
+            if not path:
+                return
+            try:
+                export_crash_opt_in_audit(Path(path))
+                self._status.setText(t("action.export_audit"))
+                return
+            except OSError as exc:
+                box = QMessageBox(self)
+                box.setIcon(QMessageBox.Icon.Warning)
+                box.setWindowTitle("buusdo")
+                box.setText(t("action.export_audit_failed", error=str(exc)))
+                retry = box.addButton(
+                    t("action.export_audit_retry"), QMessageBox.ButtonRole.AcceptRole
+                )
+                box.addButton(QMessageBox.StandardButton.Cancel)
+                box.exec()
+                if box.clickedButton() is not retry:
+                    return
+                suggested = path
 
     def _clear_crash_audit(self) -> None:
         clear_crash_opt_in_audit()
