@@ -269,8 +269,14 @@ class MainWindow(QMainWindow):
         ttl_row.addWidget(self._btn_clear_steam_uri)
         self._btn_steam_try_first = QPushButton(t("settings.steam_uri_try_first"))
         self._btn_steam_try_first.setToolTip(t("settings.steam_uri_try_first"))
-        self._btn_steam_try_first.clicked.connect(self._try_open_first_steam_uri)
+        self._btn_steam_try_first.clicked.connect(lambda: self._try_open_steam_uri_candidate(0))
         ttl_row.addWidget(self._btn_steam_try_first)
+        self._btn_steam_try_next = QPushButton(t("settings.steam_uri_try_next"))
+        self._btn_steam_try_next.setToolTip(t("settings.steam_uri_try_next"))
+        self._btn_steam_try_next.clicked.connect(self._try_open_next_steam_uri)
+        self._btn_steam_try_next.setEnabled(False)
+        ttl_row.addWidget(self._btn_steam_try_next)
+        self._steam_uri_try_index = 0
         self._steam_uri_cache_label = QLabel("")
         self._steam_uri_cache_label.setWordWrap(True)
         ttl_row.addWidget(self._steam_uri_cache_label, stretch=1)
@@ -538,31 +544,49 @@ class MainWindow(QMainWindow):
             tip = t("settings.steam_uri_cache_off")
         self._btn_clear_steam_uri.setToolTip(tip)
         self._btn_steam_try_first.setEnabled(has_game)
+        # "Try next" only after a failed attempt with remaining candidates.
+        can_next = (
+            has_game
+            and getattr(self, "_steam_uri_try_index", 0) > 0
+            and self._steam_uri_candidates_left() > 0
+        )
+        self._btn_steam_try_next.setEnabled(bool(can_next))
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
+
+    def _steam_uri_candidates(self) -> list[str]:
+        if not self._target or not self._target.metadata.get("app_id"):
+            return []
+        return game_properties_uri_candidates(str(self._target.metadata["app_id"]))
+
+    def _steam_uri_candidates_left(self) -> int:
+        uris = self._steam_uri_candidates()
+        idx = int(getattr(self, "_steam_uri_try_index", 0))
+        return max(0, len(uris) - idx)
 
     def _steam_uri_probe_preview_text(self) -> str:
         """List URI candidates for the selected game after cache clear (no desktop open)."""
         if not self._target or not self._target.metadata.get("app_id"):
             return t("settings.steam_uri_probe_no_game")
-        app_id = str(self._target.metadata["app_id"])
-        uris = game_properties_uri_candidates(app_id)
+        uris = self._steam_uri_candidates()
         return t("settings.steam_uri_probe_preview", uris="\n".join(f"  {u}" for u in uris))
 
-    def _try_open_first_steam_uri(self) -> None:
-        """Optional: open only the first properties URI candidate for the selected game."""
-        if not self._target or not self._target.metadata.get("app_id"):
-            self._toast(t("settings.steam_uri_probe_no_game"))
-            return
+    def _try_open_steam_uri_candidate(self, index: int) -> None:
+        """Open one properties URI candidate by index; offer Try next on failure."""
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
 
-        app_id = str(self._target.metadata["app_id"])
-        uris = game_properties_uri_candidates(app_id)
+        uris = self._steam_uri_candidates()
         if not uris:
+            self._steam_uri_try_index = 0
             self._toast(t("settings.steam_uri_probe_no_game"))
+            self._refresh_steam_uri_controls()
             return
-        index = 0  # first candidate in the probe order
+        if index < 0 or index >= len(uris):
+            self._steam_uri_try_index = len(uris)
+            self._toast(t("settings.steam_uri_try_exhausted", total=len(uris)))
+            self._refresh_steam_uri_controls()
+            return
         uri = uris[index]
         total = len(uris)
 
@@ -570,8 +594,9 @@ class MainWindow(QMainWindow):
             return bool(QDesktopServices.openUrl(QUrl(u)))
 
         result = probe_open_uris([uri], opener=_open, cache_success=True, clear_cache_on_fail=False)
-        self._refresh_steam_uri_controls()
         if result.get("opened"):
+            self._steam_uri_try_index = 0
+            self._refresh_steam_uri_controls()
             self._toast(
                 t(
                     "settings.steam_uri_try_first_ok",
@@ -580,6 +605,12 @@ class MainWindow(QMainWindow):
                     uri=uri,
                 )
             )
+            return
+        # Advance so "Try next" opens the following candidate.
+        self._steam_uri_try_index = index + 1
+        self._refresh_steam_uri_controls()
+        if self._steam_uri_try_index >= total:
+            self._toast(t("settings.steam_uri_try_exhausted", total=total))
         else:
             self._toast(
                 t(
@@ -590,8 +621,12 @@ class MainWindow(QMainWindow):
                 )
             )
 
+    def _try_open_next_steam_uri(self) -> None:
+        self._try_open_steam_uri_candidate(int(getattr(self, "_steam_uri_try_index", 0)))
+
     def _clear_steam_uri_cache(self) -> None:
         cleared = clear_properties_uri_cache()
+        self._steam_uri_try_index = 0
         self._refresh_steam_uri_controls()
         preview = self._steam_uri_probe_preview_text()
         base = t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
@@ -868,6 +903,7 @@ class MainWindow(QMainWindow):
             self._exe_combo.clear()
             return
         self._target = self._filtered[row]
+        self._steam_uri_try_index = 0
         self._refresh_capabilities()
         self._populate_exe_combo()
         self._refresh_steam_uri_controls()
@@ -1207,6 +1243,8 @@ class MainWindow(QMainWindow):
         retry = QPushButton(t("display.retry_one"))
         retry_hdr = QPushButton(t("display.retry_hdr"))
         retry_hdr_sel = QPushButton(t("display.retry_hdr_selected"))
+        retry_hdr_sel.setToolTip(t("display.retry_hdr_shortcut"))
+        remaining_list.setToolTip(t("display.retry_hdr_shortcut"))
 
         def _retry() -> None:
             r = table.currentRow()
@@ -1338,14 +1376,19 @@ class MainWindow(QMainWindow):
                 row_index=match_i,
             )
 
+        def _clear_hdr_selection() -> None:
+            remaining_list.clearSelection()
+            remaining_list.setCurrentRow(-1)
+
         retry.clicked.connect(_retry)
         retry_hdr.clicked.connect(_retry_hdr)
         retry_hdr_sel.clicked.connect(_retry_hdr_selected)
         remaining_list.itemDoubleClicked.connect(lambda _item: _retry_hdr_selected())
-        # Keyboard: Return / Ctrl+Return on the remaining CCD list retries selection.
+        # Keyboard: Return / Ctrl+Return retries; Esc clears selection.
         QShortcut(QKeySequence(Qt.Key.Key_Return), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence(Qt.Key.Key_Enter), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence("Ctrl+Return"), remaining_list, activated=_retry_hdr_selected)
+        QShortcut(QKeySequence(Qt.Key.Key_Escape), remaining_list, activated=_clear_hdr_selection)
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
