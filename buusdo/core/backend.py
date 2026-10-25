@@ -44,6 +44,10 @@ class EnhancementBackend(ABC):
         """Stable id: windows | linux | macos."""
 
     @abstractmethod
+    def discover_games(self) -> list[EnhancementTarget]:
+        """Enumerate known games (e.g. Steam). Returns EnhancementTarget list."""
+
+    @abstractmethod
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
         """Capabilities for this target; wording must obey C4."""
 

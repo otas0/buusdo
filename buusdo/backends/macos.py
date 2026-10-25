@@ -18,8 +18,9 @@ from buusdo.core.backend import (
     EnhancementTarget,
     InstallResult,
 )
+from buusdo.core.discovery import discover_steam_games
 from buusdo.core.errors import UnsafeTargetError
-from buusdo.core.platform_detect import HostPlatform
+from buusdo.core.platform_detect import HostPlatform, steam_roots
 from buusdo.core.transaction import Transaction
 
 # Banned identifiers — present so tests / review can assert C5.
@@ -35,6 +36,11 @@ _FORBIDDEN_INJECTION_APIS = frozenset(
 class MacOSBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.MACOS.value
+
+    def discover_games(self) -> list[EnhancementTarget]:
+        # Steam on macOS still enumerates libraries; enhancement remains MetalFX-only.
+        games = discover_steam_games(steam_roots(HostPlatform.MACOS))
+        return [g.to_target() for g in games]
 
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
         return [

@@ -40,3 +40,55 @@ def user_config_dir(platform: HostPlatform | None = None) -> Path:
     if xdg:
         return Path(xdg) / "buusdo"
     return home / ".config" / "buusdo"
+
+
+def steam_roots(platform: HostPlatform | None = None) -> list[Path]:
+    """Candidate Steam client install roots for the host platform."""
+    host = platform if platform is not None else detect_host_platform()
+    home = Path.home()
+    candidates: list[Path] = []
+
+    if host is HostPlatform.WINDOWS:
+        program_files = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"))
+        program_files64 = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+        candidates.extend(
+            [
+                program_files / "Steam",
+                program_files64 / "Steam",
+                home / "Steam",
+            ]
+        )
+        # Steam registry-less extra: LOCALAPPDATA is uncommon for Steam root.
+    elif host is HostPlatform.LINUX:
+        candidates.extend(
+            [
+                home / ".local" / "share" / "Steam",
+                home / ".steam" / "steam",
+                home / ".steam" / "root",
+                home / ".var" / "app" / "com.valvesoftware.Steam" / "data" / "Steam",
+                Path("/usr/share/steam"),
+            ]
+        )
+    elif host is HostPlatform.MACOS:
+        candidates.extend(
+            [
+                home / "Library" / "Application Support" / "Steam",
+            ]
+        )
+
+    env = os.environ.get("STEAM_ROOT") or os.environ.get("STEAM_DIR")
+    if env:
+        candidates.insert(0, Path(env).expanduser())
+
+    out: list[Path] = []
+    seen: set[Path] = set()
+    for raw in candidates:
+        try:
+            path = raw.expanduser().resolve()
+        except OSError:
+            path = raw.expanduser()
+        if path in seen:
+            continue
+        seen.add(path)
+        out.append(path)
+    return out

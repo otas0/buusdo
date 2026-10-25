@@ -8,6 +8,8 @@ from typing import Any
 
 from buusdo.core.platform_detect import user_config_dir
 
+_APP_SETTINGS = "settings.json"
+
 
 def game_config_path(game_id: str) -> Path:
     safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in game_id)
@@ -26,3 +28,30 @@ def save_game_config(game_id: str, data: dict[str, Any]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
+
+
+def load_settings() -> dict[str, Any]:
+    path = user_config_dir() / _APP_SETTINGS
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_settings(data: dict[str, Any]) -> Path:
+    path = user_config_dir() / _APP_SETTINGS
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
+def get_reshade_kit_path() -> Path | None:
+    raw = load_settings().get("reshade_kit_path")
+    if not raw:
+        return None
+    return Path(str(raw)).expanduser()
+
+
+def set_reshade_kit_path(path: Path | str) -> None:
+    data = load_settings()
+    data["reshade_kit_path"] = str(Path(path).expanduser())
+    save_settings(data)
