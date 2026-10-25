@@ -13,8 +13,8 @@ from buusdo.core.backend import (
     EnhancementTarget,
     InstallResult,
 )
-from buusdo.core.discovery import discover_steam_games
 from buusdo.core.errors import UnsafeTargetError
+from buusdo.core.library_cache import load_cached_games
 from buusdo.core.macos_compat import (
     discover_compat_layers,
     find_recent_log,
@@ -37,7 +37,7 @@ class MacOSBackend(EnhancementBackend):
         return HostPlatform.MACOS.value
 
     def discover_games(self) -> list[EnhancementTarget]:
-        games = discover_steam_games(steam_roots(HostPlatform.MACOS))
+        games = load_cached_games(steam_roots(HostPlatform.MACOS))
         return [g.to_target() for g in games]
 
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:

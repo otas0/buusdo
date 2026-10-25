@@ -28,6 +28,9 @@ buusdo = "buusdo.app:main"
 where = ["."]
 include = ["buusdo*"]
 
+[tool.setuptools.package-data]
+buusdo = ["assets/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

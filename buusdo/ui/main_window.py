@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from buusdo.assets import logo_path
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
@@ -29,34 +31,59 @@ from buusdo.core.config_store import (
     import_configs,
     set_optiscaler_kit_path,
     set_reshade_kit_path,
+    update_game_config,
 )
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
+from buusdo.core.library_cache import invalidate_cache
+from buusdo.core.platform_detect import steam_roots
+from buusdo.core.steam_launch import list_steam_users
 from buusdo.ui.blocked_page import BlockedPage
+from buusdo.ui.theme import badge_color
 
 
 class MainWindow(QMainWindow):
     def __init__(self, backend: EnhancementBackend | None = None):
         super().__init__()
         self.setWindowTitle("buusdo")
-        self.resize(920, 640)
+        self.resize(960, 680)
+
+        logo = logo_path()
+        if logo.is_file():
+            self.setWindowIcon(QIcon(str(logo)))
 
         self._backend = backend or get_backend()
         self._target: EnhancementTarget | None = None
         self._games: list[EnhancementTarget] = []
+        self._filtered: list[EnhancementTarget] = []
 
         root = QWidget()
         self.setCentralWidget(root)
         outer = QVBoxLayout(root)
 
-        header = QLabel("buusdo")
-        hf = header.font()
-        hf.setPointSize(20)
-        hf.setBold(True)
-        header.setFont(hf)
-        outer.addWidget(header)
-        outer.addWidget(QLabel("图形增强调度器 · 配置协调器"))
+        brand = QHBoxLayout()
+        logo_label = QLabel()
+        logo_label.setAccessibleName("buusdo logo")
+        if logo.is_file():
+            pix = QPixmap(str(logo)).scaledToHeight(48, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(pix)
+        else:
+            logo_label.setText("buusdo")
+        brand.addWidget(logo_label)
+        brand_text = QVBoxLayout()
+        title = QLabel("buusdo")
+        tf = title.font()
+        tf.setPointSize(18)
+        tf.setBold(True)
+        title.setFont(tf)
+        brand_text.addWidget(title)
+        sub = QLabel("图形增强调度器 · 配置协调器")
+        sub.setObjectName("brandSubtitle")
+        brand_text.addWidget(sub)
+        brand.addLayout(brand_text)
+        brand.addStretch(1)
+        outer.addLayout(brand)
         outer.addWidget(QLabel(f"后端：{self._backend.platform_id()}"))
 
         self._stack = QStackedWidget()
@@ -69,12 +96,14 @@ class MainWindow(QMainWindow):
         filter_row.addWidget(QLabel("过滤："))
         self._filter = QLineEdit()
         self._filter.setPlaceholderText("按名称搜索…")
+        self._filter.setAccessibleName("游戏列表过滤")
         self._filter.textChanged.connect(self._refresh_game_list)
         filter_row.addWidget(self._filter)
         home.addLayout(filter_row)
 
         home.addWidget(QLabel("已发现的游戏："))
         self._game_list = QListWidget()
+        self._game_list.setAccessibleName("游戏列表")
         self._game_list.currentRowChanged.connect(self._on_game_selected)
         home.addWidget(self._game_list, stretch=1)
 
@@ -92,6 +121,14 @@ class MainWindow(QMainWindow):
         pref_row.addWidget(self._api_combo)
         home.addLayout(pref_row)
 
+        user_row = QHBoxLayout()
+        user_row.addWidget(QLabel("Steam 用户："))
+        self._steam_user = QComboBox()
+        self._steam_user.setAccessibleName("Steam 用户选择")
+        user_row.addWidget(self._steam_user, stretch=1)
+        home.addLayout(user_row)
+        self._reload_steam_users()
+
         mode_row = QHBoxLayout()
         mode_row.addWidget(QLabel("安装模式："))
         self._mode_combo = QComboBox()
@@ -99,6 +136,8 @@ class MainWindow(QMainWindow):
             ("reshade", "ReShade"),
             ("optiscaler", "OptiScaler / 神经画质"),
             ("vkbasalt", "vkBasalt（近似）"),
+            ("goverlay", "Goverlay"),
+            ("display_profile", "显示/HDR 配置"),
             ("rtx_remix_enable", "启用 RTX Remix mod"),
             ("rtx_remix_disable", "禁用 RTX Remix mod"),
         ):
@@ -116,6 +155,7 @@ class MainWindow(QMainWindow):
 
         buttons = QHBoxLayout()
         self._btn_scan = QPushButton("扫描 Steam 库")
+        self._btn_force = QPushButton("强制全量刷新")
         self._btn_kit = QPushButton("ReShade 工具包…")
         self._btn_opti = QPushButton("OptiScaler 工具包…")
         self._btn_install = QPushButton("部署增强")
@@ -125,6 +165,7 @@ class MainWindow(QMainWindow):
         self._btn_history = QPushButton("刷新历史")
         for b in (
             self._btn_scan,
+            self._btn_force,
             self._btn_kit,
             self._btn_opti,
             self._btn_install,
@@ -138,11 +179,13 @@ class MainWindow(QMainWindow):
 
         self._status = QLabel("")
         self._status.setWordWrap(True)
+        self._status.setAccessibleName("状态栏")
         home.addWidget(self._status)
 
         self._stack.addWidget(self._home)
 
-        self._btn_scan.clicked.connect(self._scan_games)
+        self._btn_scan.clicked.connect(lambda: self._scan_games(force=False))
+        self._btn_force.clicked.connect(lambda: self._scan_games(force=True))
         self._btn_kit.clicked.connect(self._pick_reshade_kit)
         self._btn_opti.clicked.connect(self._pick_optiscaler_kit)
         self._btn_install.clicked.connect(self._on_install)
@@ -156,56 +199,70 @@ class MainWindow(QMainWindow):
             self._status.setText(f"ReShade 工具包：{kit}")
         self._refresh_history()
 
-    def _scan_games(self) -> None:
+    def _reload_steam_users(self) -> None:
+        self._steam_user.clear()
+        self._steam_user.addItem("（默认第一个）", "")
+        try:
+            roots = steam_roots()
+        except Exception:
+            roots = []
+        for profile in list_steam_users(roots):
+            self._steam_user.addItem(profile.label, profile.steam_id3)
+
+    def _scan_games(self, *, force: bool) -> None:
+        if force:
+            invalidate_cache()
+        # force path: backends use cache; invalidate then rediscover
         self._games = self._backend.discover_games()
+        if force:
+            # second pass after invalidate already done; discover fills cache
+            pass
         self._refresh_game_list()
+        self._reload_steam_users()
         self._status.setText(f"发现 {len(self._games)} 个 Steam 游戏。")
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
         self._game_list.clear()
-        self._filtered: list[EnhancementTarget] = []
+        self._filtered = []
         for game in self._games:
             if needle and needle not in game.name.lower():
                 continue
             st = self._backend.status(game)
-            badge = self._badge_for_status(st)
+            kind, badge = self._badge_for_status(st)
             runtime = " [Proton]" if game.metadata.get("runtime") == "proton" else ""
             item = QListWidgetItem(f"{badge} {game.name}{runtime}")
             item.setToolTip(str(game.install_path))
-            if st.get("installed"):
-                item.setForeground(Qt.GlobalColor.darkGreen)
+            item.setForeground(badge_color(kind))
             self._game_list.addItem(item)
             self._filtered.append(game)
 
-    def _badge_for_status(self, st: dict) -> str:
+    def _badge_for_status(self, st: dict) -> tuple[str, str]:
         if st.get("installed") or (st.get("reshade") or {}).get("installed"):
-            return "[已部署]"
+            return "ok", "[已部署]"
         if st.get("vkbasalt_configured"):
-            return "[vkBasalt]"
+            return "warn", "[vkBasalt]"
         if (st.get("optiscaler") or {}).get("installed"):
-            return "[神经画质]"
+            return "ok", "[神经画质]"
         remix = st.get("rtx_remix") or {}
         if remix.get("enabled") is True:
-            return "[Remix已启用]"
+            return "warn", "[Remix已启用]"
         if remix.get("present"):
-            return "[Remix可用]"
-        return "[未部署]"
+            return "warn", "[Remix可用]"
+        return "muted", "[未部署]"
 
     def _on_game_selected(self, row: int) -> None:
-        games = getattr(self, "_filtered", self._games)
-        if row < 0 or row >= len(games):
+        if row < 0 or row >= len(self._filtered):
             self._target = None
             self._cap_list.clear()
             self._exe_combo.clear()
             return
-        self._target = games[row]
+        self._target = self._filtered[row]
         self._refresh_capabilities()
         self._populate_exe_combo()
         st = self._backend.status(self._target)
-        self._status.setText(
-            f"{self._target.name} — {self._badge_for_status(st)}\n{self._target.install_path}"
-        )
+        _, badge = self._badge_for_status(st)
+        self._status.setText(f"{self._target.name} — {badge}\n{self._target.install_path}")
 
     def _populate_exe_combo(self) -> None:
         self._exe_combo.clear()
@@ -225,6 +282,11 @@ class MainWindow(QMainWindow):
             idx = self._api_combo.findData(api)
             if idx >= 0:
                 self._api_combo.setCurrentIndex(idx)
+        steam_id3 = self._target.metadata.get("steam_id3")
+        if steam_id3:
+            idx = self._steam_user.findData(str(steam_id3))
+            if idx >= 0:
+                self._steam_user.setCurrentIndex(idx)
 
     def _refresh_capabilities(self) -> None:
         self._cap_list.clear()
@@ -242,7 +304,8 @@ class MainWindow(QMainWindow):
         for event in list_events(limit=50):
             ok = "OK" if event.get("success") else "FAIL"
             self._history_list.addItem(
-                f"{event.get('ts', '')} [{ok}] {event.get('action')} · {event.get('target')} — {event.get('message', '')}"
+                f"{event.get('ts', '')} [{ok}] {event.get('action')} · "
+                f"{event.get('target')} — {event.get('message', '')}"
             )
 
     def _pick_reshade_kit(self) -> None:
@@ -265,6 +328,14 @@ class MainWindow(QMainWindow):
         api = self._api_combo.currentData()
         if api:
             opts["api"] = api
+        steam_id3 = self._steam_user.currentData()
+        if steam_id3:
+            opts["steam_id3"] = steam_id3
+            if self._target and self._target.metadata.get("app_id"):
+                update_game_config(str(self._target.metadata["app_id"]), steam_id3=steam_id3)
+        if opts["mode"] == "display_profile":
+            opts["hdr_preferred"] = True
+            opts["notes"] = "UI 保存的 HDR 偏好（非宣称已开启光追）"
         return opts
 
     def _show_blocked(self, error: UnsafeTargetError) -> None:

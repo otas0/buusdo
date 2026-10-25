@@ -6,17 +6,24 @@ import json
 from pathlib import Path
 from typing import Any
 
-from buusdo.core import anticheat_guard, history, preflight, reshade
+from buusdo.backends.goverlay import find_goverlay, launch_goverlay
+from buusdo.core import anticheat_guard, conflict, history, preflight, reshade
 from buusdo.core.backend import (
     Capability,
     EnhancementBackend,
     EnhancementTarget,
     InstallResult,
 )
-from buusdo.core.config_store import get_reshade_kit_path, load_game_config, update_game_config
-from buusdo.core.discovery import discover_steam_games, list_executable_candidates
+from buusdo.core.config_store import (
+    get_game_pref,
+    get_reshade_kit_path,
+    load_game_config,
+    update_game_config,
+)
+from buusdo.core.discovery import list_executable_candidates
 from buusdo.core.errors import BuusdoError
 from buusdo.core.graphics_detect import GraphicsApi, detect_graphics_api
+from buusdo.core.library_cache import load_cached_games
 from buusdo.core.platform_detect import HostPlatform, steam_roots
 from buusdo.core.steam_launch import find_localconfig, set_launch_options
 from buusdo.core.transaction import Transaction
@@ -29,25 +36,32 @@ class LinuxBackend(EnhancementBackend):
         return HostPlatform.LINUX.value
 
     def discover_games(self) -> list[EnhancementTarget]:
-        games = discover_steam_games(steam_roots(HostPlatform.LINUX))
+        games = load_cached_games(steam_roots(HostPlatform.LINUX))
         out: list[EnhancementTarget] = []
         for g in games:
             t = g.to_target()
             cfg = load_game_config(g.app_id)
-            if cfg.get("executable"):
-                p = Path(cfg["executable"])
-                if p.is_file():
-                    t = EnhancementTarget(
-                        name=t.name,
-                        install_path=t.install_path,
-                        executable=p,
-                        metadata={**t.metadata, "graphics_api": cfg.get("graphics_api")},
-                    )
-            out.append(t)
+            prefs = cfg.get("prefs") or {}
+            exe_raw = prefs.get("executable") or cfg.get("executable")
+            api = prefs.get("graphics_api") or cfg.get("graphics_api")
+            meta = dict(t.metadata)
+            if api:
+                meta["graphics_api"] = api
+            if prefs.get("steam_id3") or cfg.get("steam_id3"):
+                meta["steam_id3"] = prefs.get("steam_id3") or cfg.get("steam_id3")
+            exe = t.executable
+            if exe_raw and Path(str(exe_raw)).is_file():
+                exe = Path(str(exe_raw))
+            out.append(
+                EnhancementTarget(
+                    name=t.name, install_path=t.install_path, executable=exe, metadata=meta
+                )
+            )
         return out
 
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
         is_proton = bool(target.metadata.get("proton_prefix") or target.metadata.get("runtime") == "proton")
+        goverlay = find_goverlay()
         return [
             Capability(
                 id="vkbasalt",
@@ -55,6 +69,13 @@ class LinuxBackend(EnhancementBackend):
                 description="通过环境变量与 Steam launch options 调度已有 Vulkan 后处理层。",
                 available=not is_proton,
                 notes="后处理效果为近似增强时须在 UI 标注「近似」。",
+            ),
+            Capability(
+                id="goverlay",
+                title="Goverlay 一键唤起",
+                description="检测桌面入口并启动 Goverlay（若已安装）。",
+                available=goverlay is not None,
+                notes=str(goverlay) if goverlay else "未检测到 goverlay",
             ),
             Capability(
                 id="proton_reshade",
@@ -74,6 +95,13 @@ class LinuxBackend(EnhancementBackend):
                 result = self._install_reshade(target, options)
             elif mode == "vkbasalt":
                 result = self._install_vkbasalt(target, options)
+            elif mode == "goverlay":
+                launched = launch_goverlay()
+                if not launched.get("launched"):
+                    raise BuusdoError("未找到 Goverlay，请先安装 goverlay。")
+                result = InstallResult(
+                    success=True, message=f"已启动 Goverlay：{launched['path']}", details=launched
+                )
             else:
                 raise BuusdoError(f"Unknown Linux install mode: {mode}")
         except Exception as exc:
@@ -174,6 +202,13 @@ class LinuxBackend(EnhancementBackend):
         plan = reshade.plan_deploy(
             target.install_path, kit, executable=target.executable, api=api
         )
+        conflicts = conflict.check_install_conflicts(
+            target, mode="reshade", reshade_proxy=plan.proxy_dll_name
+        )
+        if conflicts.blocked:
+            raise BuusdoError(
+                "; ".join(i.message for i in conflicts.issues if i.severity.value == "block")
+            )
         prefix = target.metadata.get("proton_prefix")
         with Transaction() as tx:
             state = reshade.deploy(tx, plan, target_name=target.name)
@@ -195,7 +230,14 @@ class LinuxBackend(EnhancementBackend):
             # Vulkan layer: also write Steam launch options when app_id known
             if plan.mode == "vulkan_layer" and target.metadata.get("app_id"):
                 hint = (state.get("deployed") or {}).get("steam_launch_hint")
-                localconfig = find_localconfig(steam_roots(HostPlatform.LINUX))
+                steam_id3 = (
+                    options.get("steam_id3")
+                    or target.metadata.get("steam_id3")
+                    or get_game_pref(str(target.metadata["app_id"]), "steam_id3")
+                )
+                localconfig = find_localconfig(
+                    steam_roots(HostPlatform.LINUX), steam_id3=steam_id3
+                )
                 if hint and localconfig:
                     state["launch_options"] = set_launch_options(
                         tx, localconfig, str(target.metadata["app_id"]), hint
@@ -231,9 +273,18 @@ class LinuxBackend(EnhancementBackend):
             app_id = target.metadata.get("app_id")
             write_steam = options.get("write_steam_launch", True)
             if write_steam and app_id:
-                localconfig = find_localconfig(steam_roots(HostPlatform.LINUX))
+                steam_id3 = (
+                    options.get("steam_id3")
+                    or target.metadata.get("steam_id3")
+                    or get_game_pref(str(app_id), "steam_id3")
+                )
+                localconfig = find_localconfig(
+                    steam_roots(HostPlatform.LINUX), steam_id3=steam_id3
+                )
                 if localconfig is None:
-                    raise BuusdoError("未找到 Steam localconfig.vdf，无法写回启动项。")
+                    raise BuusdoError(
+                        "未找到 Steam localconfig.vdf；若有多用户请先选择 steam_id3。"
+                    )
                 details["launch_options"] = set_launch_options(
                     tx, localconfig, str(app_id), launch
                 )

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from buusdo.core.platform_detect import user_config_dir
+from buusdo.core.schema import ensure_schema, stamp_new
 
 _APP_SETTINGS = "settings.json"
 
@@ -21,35 +22,62 @@ def game_config_path(game_id: str) -> Path:
 def load_game_config(game_id: str) -> dict[str, Any]:
     path = game_config_path(game_id)
     if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+        return stamp_new()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    migrated = ensure_schema(data)
+    if migrated != data:
+        save_game_config(game_id, migrated)
+    return migrated
 
 
 def save_game_config(game_id: str, data: dict[str, Any]) -> Path:
     path = game_config_path(game_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    payload = stamp_new(ensure_schema(dict(data)))
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
 
 
 def update_game_config(game_id: str, **fields: Any) -> dict[str, Any]:
     data = load_game_config(game_id)
-    data.update(fields)
+    # Prefer nested prefs for known keys (schema v2)
+    pref_keys = {"executable", "graphics_api", "steam_id3", "display_profile"}
+    prefs = dict(data.get("prefs") or {})
+    for key, value in fields.items():
+        if key in pref_keys:
+            prefs[key] = value
+        else:
+            data[key] = value
+    if prefs:
+        data["prefs"] = prefs
     save_game_config(game_id, data)
     return data
+
+
+def get_game_pref(game_id: str, key: str, default: Any = None) -> Any:
+    data = load_game_config(game_id)
+    prefs = data.get("prefs") or {}
+    if key in prefs:
+        return prefs[key]
+    return data.get(key, default)
 
 
 def load_settings() -> dict[str, Any]:
     path = user_config_dir() / _APP_SETTINGS
     if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+        return stamp_new()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    migrated = ensure_schema(data)
+    if migrated != data:
+        save_settings(migrated)
+    return migrated
 
 
 def save_settings(data: dict[str, Any]) -> Path:
     path = user_config_dir() / _APP_SETTINGS
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    payload = stamp_new(ensure_schema(dict(data)))
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
 
 

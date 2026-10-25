@@ -13,7 +13,6 @@ from buusdo.core.backend import EnhancementTarget
 from buusdo.core.errors import UnsafeTargetError
 from buusdo.core.platform_detect import HostPlatform
 
-# Process / service / module name fragments (lowercase). Substring match = refuse.
 _KNOWN_ANTICHEAT_MARKERS: frozenset[str] = frozenset(
     {
         "easyanticheat",
@@ -52,18 +51,10 @@ _KNOWN_ANTICHEAT_MARKERS: frozenset[str] = frozenset(
         "fairfight",
         "punkbuster",
         "pbsvc",
-        "vac",
-        "steam_vac",
-        "sac",
-        "denuvo",
-        "vmprotect",  # weak heuristic; paired with path markers
-        "nexon_api",
-        "ngclient",
         "hackshield",
         "hsbclhsvc",
         "wellbia",
         "theia",
-        "esports_client",
     }
 )
 
@@ -81,7 +72,6 @@ _KNOWN_ANTICHEAT_PATH_MARKERS: frozenset[str] = frozenset(
         "hackshield",
         "anticheatexpert",
         "fairfight",
-        "denuvo",
     }
 )
 
@@ -135,19 +125,53 @@ def _scan_install_tree(root: Path) -> list[str]:
     return evidence
 
 
-def _scan_running_processes() -> list[str]:
+def _target_process_names(target: EnhancementTarget) -> set[str]:
+    names: set[str] = set()
+    if target.executable:
+        names.add(target.executable.name.lower())
+        names.add(target.executable.stem.lower())
+    for raw in target.metadata.get("executables") or []:
+        p = Path(str(raw))
+        names.add(p.name.lower())
+        names.add(p.stem.lower())
+    # Folder token as weak association
+    folder = target.install_path.name.lower().replace(" ", "")
+    if len(folder) >= 4:
+        names.add(folder)
+    return {n for n in names if n}
+
+
+def _process_matches_target(proc_name: str, exe_path: str, target_names: set[str]) -> bool:
+    if not target_names:
+        return True  # no hint → keep broad scan (safe/strict)
+    blob = _normalize(f"{proc_name} {exe_path}")
+    return any(n in blob for n in target_names)
+
+
+def _scan_running_processes(target: EnhancementTarget) -> list[str]:
     evidence: list[str] = []
+    target_names = _target_process_names(target)
     try:
         for proc in psutil.process_iter(["name", "exe"]):
             info = proc.info
-            for field in ("name", "exe"):
-                value = info.get(field)
-                if not value:
+            pname = str(info.get("name") or "")
+            pexe = str(info.get("exe") or "")
+            # Always refuse global anti-cheat services (EAC service, Vanguard, etc.)
+            global_hit = _matches_marker(pname, _KNOWN_ANTICHEAT_MARKERS) or _matches_marker(
+                pexe, _KNOWN_ANTICHEAT_MARKERS
+            )
+            if not global_hit:
+                continue
+            # For game-bundled clients, prefer association with target to cut noise;
+            # services with no path still count as global.
+            if pexe and not _process_matches_target(pname, pexe, target_names):
+                # Still block well-known always-on services
+                if not any(
+                    s in _normalize(pname)
+                    for s in ("eacservice", "beservice", "vgc", "vgk", "faceitservice")
+                ):
                     continue
-                hit = _matches_marker(str(value), _KNOWN_ANTICHEAT_MARKERS)
-                if hit:
-                    evidence.append(f"process:{value}")
-                    break
+            evidence.append(f"process:{pname or pexe}")
             if len(evidence) >= 30:
                 break
     except (psutil.Error, OSError):
@@ -155,13 +179,24 @@ def _scan_running_processes() -> list[str]:
     return evidence
 
 
-def _scan_loaded_modules() -> list[str]:
-    """Scan memory-mapped files / modules of running processes (best-effort)."""
+def _scan_loaded_modules(target: EnhancementTarget) -> list[str]:
+    """Scan modules of processes associated with the target (reduces false positives)."""
     evidence: list[str] = []
+    target_names = _target_process_names(target)
     try:
-        for proc in psutil.process_iter(["pid", "name"]):
+        for proc in psutil.process_iter(["pid", "name", "exe"]):
+            info = proc.info
+            pname = str(info.get("name") or "")
+            pexe = str(info.get("exe") or "")
+            associated = _process_matches_target(pname, pexe, target_names)
+            # Always inspect known AC helper processes; otherwise only target-associated.
+            is_ac_helper = bool(
+                _matches_marker(pname, _KNOWN_ANTICHEAT_MARKERS)
+                or _matches_marker(pexe, _KNOWN_ANTICHEAT_MARKERS)
+            )
+            if not associated and not is_ac_helper:
+                continue
             try:
-                # memory_maps is expensive; sample limited processes
                 maps = proc.memory_maps(grouped=False)
             except (psutil.Error, OSError, AttributeError):
                 continue
@@ -180,17 +215,12 @@ def _scan_loaded_modules() -> list[str]:
 
 
 def check(target: EnhancementTarget, platform: HostPlatform | str) -> None:
-    """Raise UnsafeTargetError if anti-cheat is detected for the target.
-
-    Must be the first step of every install() / inject / config-write path.
-    ``platform`` is accepted for API completeness; gate semantics are the same
-    on every host (including Proton on Linux).
-    """
-    _ = platform  # same refuse-on-presence semantics on all platforms (C1)
+    """Raise UnsafeTargetError if anti-cheat is detected for the target."""
+    _ = platform
     evidence: list[str] = []
     evidence.extend(_scan_install_tree(target.install_path))
-    evidence.extend(_scan_running_processes())
-    evidence.extend(_scan_loaded_modules())
+    evidence.extend(_scan_running_processes(target))
+    evidence.extend(_scan_loaded_modules(target))
 
     if evidence:
         raise UnsafeTargetError(

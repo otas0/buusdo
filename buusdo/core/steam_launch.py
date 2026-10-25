@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from buusdo.core.errors import BuusdoError
@@ -10,21 +11,91 @@ from buusdo.core.transaction import Transaction
 from buusdo.core.vdf import parse_vdf
 
 
-def find_localconfig(steam_roots: list[Path]) -> Path | None:
+@dataclass(frozen=True)
+class SteamUserProfile:
+    steam_id3: str
+    localconfig: Path
+    persona_name: str | None = None
+
+    @property
+    def label(self) -> str:
+        if self.persona_name:
+            return f"{self.persona_name} ({self.steam_id3})"
+        return self.steam_id3
+
+
+def list_steam_users(steam_roots: list[Path]) -> list[SteamUserProfile]:
+    """Enumerate all userdata/<id>/config/localconfig.vdf profiles."""
+    profiles: list[SteamUserProfile] = []
+    seen: set[Path] = set()
     for root in steam_roots:
-        userdata = root / "userdata"
-        if not userdata.is_dir():
-            # Flatpak / symlink layouts
-            alt = root / "steam" / "userdata"
-            userdata = alt if alt.is_dir() else userdata
-        if not userdata.is_dir():
-            continue
-        for user_dir in sorted(userdata.iterdir()):
-            if not user_dir.is_dir() or not user_dir.name.isdigit():
-                continue
-            candidate = user_dir / "config" / "localconfig.vdf"
-            if candidate.is_file():
-                return candidate
+        for userdata in _userdata_dirs(root):
+            for user_dir in sorted(userdata.iterdir()):
+                if not user_dir.is_dir() or not user_dir.name.isdigit():
+                    continue
+                candidate = user_dir / "config" / "localconfig.vdf"
+                if not candidate.is_file():
+                    continue
+                try:
+                    resolved = candidate.resolve()
+                except OSError:
+                    resolved = candidate
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                profiles.append(
+                    SteamUserProfile(
+                        steam_id3=user_dir.name,
+                        localconfig=candidate,
+                        persona_name=_read_persona_name(candidate),
+                    )
+                )
+    return profiles
+
+
+def find_localconfig(
+    steam_roots: list[Path],
+    *,
+    steam_id3: str | None = None,
+) -> Path | None:
+    """Return one localconfig. Prefer explicit steam_id3; else first profile."""
+    profiles = list_steam_users(steam_roots)
+    if not profiles:
+        return None
+    if steam_id3:
+        for p in profiles:
+            if p.steam_id3 == str(steam_id3):
+                return p.localconfig
+        return None
+    return profiles[0].localconfig
+
+
+def _userdata_dirs(steam_root: Path) -> list[Path]:
+    out: list[Path] = []
+    for candidate in (steam_root / "userdata", steam_root / "steam" / "userdata"):
+        if candidate.is_dir():
+            out.append(candidate)
+    return out
+
+
+def _read_persona_name(localconfig: Path) -> str | None:
+    try:
+        text = localconfig.read_text(encoding="utf-8", errors="replace")
+        data = parse_vdf(text)
+    except (OSError, ValueError):
+        return None
+    # Walk common locations for PersonaName
+    stack = [data]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if str(key).lower() == "personaname" and isinstance(value, str) and value.strip():
+                    return value.strip()
+                if isinstance(value, (dict, list)):
+                    stack.append(value)
+        elif isinstance(node, list):
+            stack.extend(node)
     return None
 
 
@@ -34,33 +105,24 @@ def set_launch_options(
     app_id: str,
     launch_options: str,
 ) -> dict:
-    """Set LaunchOptions for app_id inside localconfig.vdf.
-
-    Uses a conservative text rewrite when the Apps subtree exists; otherwise
-    raises so we never invent a broken VDF document.
-    """
+    """Set LaunchOptions for app_id inside localconfig.vdf."""
     if not localconfig.is_file():
         raise BuusdoError(f"localconfig.vdf not found: {localconfig}")
     text = localconfig.read_text(encoding="utf-8", errors="replace")
     try:
-        parse_vdf(text)  # validate readable
+        parse_vdf(text)
     except ValueError as exc:
         raise BuusdoError(f"Invalid localconfig.vdf: {exc}") from exc
 
     app_id = str(app_id)
-    # Prefer precise in-place replacement of an existing LaunchOptions line under the app.
     pattern = re.compile(
         rf'("{re.escape(app_id)}"\s*\{{(?:[^{{}}]|\\{{|\\}})*?"LaunchOptions"\s*")([^"]*)(")',
         re.DOTALL,
     )
     if pattern.search(text):
-        new_text = pattern.sub(rf'\1{launch_options}\3', text, count=1)
+        new_text = pattern.sub(rf"\1{launch_options}\3", text, count=1)
     else:
-        # Insert LaunchOptions into an existing app block if present.
-        app_block = re.compile(
-            rf'("{re.escape(app_id)}"\s*\{{)',
-            re.DOTALL,
-        )
+        app_block = re.compile(rf'("{re.escape(app_id)}"\s*\{{)', re.DOTALL)
         match = app_block.search(text)
         if not match:
             raise BuusdoError(
