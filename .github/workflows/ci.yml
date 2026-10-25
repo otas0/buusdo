@@ -102,27 +102,38 @@ jobs:
           if-no-files-found: warn
 
   dwm-hdr-poc:
-    # phase3/dwm-hdr only — skipped on main when HLSL stubs are absent.
     # continue-on-error is explicitly false: missing Kits may skip compile, but a failed
     # compile when Kits/compilers ARE present must fail the job (see status=ok gate below).
-    if: hashFiles('buusdo/core/dwm_hdr_shaders/sdr_to_hdr_tonemap.hlsl') != ''
+    # Note: hashFiles() is step-scoped only — gate via a checkout + presence check.
     runs-on: windows-latest
     continue-on-error: false
     steps:
       - uses: actions/checkout@v4
+      - name: Detect HLSL PoC sources
+        id: hlsl
+        shell: bash
+        run: |
+          if [[ -f buusdo/core/dwm_hdr_shaders/sdr_to_hdr_tonemap.hlsl ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "HLSL stub absent; skipping dwm-hdr compile job body"
+          fi
       - uses: actions/setup-python@v5
+        if: steps.hlsl.outputs.present == 'true'
         with:
           python-version: "3.12"
       - name: Install
+        if: steps.hlsl.outputs.present == 'true'
         run: |
           python -m pip install -U pip
           pip install -e ".[dev]"
       - name: Offline fxc/dxc compile + sha256
+        if: steps.hlsl.outputs.present == 'true'
         shell: bash
         run: |
           set +e
           python scripts/compile_dwm_hdr_poc.py --out dist/dwm_hdr_poc
-          compile_rc=$?
           set -e
           test -f dist/dwm_hdr_poc/manifest.json
           python - <<'PY'
@@ -161,13 +172,13 @@ jobs:
               sys.exit(1)
           PY
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.hlsl.outputs.present == 'true'
         with:
           name: dwm-hdr-poc
           path: dist/dwm_hdr_poc/
           if-no-files-found: warn
       - name: Upload HLSL sources zip when present
-        if: always()
+        if: always() && steps.hlsl.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dwm-hdr-hlsl-sources
