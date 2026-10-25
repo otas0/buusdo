@@ -1,0 +1,43 @@
+name: prune-artifacts
+
+# Weekly hygiene so sibling repos (e.g. Zintriq) cannot refill shared Actions storage.
+# Uses GITHUB_TOKEN for this repo; set secret ARTIFACT_PRUNE_TOKEN (repo+workflow) to
+# also prune DEFAULT_REPOS siblings listed in scripts/prune_actions_artifacts.py.
+
+on:
+  schedule:
+    # Monday 03:15 UTC ≈ weekly
+    - cron: "15 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      older_than_days:
+        description: "Delete artifacts older than N days (0 = all listed)"
+        required: false
+        default: "3"
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: List then delete old artifacts
+        env:
+          # Prefer PAT with cross-repo access (Zintriq); else this-repo GITHUB_TOKEN.
+          GH_TOKEN: ${{ secrets.ARTIFACT_PRUNE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS: ${{ github.event.inputs.older_than_days || '3' }}
+        run: |
+          set -euo pipefail
+          python scripts/prune_actions_artifacts.py --list || true
+          python scripts/prune_actions_artifacts.py --delete --older-than-days "$DAYS" --yes
+          {
+            echo "## Artifact prune"
+            echo "Deleted artifacts older than ${DAYS}d (Bearer REST)."
+            echo "If CI jobs die in ~2–4s with empty steps, raise Actions spending limit first."
+          } >> "$GITHUB_STEP_SUMMARY"

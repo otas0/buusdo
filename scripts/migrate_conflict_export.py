@@ -7,14 +7,38 @@ Supports a single file or a directory of JSON files (optionally recursive).
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from buusdo.core.conflict_preview import (
     CONFLICT_EXPORT_SCHEMA_VERSION,
     migrate_conflict_export,
 )
+
+
+def _json_lines(payload: dict[str, Any]) -> list[str]:
+    return json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True).splitlines(
+        keepends=True
+    )
+
+
+def _print_dry_run_diff(src: Path, before: dict[str, Any], after: dict[str, Any]) -> None:
+    """Human-readable unified diff of sorted JSON (dry-run only)."""
+    left = _json_lines(before)
+    right = _json_lines(after)
+    if left == right:
+        print(f"{src}: no JSON changes")
+        return
+    diff = difflib.unified_diff(
+        left,
+        right,
+        fromfile=f"{src} (before)",
+        tofile=f"{src} (after migrate → v{CONFLICT_EXPORT_SCHEMA_VERSION})",
+    )
+    sys.stdout.writelines(diff)
 
 
 def _iter_inputs(path: Path, *, recursive: bool, pattern: str) -> list[Path]:
@@ -46,6 +70,7 @@ def _migrate_one(
             f"{src}: {'WOULD migrate' if changed else 'ok'} "
             f"{before} -> {after} (current={CONFLICT_EXPORT_SCHEMA_VERSION})"
         )
+        _print_dry_run_diff(src, raw, migrated)
         return 0
     out = dest
     if out is None:
