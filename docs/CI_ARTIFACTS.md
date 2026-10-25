@@ -60,12 +60,39 @@ python scripts/prune_actions_artifacts.py --delete --older-than-days 3 --yes
 
 ## Stabilizing `gh` Actions API (avoid Forbidden)
 
-Intermittent `Forbidden` on `repos/*/actions/*` is usually auth/account context, not ACL:
+Intermittent `Forbidden` on `repos/*/actions/*` is often the **`gh` CLI transport**, not missing scopes.
+`scripts/prune_actions_artifacts.py` now calls the REST API with a Bearer token via `urllib`
+(`GH_TOKEN` / `gh auth token`) — prefer that script over raw `gh api` for artifact hygiene.
 
 1. Prefer a single active login: `gh auth status` (expect `repo` + `workflow` scopes).
 2. If you use multiple accounts: `gh auth switch` to the org owner that can manage Actions.
-3. Retry listing with: `gh api repos/otas0/buusdo/actions/artifacts` — HTTP 200 means OK.
+3. Verify with curl (more reliable than `gh api` when the CLI returns Forbidden):
+
+```bash
+TOKEN=$(gh auth token)
+curl -sS -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/otas0/buusdo/actions/artifacts"
+```
+
 4. Avoid sandboxed shells that block GitHub HTTPS CONNECT (shows up as 502 / Forbidden).
-5. For CI triggers without push: `gh workflow run ci.yml --ref main` (requires `workflow_dispatch`).
-6. If jobs die in ~2s with *“recent account payments have failed or your spending limit needs to be increased”*, fix org Billing & plans first — auth scopes will not help.
-7. Prefer `GH_TOKEN=$(gh auth token) gh api …` in non-interactive shells so the active keyring account is used consistently.
+5. For CI triggers without push: **Actions → ci → Run workflow** or:
+
+```bash
+TOKEN=$(gh auth token)
+curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/otas0/buusdo/actions/workflows/ci.yml/dispatches" \
+  -d '{"ref":"main","inputs":{"reason":"manual"}}'
+```
+
+6. If jobs die in ~2–4s with *“recent account payments have failed or your spending limit needs to be increased”*, fix **Billing & plans / spending limit** first — no artifact will upload until runners can start.
+7. Prefer `GH_TOKEN=$(gh auth token)` in scripts; do not rely on bare `gh api` inside automation.
+
+## Current status (checked offline)
+
+- Actions Artifacts for `otas0/buusdo`: often **0** while spending limit blocks runners or uploads.
+- Local PoC verification (no runner needed):
+
+```bash
+python scripts/compile_dwm_hdr_poc.py --out /tmp/buusdo-dwm-hdr-poc
+# expect status=skipped_no_compiler (macOS) + hlsl_sources.zip + hlsl_sha256[]
+```
