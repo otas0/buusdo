@@ -79,6 +79,7 @@ def test_plist_merge_keeps_comment() -> None:
 
 def test_migrate_conflict_cli(tmp_path: Path) -> None:
     import importlib.util
+    import shutil
 
     src = Path("docs/fixtures/conflict_export_v1.json")
     dest = tmp_path / "out.json"
@@ -91,3 +92,12 @@ def test_migrate_conflict_cli(tmp_path: Path) -> None:
     data = json.loads(dest.read_text(encoding="utf-8"))
     assert data["schema_version"] == 2
     assert "issue_counts" in data["triple_matrix_summary"]
+
+    batch_in = tmp_path / "batch_in"
+    batch_out = tmp_path / "batch_out"
+    batch_in.mkdir()
+    shutil.copy(src, batch_in / "a.json")
+    shutil.copy(src, batch_in / "b.json")
+    assert mod.main([str(batch_in), "-o", str(batch_out)]) == 0
+    assert (batch_out / "a.json").is_file()
+    assert json.loads((batch_out / "b.json").read_text(encoding="utf-8"))["schema_version"] == 2

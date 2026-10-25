@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QSpinBox,
     QStackedWidget,
     QSystemTrayIcon,
     QTableWidget,
@@ -78,7 +79,13 @@ from buusdo.core.recent_games import (
     push_recent,
 )
 from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
-from buusdo.core.steam_uris import game_properties_uri_candidates, probe_open_uris
+from buusdo.core.steam_uris import (
+    DEFAULT_STEAM_URI_CACHE_TTL_S,
+    game_properties_uri_candidates,
+    probe_open_uris,
+    set_steam_uri_cache_ttl_s,
+    steam_uri_cache_ttl_s,
+)
 from buusdo.core.transaction import Transaction
 from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
@@ -242,6 +249,21 @@ class MainWindow(QMainWindow):
         audit_row.addWidget(self._btn_clear_audit)
         home.addLayout(audit_row)
 
+        ttl_row = QHBoxLayout()
+        ttl_row.addWidget(QLabel(t("settings.steam_uri_ttl")))
+        self._steam_ttl = QSpinBox()
+        self._steam_ttl.setRange(1, 90)
+        self._steam_ttl.setSuffix(t("settings.steam_uri_ttl_suffix"))
+        days = max(1, int(round(steam_uri_cache_ttl_s() / 86400)))
+        self._steam_ttl.setValue(days)
+        self._steam_ttl.setToolTip(
+            t("settings.steam_uri_ttl_tip", default_days=DEFAULT_STEAM_URI_CACHE_TTL_S // 86400)
+        )
+        self._steam_ttl.valueChanged.connect(self._on_steam_ttl_changed)
+        ttl_row.addWidget(self._steam_ttl)
+        ttl_row.addStretch(1)
+        home.addLayout(ttl_row)
+
         self._session_banner = QLabel("")
         self._session_banner.setWordWrap(True)
         self._session_banner.setStyleSheet("color: #B08900;")
@@ -395,27 +417,51 @@ class MainWindow(QMainWindow):
             get_optiscaler_kit_path()
         ).ok
 
-    def _kit_banner_detail(self) -> str:
+    def _kit_banner_state(self) -> tuple[str, str]:
+        """Return (text, severity) where severity is empty|incomplete."""
         parts: list[str] = [t("settings.kits_banner")]
         r_path = get_reshade_kit_path()
         o_path = get_optiscaler_kit_path()
+        incomplete = False
         if r_path is not None:
             rs = validate_reshade_kit(r_path)
             if not rs.ok:
+                incomplete = True
                 miss = ", ".join(rs.missing) if rs.missing else rs.message
                 parts.append(f"ReShade: {t('wizard.kit_bad')} ({miss})")
+        else:
+            parts.append(f"ReShade: {t('settings.kits_path_empty')}")
         if o_path is not None:
             os_ = validate_optiscaler_kit(o_path)
             if not os_.ok:
+                incomplete = True
                 miss = ", ".join(os_.missing) if os_.missing else os_.message
                 parts.append(f"OptiScaler: {t('wizard.kit_bad')} ({miss})")
-        return "\n".join(parts)
+        else:
+            parts.append(f"OptiScaler: {t('settings.kits_path_empty')}")
+        severity = "incomplete" if incomplete else "empty"
+        return "\n".join(parts), severity
 
     def _refresh_kits_banner(self) -> None:
         skipped = bool(load_settings().get("wizard_skipped_kits"))
         show = skipped and not self._has_valid_kit()
-        self._kits_banner.setText(self._kit_banner_detail() if show else "")
-        self._btn_complete_kits.setVisible(show)
+        if not show:
+            self._kits_banner.setText("")
+            self._kits_banner.setStyleSheet("")
+            self._btn_complete_kits.setVisible(False)
+            return
+        text, severity = self._kit_banner_state()
+        self._kits_banner.setText(text)
+        # empty path: amber; path present but DLLs incomplete: red
+        if severity == "incomplete":
+            self._kits_banner.setStyleSheet("color: #C73E1D; font-weight: 600;")
+        else:
+            self._kits_banner.setStyleSheet("color: #B08900;")
+        self._btn_complete_kits.setVisible(True)
+
+    def _on_steam_ttl_changed(self, days: int) -> None:
+        set_steam_uri_cache_ttl_s(int(days) * 86400)
+        self._status.setText(t("settings.steam_uri_ttl_saved", days=int(days)))
 
     def _complete_kits_setup(self) -> None:
         FirstRunWizard(self).exec()
@@ -1003,6 +1049,17 @@ class MainWindow(QMainWindow):
             )
             if out.get("ok"):
                 QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+                # Drop the selected mode-failure row when its CCD target HDR retry succeeds.
+                if row is not None and 0 <= r < len(failed):
+                    if (
+                        row.get("targetId") is not None
+                        and int(row.get("targetId")) == int(target_id)
+                    ) or (
+                        row.get("adapterLow") is not None
+                        and int(row.get("adapterLow")) == int(adapter_low)
+                    ):
+                        table.removeRow(r)
+                        failed.pop(r)
             else:
                 QMessageBox.warning(
                     self,
