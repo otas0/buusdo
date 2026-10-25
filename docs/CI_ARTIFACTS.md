@@ -78,6 +78,9 @@ Local detector (bell + optional macOS notification):
 ```bash
 python scripts/watch_ci_billing.py --notify --once
 # exit 1 when the newest main run looks billing-blocked
+
+# Hourly LaunchAgent (macOS):
+bash scripts/install_watch_ci_billing_launchd.sh
 ```
 
 ## Stabilizing `gh` Actions API (avoid Forbidden)

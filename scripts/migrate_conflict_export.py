@@ -45,25 +45,40 @@ def _flatten_keys(obj: Any, prefix: str = "") -> dict[str, Any]:
 
 
 def _print_keys_only_diff(src: Path, before: dict[str, Any], after: dict[str, Any]) -> None:
+    """Emit one JSON object per changed key (JSON Lines) for scripting."""
     left = _flatten_keys(before)
     right = _flatten_keys(after)
     keys = sorted(set(left) | set(right))
-    added = [k for k in keys if k not in left]
-    removed = [k for k in keys if k not in right]
-    changed = [k for k in keys if k in left and k in right and left[k] != right[k]]
-    if not added and not removed and not changed:
-        print(f"{src}: no key changes")
-        return
-    print(f"{src}: key diff (+{len(added)} / -{len(removed)} / ~{len(changed)})")
-    for k in added:
-        print(f"  + {k} = {json.dumps(right[k], ensure_ascii=False)}")
-    for k in removed:
-        print(f"  - {k} = {json.dumps(left[k], ensure_ascii=False)}")
-    for k in changed:
+    rows: list[dict[str, Any]] = []
+    for k in keys:
+        if k not in left:
+            rows.append(
+                {"file": str(src), "op": "add", "key": k, "before": None, "after": right[k]}
+            )
+        elif k not in right:
+            rows.append(
+                {"file": str(src), "op": "remove", "key": k, "before": left[k], "after": None}
+            )
+        elif left[k] != right[k]:
+            rows.append(
+                {
+                    "file": str(src),
+                    "op": "change",
+                    "key": k,
+                    "before": left[k],
+                    "after": right[k],
+                }
+            )
+    if not rows:
         print(
-            f"  ~ {k}: {json.dumps(left[k], ensure_ascii=False)} "
-            f"-> {json.dumps(right[k], ensure_ascii=False)}"
+            json.dumps(
+                {"file": str(src), "op": "noop", "key": None, "before": None, "after": None},
+                ensure_ascii=False,
+            )
         )
+        return
+    for row in rows:
+        print(json.dumps(row, ensure_ascii=False))
 
 
 def _print_dry_run_diff(
@@ -179,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--diff-keys-only",
         action="store_true",
-        help="With --dry-run, print added/removed/changed dotted keys instead of a full unified diff",
+        help="With --dry-run, emit JSON Lines of added/removed/changed dotted keys (op/key/before/after)",
     )
     args = p.parse_args(argv)
 

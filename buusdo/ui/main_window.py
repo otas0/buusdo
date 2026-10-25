@@ -267,6 +267,10 @@ class MainWindow(QMainWindow):
         self._btn_clear_steam_uri = QPushButton(t("settings.steam_uri_clear"))
         self._btn_clear_steam_uri.clicked.connect(self._clear_steam_uri_cache)
         ttl_row.addWidget(self._btn_clear_steam_uri)
+        self._btn_steam_try_first = QPushButton(t("settings.steam_uri_try_first"))
+        self._btn_steam_try_first.setToolTip(t("settings.steam_uri_try_first"))
+        self._btn_steam_try_first.clicked.connect(self._try_open_first_steam_uri)
+        ttl_row.addWidget(self._btn_steam_try_first)
         self._steam_uri_cache_label = QLabel("")
         self._steam_uri_cache_label.setWordWrap(True)
         ttl_row.addWidget(self._steam_uri_cache_label, stretch=1)
@@ -521,6 +525,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_steam_uri_controls(self) -> None:
         st = steam_uri_cache_status()
+        has_game = bool(self._target and self._target.metadata.get("app_id"))
         if st.get("cached"):
             self._steam_uri_cache_label.setText(
                 t("settings.steam_uri_cache_on", template=str(st.get("template") or ""))
@@ -532,6 +537,7 @@ class MainWindow(QMainWindow):
             self._btn_clear_steam_uri.setEnabled(False)
             tip = t("settings.steam_uri_cache_off")
         self._btn_clear_steam_uri.setToolTip(tip)
+        self._btn_steam_try_first.setEnabled(has_game)
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
 
@@ -542,6 +548,31 @@ class MainWindow(QMainWindow):
         app_id = str(self._target.metadata["app_id"])
         uris = game_properties_uri_candidates(app_id)
         return t("settings.steam_uri_probe_preview", uris="\n".join(f"  {u}" for u in uris))
+
+    def _try_open_first_steam_uri(self) -> None:
+        """Optional: open only the first properties URI candidate for the selected game."""
+        if not self._target or not self._target.metadata.get("app_id"):
+            self._toast(t("settings.steam_uri_probe_no_game"))
+            return
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        app_id = str(self._target.metadata["app_id"])
+        uris = game_properties_uri_candidates(app_id)
+        if not uris:
+            self._toast(t("settings.steam_uri_probe_no_game"))
+            return
+        uri = uris[0]
+
+        def _open(u: str) -> bool:
+            return bool(QDesktopServices.openUrl(QUrl(u)))
+
+        result = probe_open_uris([uri], opener=_open, cache_success=True, clear_cache_on_fail=False)
+        self._refresh_steam_uri_controls()
+        if result.get("opened"):
+            self._toast(t("settings.steam_uri_try_first_ok", uri=uri))
+        else:
+            self._toast(t("settings.steam_uri_try_first_fail", uri=uri))
 
     def _clear_steam_uri_cache(self) -> None:
         cleared = clear_properties_uri_cache()
@@ -557,25 +588,28 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_tray"):
             self._tray.showMessage("buusdo", message)
 
+    def _kit_side_toast(self, *, side: str, saved: bool) -> None:
+        if not saved:
+            self._toast(t("settings.kit_side_cancelled"))
+            return
+        if self._kits_both_valid():
+            self._toast(t("settings.kit_both_ready"))
+        else:
+            self._toast(t("settings.kit_still_missing", side=side))
+
     def _complete_kits_setup(self) -> None:
         focus = self._missing_kit_side()
         if focus == "reshade":
             # One-side CTA: jump straight to the missing side picker, then toast.
             ok = self._pick_reshade_kit()
-            self._toast(
-                t("settings.kit_side_saved", side="ReShade")
-                if ok
-                else t("settings.kit_side_cancelled")
-            )
+            self._kit_side_toast(side="ReShade", saved=ok)
         elif focus == "optiscaler":
             ok = self._pick_optiscaler_kit()
-            self._toast(
-                t("settings.kit_side_saved", side="OptiScaler")
-                if ok
-                else t("settings.kit_side_cancelled")
-            )
+            self._kit_side_toast(side="OptiScaler", saved=ok)
         else:
             FirstRunWizard(self, focus_side=focus).exec()
+            if self._kits_both_valid():
+                self._toast(t("settings.kit_both_ready"))
         data = load_settings()
         if self._kits_both_valid():
             data["wizard_skipped_kits"] = False
@@ -583,7 +617,7 @@ class MainWindow(QMainWindow):
             save_settings(data)
         self._refresh_kits_banner()
         kit = get_reshade_kit_path()
-        if kit and focus is None:
+        if kit and focus is None and not self._kits_both_valid():
             self._status.setText(f"ReShade: {kit}")
 
     def _tray_uninstall(self, data: dict) -> None:
@@ -820,6 +854,7 @@ class MainWindow(QMainWindow):
         self._target = self._filtered[row]
         self._refresh_capabilities()
         self._populate_exe_combo()
+        self._refresh_steam_uri_controls()
         st = self._backend.status(self._target)
         _, badge = self._badge_for_status(st)
         msg = f"{self._target.name} — {badge}\n{self._target.install_path}"
@@ -1117,24 +1152,44 @@ class MainWindow(QMainWindow):
         layout.addWidget(table)
         remaining = QLabel("")
         remaining.setWordWrap(True)
+        remaining_list = QListWidget()
+        remaining_list.setAccessibleName(t("display.session_targets_list"))
 
         def _sync_remaining_targets() -> None:
             st = display_session_status()
+            remaining_list.clear()
             if not st.get("present"):
                 remaining.setText(t("display.session_targets_cleared"))
-            else:
-                remaining.setText(
-                    t(
-                        "display.session_targets_left",
-                        targets=int(st.get("targets") or 0),
-                        displays=int(st.get("displays") or 0),
-                    )
+                return
+            remaining.setText(
+                t(
+                    "display.session_targets_left",
+                    targets=int(st.get("targets") or 0),
+                    displays=int(st.get("displays") or 0),
                 )
+            )
+            for tgt in st.get("target_rows") or []:
+                low = tgt.get("adapterLow")
+                high = tgt.get("adapterHigh") if tgt.get("adapterHigh") is not None else 0
+                tid = tgt.get("targetId")
+                if tid is None and tgt.get("id") is not None:
+                    tid = tgt.get("id")
+                label = f"adapter={low}/{high} targetId={tid}"
+                item = QListWidgetItem(label)
+                item.setData(Qt.ItemDataRole.UserRole, {
+                    "adapterLow": low,
+                    "adapterHigh": high,
+                    "targetId": tid,
+                })
+                remaining_list.addItem(item)
 
         _sync_remaining_targets()
         layout.addWidget(remaining)
+        layout.addWidget(QLabel(t("display.session_targets_list")))
+        layout.addWidget(remaining_list)
         retry = QPushButton(t("display.retry_one"))
         retry_hdr = QPushButton(t("display.retry_hdr"))
+        retry_hdr_sel = QPushButton(t("display.retry_hdr_selected"))
 
         def _retry() -> None:
             r = table.currentRow()
@@ -1162,25 +1217,21 @@ class MainWindow(QMainWindow):
                     ),
                 )
 
-        def _retry_hdr() -> None:
-            r = table.currentRow()
-            row = failed[r] if 0 <= r < len(failed) else None
+        def _hdr_enable_for(row: dict | None) -> bool:
             enable = bool((row or {}).get("hdr_enable"))
             if hdr_step and hdr_step.get("enable") is not None:
                 enable = bool(hdr_step.get("enable"))
-            adapter_low = (row or {}).get("adapterLow")
-            adapter_high = (row or {}).get("adapterHigh") or 0
-            target_id = (row or {}).get("targetId")
-            if target_id is None or adapter_low is None:
-                # Fall back to first failed HDR target from the step payload.
-                targets = list((hdr_step or {}).get("targets") or [])
-                bad = next((t for t in targets if not t.get("ok")), None)
-                if not bad:
-                    QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
-                    return
-                adapter_low = bad.get("adapterLow")
-                adapter_high = bad.get("adapterHigh") or 0
-                target_id = bad.get("id") if bad.get("id") is not None else bad.get("targetId")
+            return enable
+
+        def _apply_hdr_retry(
+            *,
+            adapter_low: int,
+            adapter_high: int,
+            target_id: int,
+            enable: bool,
+            row: dict | None,
+            row_index: int,
+        ) -> None:
             out = retry_hdr_target(
                 adapter_low=int(adapter_low),
                 adapter_high=int(adapter_high or 0),
@@ -1195,11 +1246,9 @@ class MainWindow(QMainWindow):
                     adapter_high=int(adapter_high or 0),
                     target_id=int(target_id),
                 )
-                # Sync banner + fail-table remaining CCD counts after session prune.
                 self._refresh_session_banner()
                 _sync_remaining_targets()
-                # Drop the selected mode-failure row when its CCD target HDR retry succeeds.
-                if row is not None and 0 <= r < len(failed):
+                if row is not None and 0 <= row_index < len(failed):
                     if (
                         row.get("targetId") is not None
                         and int(row.get("targetId")) == int(target_id)
@@ -1207,8 +1256,8 @@ class MainWindow(QMainWindow):
                         row.get("adapterLow") is not None
                         and int(row.get("adapterLow")) == int(adapter_low)
                     ):
-                        table.removeRow(r)
-                        failed.pop(r)
+                        table.removeRow(row_index)
+                        failed.pop(row_index)
             else:
                 QMessageBox.warning(
                     self,
@@ -1216,16 +1265,75 @@ class MainWindow(QMainWindow):
                     t("display.rollback_failed", devices=f"HDR target {target_id}"),
                 )
 
+        def _retry_hdr() -> None:
+            r = table.currentRow()
+            row = failed[r] if 0 <= r < len(failed) else None
+            enable = _hdr_enable_for(row)
+            adapter_low = (row or {}).get("adapterLow")
+            adapter_high = (row or {}).get("adapterHigh") or 0
+            target_id = (row or {}).get("targetId")
+            if target_id is None or adapter_low is None:
+                targets = list((hdr_step or {}).get("targets") or [])
+                bad = next((tg for tg in targets if not tg.get("ok")), None)
+                if not bad:
+                    QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                    return
+                adapter_low = bad.get("adapterLow")
+                adapter_high = bad.get("adapterHigh") or 0
+                target_id = bad.get("id") if bad.get("id") is not None else bad.get("targetId")
+            _apply_hdr_retry(
+                adapter_low=int(adapter_low),
+                adapter_high=int(adapter_high or 0),
+                target_id=int(target_id),
+                enable=enable,
+                row=row,
+                row_index=r,
+            )
+
+        def _retry_hdr_selected() -> None:
+            item = remaining_list.currentItem()
+            if item is None:
+                QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                return
+            data = item.data(Qt.ItemDataRole.UserRole) or {}
+            if data.get("adapterLow") is None or data.get("targetId") is None:
+                QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                return
+            # Prefer matching fail-table row when present.
+            match_i = -1
+            match_row = None
+            for i, row in enumerate(failed):
+                if (
+                    row.get("targetId") is not None
+                    and int(row.get("targetId")) == int(data["targetId"])
+                    and row.get("adapterLow") is not None
+                    and int(row.get("adapterLow")) == int(data["adapterLow"])
+                ):
+                    match_i = i
+                    match_row = row
+                    break
+            _apply_hdr_retry(
+                adapter_low=int(data["adapterLow"]),
+                adapter_high=int(data.get("adapterHigh") or 0),
+                target_id=int(data["targetId"]),
+                enable=_hdr_enable_for(match_row),
+                row=match_row,
+                row_index=match_i,
+            )
+
         retry.clicked.connect(_retry)
         retry_hdr.clicked.connect(_retry_hdr)
+        retry_hdr_sel.clicked.connect(_retry_hdr_selected)
+        remaining_list.itemDoubleClicked.connect(lambda _item: _retry_hdr_selected())
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
         row.addWidget(retry)
         row.addWidget(retry_hdr)
+        row.addWidget(retry_hdr_sel)
         row.addWidget(close)
         layout.addLayout(row)
-        dlg.resize(720, 320)
+        dlg.resize(720, 420)
         dlg.exec()
 
     def _export_crash_audit(self) -> None:
