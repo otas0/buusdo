@@ -34,7 +34,7 @@ where = ["."]
 include = ["buusdo*"]
 
 [tool.setuptools.package-data]
-buusdo = ["assets/*"]
+buusdo = ["assets/*", "core/dwm_hdr_shaders/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
