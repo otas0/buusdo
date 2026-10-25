@@ -1,0 +1,14 @@
+---
+description: buusdo hard product constraints (C1–C5)
+alwaysApply: true
+---
+
+# buusdo constraints
+
+Full spec: `docs/PROJECT.md`.
+
+- **C1** Every `install()` / inject / config write starts with `anticheat_guard.check`. `UnsafeTargetError` → non-bypassable UI block. No "continue anyway".
+- **C2** All filesystem writes go through `core.transaction.Transaction` (snapshot → record → reverse restore).
+- **C3** No `if platform == ...` in `core/` or `ui/`. Dispatch only in `platform_detect.py` and `backends/__init__.py`.
+- **C4** Honest copy: never "已开启光线追踪"; distinguish path tracing vs neural upscaling; mark approximations; macOS says MetalFX compat config, never DLSS.
+- **C5** macOS backend: no DYLD_INSERT_LIBRARIES / task_for_pid / mach_inject / dylib injection. Config + env + logs only.

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buusdo"
+version = "0.1.0"
+description = "Cross-platform graphics enhancement scheduler and config coordinator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "psutil>=5.9",
+    "pefile>=2023.2.7",
+]
+
+[project.optional-dependencies]
+ui = [
+    "PySide6-Essentials>=6.6",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+buusdo = "buusdo.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["buusdo*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
