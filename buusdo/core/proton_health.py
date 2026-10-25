@@ -15,14 +15,18 @@ class ProtonHealth:
     code: str
     message: str
     prefix: Path | None = None
+    steam_uri: str | None = None
+    steam_url: str | None = None
 
 
 def check_proton_prefix(target: EnhancementTarget) -> ProtonHealth | None:
-    """Return health for Proton-marked targets; None if not a Proton game."""
     runtime = target.metadata.get("runtime")
     prefix_raw = target.metadata.get("proton_prefix")
+    app_id = target.metadata.get("app_id")
+    steam_uri = f"steam://run/{app_id}" if app_id else None
+    steam_url = f"https://store.steampowered.com/app/{app_id}/" if app_id else None
+
     if runtime != "proton" and not prefix_raw:
-        # Heuristic: Windows exe on Linux install without prefix
         return None
 
     if not prefix_raw:
@@ -31,6 +35,8 @@ def check_proton_prefix(target: EnhancementTarget) -> ProtonHealth | None:
             code="missing_prefix_meta",
             message=t("proton.missing_prefix"),
             prefix=None,
+            steam_uri=steam_uri,
+            steam_url=steam_url,
         )
 
     prefix = Path(str(prefix_raw))
@@ -40,6 +46,8 @@ def check_proton_prefix(target: EnhancementTarget) -> ProtonHealth | None:
             code="compatdata_missing",
             message=t("proton.missing_prefix"),
             prefix=prefix,
+            steam_uri=steam_uri,
+            steam_url=steam_url,
         )
 
     drive_c = prefix / "drive_c"
@@ -47,8 +55,17 @@ def check_proton_prefix(target: EnhancementTarget) -> ProtonHealth | None:
         return ProtonHealth(
             ok=False,
             code="incomplete_prefix",
-            message="Proton prefix exists but drive_c is missing (incomplete).",
+            message=t("proton.incomplete_prefix"),
             prefix=prefix,
+            steam_uri=steam_uri,
+            steam_url=steam_url,
         )
 
-    return ProtonHealth(ok=True, code="ok", message="Proton prefix healthy", prefix=prefix)
+    return ProtonHealth(
+        ok=True,
+        code="ok",
+        message=t("proton.ok"),
+        prefix=prefix,
+        steam_uri=steam_uri,
+        steam_url=steam_url,
+    )

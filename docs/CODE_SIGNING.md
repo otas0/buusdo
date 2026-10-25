@@ -31,7 +31,19 @@ xcrun stapler staple dist/buusdo.app
 spctl --assess --type execute dist/buusdo.app
 ```
 
+## Local hook (preferred)
+
+```bash
+# Create gitignored scripts/codesign.env with CODESIGN_IDENTITY / NOTARY_PROFILE / SIGNTOOL
+cp scripts/codesign.env.example scripts/codesign.env   # if present
+chmod +x scripts/codesign_hooks.sh
+./scripts/codesign_hooks.sh dist/buusdo.app   # or .exe on Windows
+```
+
+Release packaging may call the same hook after `scripts/deploy.sh` when local secrets exist. CI never receives private keys from the repo.
+
 ## Notes
 
 - buusdo does not require SIP disable on macOS (C5).
 - Never embed private keys in the repo; use CI secrets / local keychain profiles.
+- `scripts/codesign.env`, `*.p12`, and `*.pfx` are gitignored.

@@ -1,10 +1,12 @@
 """Discover Game Porting Toolkit / CrossOver / Bridgeplay config locations (C5).
 
-Only filesystem discovery — no injection.
+Only filesystem discovery / config writes — no injection.
 """
 
 from __future__ import annotations
 
+import configparser
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,12 +20,11 @@ class CompatLayer:
     log_candidates: tuple[Path, ...]
 
 
-# Bridgeplay-specific MetalFX keys (honest MetalFX wording only — C4/C5).
 BRIDGEPLAY_METALFX_KEYS = {
     "metalfx.enabled": "boolean",
-    "metalfx.quality": "quality|balanced|performance|quality",
+    "metalfx.quality": "quality|balanced|performance",
     "metalfx.scale": "float",
-    "renderer.upscaler": "metalfx",  # must not be set to third-party trademarks
+    "renderer.upscaler": "metalfx",
 }
 
 
@@ -31,12 +32,11 @@ def discover_compat_layers(home: Path | None = None) -> list[CompatLayer]:
     home = home or Path.home()
     found: list[CompatLayer] = []
 
-    gptk_candidates = [
+    for path in (
         home / "Library" / "Application Support" / "Game Porting Toolkit",
         Path("/opt/homebrew/share/game-porting-toolkit"),
         Path("/usr/local/share/game-porting-toolkit"),
-    ]
-    for path in gptk_candidates:
+    ):
         if path.is_dir():
             found.append(
                 CompatLayer(
@@ -80,7 +80,6 @@ def metalfx_options_payload(
     layer_id: str | None = None,
     scale: float | None = None,
 ) -> dict[str, Any]:
-    """Config payload for MetalFX via compat layer — never labeled as third-party upscalers."""
     payload: dict[str, Any] = {
         "enhancement": "metalfx_compat",
         "metalfx_enabled": enable,
@@ -113,22 +112,66 @@ def find_recent_log(layer: CompatLayer) -> Path | None:
     return candidates[0]
 
 
-def write_bridgeplay_metalfx_config(
+def bridgeplay_metalfx_file_contents(
+    *,
+    enable: bool = True,
+    quality: str = "balanced",
+    scale: float | None = None,
+) -> dict[str, str]:
+    """Return Bridgeplay MetalFX sidecar contents (json/ini/plist) for transactional write."""
+    payload = metalfx_options_payload(
+        enable=enable, quality=quality, layer_id="bridgeplay", scale=scale
+    )
+    cp = configparser.ConfigParser()
+    cp["MetalFX"] = {
+        "enabled": "true" if enable else "false",
+        "quality": str(quality),
+        "upscaler": "metalfx",
+    }
+    if scale is not None:
+        cp["MetalFX"]["scale"] = str(float(scale))
+    from io import StringIO
+
+    buf = StringIO()
+    cp.write(buf)
+    scale_xml = (
+        f"\n\t<key>metalfx.scale</key>\n\t<real>{float(scale)}</real>" if scale is not None else ""
+    )
+    plist = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" "
+        "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+        "<plist version=\"1.0\">\n<dict>\n"
+        f"\t<key>metalfx.enabled</key>\n\t<{'true' if enable else 'false'}/>\n"
+        f"\t<key>metalfx.quality</key>\n\t<string>{quality}</string>\n"
+        f"\t<key>renderer.upscaler</key>\n\t<string>metalfx</string>"
+        f"{scale_xml}\n"
+        "</dict>\n</plist>\n"
+    )
+    return {
+        "json": json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+        "ini": buf.getvalue(),
+        "plist": plist,
+    }
+
+
+def write_bridgeplay_metalfx_files(
     config_dir: Path,
     *,
     game_name: str,
     enable: bool = True,
     quality: str = "balanced",
     scale: float | None = None,
-) -> Path:
-    """Write Bridgeplay MetalFX keys into a JSON sidecar (no injection)."""
-    import json
-
+) -> dict[str, str]:
+    """Write Bridgeplay MetalFX settings as JSON + INI + plist under buusdo/<game>/."""
     dest_dir = config_dir / "buusdo" / game_name
     dest_dir.mkdir(parents=True, exist_ok=True)
-    path = dest_dir / "metalfx_bridgeplay.json"
-    payload = metalfx_options_payload(
-        enable=enable, quality=quality, layer_id="bridgeplay", scale=scale
-    )
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return path
+    contents = bridgeplay_metalfx_file_contents(enable=enable, quality=quality, scale=scale)
+    paths = {
+        "json": dest_dir / "metalfx_bridgeplay.json",
+        "ini": dest_dir / "metalfx.ini",
+        "plist": dest_dir / "metalfx.plist",
+    }
+    for kind, path in paths.items():
+        path.write_text(contents[kind], encoding="utf-8")
+    return {k: str(v) for k, v in paths.items()}

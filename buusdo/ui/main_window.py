@@ -39,13 +39,18 @@ from buusdo.core.config_store import (
     set_reshade_kit_path,
     update_game_config,
 )
-from buusdo.core.conflict_preview import preview_optiscaler_deploy, preview_reshade_deploy
+from buusdo.core.conflict_preview import (
+    preview_optiscaler_deploy,
+    preview_reshade_deploy,
+    preview_triple_matrix,
+)
 from buusdo.core.crash_report import capture_exception
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.platform_detect import steam_roots
+from buusdo.core.recent_games import list_recent
 from buusdo.core.steam_launch import list_steam_users
 from buusdo.ui.blocked_page import BlockedPage
 from buusdo.ui.scan_worker import start_scan
@@ -69,6 +74,7 @@ class MainWindow(QMainWindow):
         self._games: list[EnhancementTarget] = []
         self._filtered: list[EnhancementTarget] = []
         self._scan_thread = None
+        self._scan_worker = None
 
         settings = load_settings()
         if settings.get("locale") in available_locales():
@@ -184,7 +190,10 @@ class MainWindow(QMainWindow):
         buttons = QHBoxLayout()
         self._btn_scan = QPushButton(t("action.scan"))
         self._btn_force = QPushButton(t("action.force_scan"))
+        self._btn_cancel = QPushButton(t("action.cancel_scan"))
+        self._btn_cancel.setEnabled(False)
         self._btn_preview = QPushButton(t("conflict.title"))
+        self._btn_steam = QPushButton(t("proton.open_steam"))
         self._btn_kit = QPushButton("ReShade…")
         self._btn_opti = QPushButton("OptiScaler…")
         self._btn_install = QPushButton(t("action.deploy"))
@@ -195,7 +204,9 @@ class MainWindow(QMainWindow):
         for b in (
             self._btn_scan,
             self._btn_force,
+            self._btn_cancel,
             self._btn_preview,
+            self._btn_steam,
             self._btn_kit,
             self._btn_opti,
             self._btn_install,
@@ -216,7 +227,9 @@ class MainWindow(QMainWindow):
 
         self._btn_scan.clicked.connect(lambda: self._scan_games(force=False))
         self._btn_force.clicked.connect(lambda: self._scan_games(force=True))
+        self._btn_cancel.clicked.connect(self._cancel_scan)
         self._btn_preview.clicked.connect(self._on_preview)
+        self._btn_steam.clicked.connect(self._open_steam_for_target)
         self._btn_kit.clicked.connect(self._pick_reshade_kit)
         self._btn_opti.clicked.connect(self._pick_optiscaler_kit)
         self._btn_install.clicked.connect(self._on_install)
@@ -247,9 +260,42 @@ class MainWindow(QMainWindow):
 
         menu = QMenu()
         menu.addAction(show)
+        recent_menu = menu.addMenu("Uninstall recent")
+        self._tray_recent_menu = recent_menu
+        self._rebuild_tray_recent()
         menu.addAction(quit_act)
         self._tray.setContextMenu(menu)
         self._tray.show()
+
+    def _rebuild_tray_recent(self) -> None:
+        menu = getattr(self, "_tray_recent_menu", None)
+        if menu is None:
+            return
+        menu.clear()
+        for item in list_recent():
+            name = str(item.get("name") or "game")
+            act = QAction(f"Uninstall {name}", self)
+            act.triggered.connect(lambda _=False, data=item: self._tray_uninstall(data))
+            menu.addAction(act)
+        if menu.isEmpty():
+            empty = QAction("(none)", self)
+            empty.setEnabled(False)
+            menu.addAction(empty)
+
+    def _tray_uninstall(self, data: dict) -> None:
+        target = EnhancementTarget(
+            name=str(data.get("name") or "game"),
+            install_path=Path(str(data.get("install_path"))),
+            executable=Path(data["executable"]) if data.get("executable") else None,
+            metadata=dict(data.get("metadata") or {}),
+        )
+        try:
+            result = self._backend.uninstall(target)
+            self._status.setText(result.message)
+            if hasattr(self, "_tray"):
+                self._tray.showMessage("buusdo", result.message)
+        except (BuusdoError, UnsafeTargetError) as exc:
+            QMessageBox.warning(self, "buusdo", str(exc))
 
     def _on_locale_changed(self) -> None:
         loc = self._lang.currentData()
@@ -262,6 +308,7 @@ class MainWindow(QMainWindow):
         self._subtitle.setText(t("app.subtitle"))
         self._btn_scan.setText(t("action.scan"))
         self._btn_force.setText(t("action.force_scan"))
+        self._btn_cancel.setText(t("action.cancel_scan"))
         self._btn_install.setText(t("action.deploy"))
         self._btn_uninstall.setText(t("action.uninstall"))
         self._btn_preview.setText(t("conflict.title"))
@@ -278,6 +325,7 @@ class MainWindow(QMainWindow):
         self._status.setText(t("scan.progress"))
         self._btn_scan.setEnabled(False)
         self._btn_force.setEnabled(False)
+        self._btn_cancel.setEnabled(True)
 
         def on_progress(_stage: str, value: float) -> None:
             self._progress.setValue(int(value * 100))
@@ -290,20 +338,49 @@ class MainWindow(QMainWindow):
             self._progress.setVisible(False)
             self._btn_scan.setEnabled(True)
             self._btn_force.setEnabled(True)
+            self._btn_cancel.setEnabled(False)
+            self._rebuild_tray_recent()
 
         def on_failed(message: str) -> None:
             self._status.setText(message)
             self._progress.setVisible(False)
             self._btn_scan.setEnabled(True)
             self._btn_force.setEnabled(True)
-            capture_exception(RuntimeError(message), context={"op": "scan"})
+            self._btn_cancel.setEnabled(False)
+            if message != "cancelled":
+                capture_exception(RuntimeError(message), context={"op": "scan"})
 
-        self._scan_thread, _worker = start_scan(
+        self._scan_thread, self._scan_worker = start_scan(
             force=force,
             on_progress=on_progress,
             on_finished=on_finished,
             on_failed=on_failed,
         )
+
+    def _cancel_scan(self) -> None:
+        if self._scan_worker is not None:
+            self._scan_worker.cancel()
+        self._status.setText(t("action.cancel_scan"))
+
+    def _open_steam_for_target(self) -> None:
+        if not self._target:
+            return
+        st = self._backend.status(self._target)
+        health = st.get("proton_health") or {}
+        uri = health.get("steam_uri") or (
+            f"steam://run/{self._target.metadata['app_id']}"
+            if self._target.metadata.get("app_id")
+            else None
+        )
+        if not uri:
+            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            return
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        QDesktopServices.openUrl(QUrl(uri))
+        if not health.get("ok", True):
+            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -434,18 +511,21 @@ class MainWindow(QMainWindow):
             return
         mode = self._mode_combo.currentData()
         try:
+            r_kit = get_reshade_kit_path()
+            o_kit = get_optiscaler_kit_path()
+            api_raw = self._api_combo.currentData()
+            api = GraphicsApi(api_raw) if api_raw else None
             if mode == "optiscaler":
-                kit = get_optiscaler_kit_path()
-                if not kit:
+                if not o_kit:
                     raise BuusdoError("OptiScaler kit not configured")
-                details = preview_optiscaler_deploy(self._target, Path(kit))
+                details = preview_optiscaler_deploy(self._target, Path(o_kit))
             else:
-                kit = get_reshade_kit_path()
-                if not kit:
-                    raise BuusdoError("ReShade kit not configured")
-                api_raw = self._api_combo.currentData()
-                api = GraphicsApi(api_raw) if api_raw else None
-                details = preview_reshade_deploy(self._target, Path(kit), api=api)
+                details = preview_triple_matrix(
+                    self._target,
+                    reshade_kit=Path(r_kit) if r_kit else None,
+                    optiscaler_kit=Path(o_kit) if o_kit else None,
+                    api=api,
+                )
         except BuusdoError as exc:
             QMessageBox.warning(self, "buusdo", str(exc))
             return

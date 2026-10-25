@@ -1,4 +1,4 @@
-"""Background Steam library scan worker."""
+"""Background Steam library scan worker with cancel support."""
 
 from __future__ import annotations
 
@@ -17,19 +17,31 @@ class ScanWorker(QObject):
     def __init__(self, *, force: bool = False):
         super().__init__()
         self._force = force
+        self._cancel = False
+
+    def cancel(self) -> None:
+        self._cancel = True
 
     def run(self) -> None:
         try:
             if self._force:
                 invalidate_cache()
+            if self._cancel:
+                self.failed.emit("cancelled")
+                return
             self.progress.emit("start", 0.0)
             backend = get_backend()
-            # Backend discover uses cache; progress is coarse.
             self.progress.emit("discover", 0.3)
+            if self._cancel:
+                self.failed.emit("cancelled")
+                return
             games: list[EnhancementTarget] = backend.discover_games()
+            if self._cancel:
+                self.failed.emit("cancelled")
+                return
             self.progress.emit("done", 1.0)
             self.finished.emit(games)
-        except Exception as exc:  # noqa: BLE001 — surface to UI
+        except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
 
 

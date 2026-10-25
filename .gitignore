@@ -33,6 +33,9 @@ deployment/
 *.exe
 *.bin
 tests/fixtures/*.exe
+scripts/codesign.env
+*.p12
+*.pfx
 
 # Local config dumps
 *.local.json

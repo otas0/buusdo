@@ -15,7 +15,9 @@ from buusdo.core.backend import (
 )
 from buusdo.core.errors import UnsafeTargetError
 from buusdo.core.library_cache import load_cached_games
+from buusdo.core.i18n import t
 from buusdo.core.macos_compat import (
+    bridgeplay_metalfx_file_contents,
     discover_compat_layers,
     find_recent_log,
     metalfx_options_payload,
@@ -45,18 +47,15 @@ class MacOSBackend(EnhancementBackend):
         return [
             Capability(
                 id="metalfx_compat",
-                title="MetalFX 兼容层配置",
-                description=(
-                    "在 Game Porting Toolkit / CrossOver / Bridgeplay 等兼容层中"
-                    "配置 MetalFX。不得表述为 DLSS。"
-                ),
+                title=t("cap.metalfx"),
+                description=t("cap.metalfx.desc"),
                 available=bool(layers) or bool(target.metadata.get("compat_confirmed")),
-                notes=f"已发现兼容层：{', '.join(l.title for l in layers) or '无'}",
+                notes=", ".join(l.title for l in layers) or "none",
             ),
             Capability(
                 id="compat_log_verify",
-                title="兼容层日志确认",
-                description="读取兼容层日志以确认 MetalFX 配置是否生效。",
+                title="compat log verify",
+                description=t("cap.metalfx.desc"),
                 available=True,
             ),
         ]
@@ -89,13 +88,23 @@ class MacOSBackend(EnhancementBackend):
                 tx.ensure_dir(compat_root)
                 tx.write_text(marker, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
                 if layer_id == "bridgeplay" or "bridgeplay" in str(compat_root).lower():
-                    bp_marker = compat_root / "metalfx_bridgeplay.json"
-                    tx.write_text(
-                        bp_marker,
-                        json.dumps(payload.get("bridgeplay_keys") or payload, indent=2, ensure_ascii=False)
-                        + "\n",
+                    files = bridgeplay_metalfx_file_contents(
+                        enable=bool(options.get("metalfx_enabled", True)),
+                        quality=str(options.get("metalfx_quality", "balanced")),
+                        scale=options.get("metalfx_scale"),
                     )
-                    payload["bridgeplay_sidecar"] = str(bp_marker)
+                    for name, text in (
+                        ("metalfx_bridgeplay.json", files["json"]),
+                        ("metalfx.ini", files["ini"]),
+                        ("metalfx.plist", files["plist"]),
+                    ):
+                        path = compat_root / name
+                        tx.write_text(path, text)
+                    payload["bridgeplay_sidecars"] = [
+                        str(compat_root / "metalfx_bridgeplay.json"),
+                        str(compat_root / "metalfx.ini"),
+                        str(compat_root / "metalfx.plist"),
+                    ]
         except Exception as exc:
             history.append_event("install:metalfx", target=target.name, success=False, message=str(exc))
             raise

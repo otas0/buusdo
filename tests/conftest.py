@@ -14,3 +14,8 @@ def _isolate_user_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr("buusdo.core.platform_detect.user_config_dir", lambda platform=None: cfg)
     monkeypatch.setattr("buusdo.core.config_store.user_config_dir", lambda: cfg)
     monkeypatch.setattr("buusdo.core.history.user_config_dir", lambda: cfg)
+    monkeypatch.setattr("buusdo.core.crash_report.user_config_dir", lambda: cfg)
+    monkeypatch.setattr("buusdo.core.recent_games.user_config_dir", lambda: cfg)
+    monkeypatch.setattr(
+        "buusdo.backends.windows_display.user_config_dir", lambda platform=None: cfg
+    )

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from buusdo.core import conflict, optiscaler, reshade
+from buusdo.core import conflict, optiscaler, reshade, rtx_remix
 from buusdo.core.backend import EnhancementTarget
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.reshade import plan_deploy, resolve_kit
@@ -73,7 +73,7 @@ def preview_optiscaler_deploy(target: EnhancementTarget, kit_path: Path) -> dict
                 f"from kit:{src.name}",
             )
         )
-    report = conflict.check_optiscaler_reshade(target.install_path, kit)
+    report = conflict.triple_matrix(target.install_path, optiscaler_kit=kit)
     for issue in report.issues:
         diffs.append(FileDiff("", "conflict", f"[{issue.severity.value}] {issue.message}"))
     return {
@@ -81,5 +81,45 @@ def preview_optiscaler_deploy(target: EnhancementTarget, kit_path: Path) -> dict
         "blocked": report.blocked,
         "reshade_installed": reshade.status(target.install_path).get("installed"),
         "optiscaler_installed": optiscaler.status(target.install_path).get("installed"),
+        "remix": rtx_remix.status(target.install_path),
+        "matrix": "reshade+optiscaler+remix",
+        "diffs": [d.__dict__ for d in diffs],
+    }
+
+
+def preview_triple_matrix(
+    target: EnhancementTarget,
+    *,
+    reshade_kit: Path | None = None,
+    optiscaler_kit: Path | None = None,
+    api: GraphicsApi | None = None,
+) -> dict:
+    proxy = None
+    diffs: list[FileDiff] = []
+    if reshade_kit:
+        plan = plan_deploy(
+            target.install_path,
+            resolve_kit(reshade_kit),
+            executable=target.executable,
+            api=api,
+        )
+        proxy = plan.proxy_dll_name
+        diffs.append(FileDiff(str(plan.dest_dll), "plan", f"reshade {plan.mode}"))
+    if optiscaler_kit and Path(optiscaler_kit).is_dir():
+        for src in Path(optiscaler_kit).iterdir():
+            if src.is_file() and src.suffix.lower() == ".dll":
+                diffs.append(FileDiff(str(target.install_path / src.name), "plan", "optiscaler"))
+    remix = rtx_remix.status(target.install_path)
+    if remix.get("present"):
+        diffs.append(FileDiff(str(remix.get("d3d9") or ""), "present", "rtx remix bridge"))
+    report = conflict.triple_matrix(
+        target.install_path, optiscaler_kit=optiscaler_kit, reshade_proxy=proxy
+    )
+    for issue in report.issues:
+        diffs.append(FileDiff("", "conflict", f"[{issue.severity.value}] {issue.message}"))
+    return {
+        "mode": "triple_matrix",
+        "blocked": report.blocked,
+        "remix": remix,
         "diffs": [d.__dict__ for d in diffs],
     }

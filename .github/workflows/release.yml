@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir -p dist
           echo "Run scripts/deploy.sh on a signed builder with pyside6-deploy/Nuitka." > dist/README-PACKAGING.txt
+          echo "Then: ./scripts/codesign_hooks.sh <artifact>  (local secrets via scripts/codesign.env; never in CI)." >> dist/README-PACKAGING.txt
           echo "artifact=${{ matrix.artifact }}" >> dist/README-PACKAGING.txt
       - name: Checksums
         shell: bash

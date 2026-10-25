@@ -9,7 +9,8 @@ from typing import Any
 from buusdo.backends.goverlay import find_goverlay, launch_goverlay
 from buusdo.core import anticheat_guard, conflict, history, preflight, reshade
 from buusdo.core.proton_health import check_proton_prefix
-from buusdo.core.vkbasalt_template import steam_launch_for, write_template
+from buusdo.core.i18n import t
+from buusdo.core.vkbasalt_template import list_presets, steam_launch_for, write_template
 from buusdo.core.backend import (
     Capability,
     EnhancementBackend,
@@ -67,22 +68,22 @@ class LinuxBackend(EnhancementBackend):
         return [
             Capability(
                 id="vkbasalt",
-                title="Vulkan 后处理调度（vkBasalt / vkSumi）",
-                description="通过环境变量与 Steam launch options 调度已有 Vulkan 后处理层。",
+                title=t("cap.vkbasalt"),
+                description=t("cap.vkbasalt.desc"),
                 available=not is_proton,
-                notes="后处理效果为近似增强时须在 UI 标注「近似」。",
+                notes=f"{t('copy.approx')}; presets={','.join(list_presets())}",
             ),
             Capability(
                 id="goverlay",
-                title="Goverlay 一键唤起",
-                description="检测桌面入口并启动 Goverlay（若已安装）。",
+                title=t("cap.goverlay"),
+                description=t("cap.goverlay.desc"),
                 available=goverlay is not None,
-                notes=str(goverlay) if goverlay else "未检测到 goverlay",
+                notes=str(goverlay) if goverlay else "goverlay not found",
             ),
             Capability(
                 id="proton_reshade",
-                title="Proton ReShade 部署",
-                description="将 ReShade（含 Vulkan 显式层）部署到 steamapps/common 游戏目录。",
+                title=t("cap.reshade"),
+                description=t("cap.reshade.desc"),
                 available=is_proton or self._looks_like_windows_game(target),
             ),
         ]
@@ -147,7 +148,13 @@ class LinuxBackend(EnhancementBackend):
             "proton_prefix": target.metadata.get("proton_prefix"),
             "proton_health": None
             if health is None
-            else {"ok": health.ok, "code": health.code, "message": health.message},
+            else {
+                "ok": health.ok,
+                "code": health.code,
+                "message": health.message,
+                "steam_uri": health.steam_uri,
+                "steam_url": health.steam_url,
+            },
             "vkbasalt_configured": env_path.is_file(),
             "executables": target.metadata.get("executables")
             or [str(p) for p in list_executable_candidates(target.install_path)],
@@ -258,16 +265,16 @@ class LinuxBackend(EnhancementBackend):
         conf = options.get("VKBASALT_CONFIG_FILE", "")
         template_path = target.install_path / ".buusdo" / "vkBasalt.conf"
         sharpness = float(options.get("cas_sharpness", 0.4))
+        preset = str(options.get("vkbasalt_preset") or "cas")
         generate = not conf
         if generate:
             conf = str(template_path)
         launch = steam_launch_for(Path(conf))
         path = target.install_path / _VKBASALT_STATE
-        details: dict[str, Any] = {"template": conf}
+        details: dict[str, Any] = {"template": conf, "preset": preset}
         with Transaction() as tx:
             if generate:
-                # Materialize template text then write transactionally
-                write_template(template_path, sharpness=sharpness)
+                write_template(template_path, sharpness=sharpness, preset=preset)
                 text = template_path.read_text(encoding="utf-8")
                 tx.write_text(template_path, text)
             tx.ensure_dir(path.parent)

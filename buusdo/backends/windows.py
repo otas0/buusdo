@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from buusdo.backends import vulkan_layer_win
-from buusdo.backends.windows_display import apply_display_profile
+from buusdo.backends.windows_display import apply_display_profile, rollback_display_session
+from buusdo.core.display_watch import watch_and_rollback
 from buusdo.core import (
     anticheat_guard,
     conflict,
@@ -18,13 +19,15 @@ from buusdo.core import (
     reshade,
     rtx_remix,
 )
-from buusdo.core.conflict_preview import preview_optiscaler_deploy, preview_reshade_deploy
 from buusdo.core.backend import (
     Capability,
     EnhancementBackend,
     EnhancementTarget,
     InstallResult,
 )
+from buusdo.core.conflict_preview import preview_optiscaler_deploy, preview_reshade_deploy, preview_triple_matrix
+from buusdo.core.i18n import t
+from buusdo.core.recent_games import push_recent
 from buusdo.core.config_store import (
     get_game_pref,
     get_optiscaler_kit_path,
@@ -58,38 +61,35 @@ class WindowsBackend(EnhancementBackend):
         return [
             Capability(
                 id="reshade",
-                title="ReShade 后处理调度",
-                description="部署 ReShade（D3D / OpenGL 代理 DLL，或 Vulkan 显式层）。",
+                title=t("cap.reshade"),
+                description=t("cap.reshade.desc"),
                 available=True,
             ),
             Capability(
                 id="optiscaler",
-                title="神经画质增强（OptiScaler / DLSS 附加组件）",
-                description=(
-                    "与 ReShade 底座解耦；调度本地 OptiScaler/神经超分组件。"
-                    "与路径追踪（RTX Remix）是不同能力。"
-                ),
+                title=t("cap.optiscaler"),
+                description=t("cap.optiscaler.desc"),
                 available=True,
             ),
             Capability(
                 id="rtx_remix_manage",
-                title="RTX Remix mod 管理",
-                description="仅管理已有的 RTX Remix 路径追踪 mod，不重建场景。",
+                title=t("cap.remix"),
+                description=t("cap.remix.desc"),
                 available=bool(remix["present"] or remix["disabled"]),
-                notes="不得表述为「已开启光线追踪」。",
+                notes=t("copy.no_rt_claim"),
             ),
             Capability(
                 id="display_profile",
-                title="按游戏显示/HDR 配置",
-                description="保存并协调每游戏显示偏好（分辨率/刷新率/HDR 偏好）。",
+                title=t("cap.display"),
+                description=t("cap.display.desc"),
                 available=True,
             ),
             Capability(
                 id="dwm_hdr",
-                title="DWM SDR→HDR 色彩兜底",
-                description=dwm_hdr.status()["description"],
+                title=t("cap.dwm_hdr"),
+                description=t("cap.dwm_hdr.desc"),
                 available=dwm_hdr.is_available(),
-                notes="Phase 3 — 接口已预留",
+                notes="Phase 3",
             ),
         ]
 
@@ -127,6 +127,15 @@ class WindowsBackend(EnhancementBackend):
             success=result.success,
             message=result.message,
             details=result.details,
+        )
+        push_recent(
+            {
+                "name": target.name,
+                "app_id": target.metadata.get("app_id"),
+                "install_path": str(target.install_path),
+                "executable": str(target.executable) if target.executable else None,
+                "metadata": dict(target.metadata),
+            }
         )
         return result
 
@@ -263,10 +272,13 @@ class WindowsBackend(EnhancementBackend):
         display_profile.set_game_profile(game_id, profile)
         update_game_config(game_id, display_profile=profile.name)
         dry_run = bool(options.get("dry_run", False))
-        applied = apply_display_profile(profile, dry_run=dry_run)
+        applied = apply_display_profile(profile, dry_run=dry_run, capture_before=True)
+        if options.get("watch_rollback", True) and not dry_run:
+            watch_and_rollback(target, rollback=lambda: rollback_display_session())
+            applied["watch_rollback"] = True
         return InstallResult(
             success=True,
-            message="已保存并尝试应用显示/HDR 偏好（Win32/CCD）。",
+            message="已保存并尝试应用显示/HDR 偏好（Win32/CCD）；游戏退出后将尝试回滚。",
             details=applied,
         )
 
@@ -281,17 +293,25 @@ class WindowsBackend(EnhancementBackend):
 
     def _preview(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kind = str(options.get("preview_mode") or "reshade")
-        if kind == "optiscaler":
-            kit = options.get("optiscaler_kit") or get_optiscaler_kit_path()
-            if not kit:
+        r_kit = options.get("reshade_kit") or get_reshade_kit_path()
+        o_kit = options.get("optiscaler_kit") or get_optiscaler_kit_path()
+        if kind == "triple" or options.get("triple_matrix"):
+            details = preview_triple_matrix(
+                target,
+                reshade_kit=Path(r_kit) if r_kit else None,
+                optiscaler_kit=Path(o_kit) if o_kit else None,
+                api=self._resolve_api(options, target),
+            )
+        elif kind == "optiscaler":
+            if not o_kit:
                 raise BuusdoError("未配置 OptiScaler 工具包路径。")
-            details = preview_optiscaler_deploy(target, Path(kit))
+            details = preview_optiscaler_deploy(target, Path(o_kit))
         else:
-            kit = options.get("reshade_kit") or get_reshade_kit_path()
-            if not kit:
+            if not r_kit:
                 raise BuusdoError("未配置 ReShade 工具包路径。")
-            api = self._resolve_api(options, target)
-            details = preview_reshade_deploy(target, Path(kit), api=api)
+            details = preview_reshade_deploy(
+                target, Path(r_kit), api=self._resolve_api(options, target)
+            )
         return InstallResult(
             success=not details.get("blocked"),
             message="冲突预览已生成" if not details.get("blocked") else "预览发现阻断冲突",
