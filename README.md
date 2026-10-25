@@ -23,15 +23,21 @@ python -m buusdo
 - `backends/` — 平台专属实现（唯一允许平台分支的地方，外加 `platform_detect`）
 - `ui/` — PySide6；只依赖 `EnhancementBackend`，反作弊阻断不可绕过
 
-## ReShade 工具包
+## ReShade / OptiScaler 工具包
 
-本项目不附带 ReShade 二进制。从官网安装/解压后，在 UI 中选择含
-`ReShade64.dll` 的目录，或：
+本项目不附带第三方二进制。在 UI 中选择工具包目录，或：
 
 ```python
-from buusdo.core.config_store import set_reshade_kit_path
+from buusdo.core.config_store import set_reshade_kit_path, set_optiscaler_kit_path
 set_reshade_kit_path("/path/to/reshade_kit")
+set_optiscaler_kit_path("/path/to/optiscaler_kit")
 ```
 
-Linux 上 Proton 游戏：ReShade 部署到 `steamapps/common/<游戏>`（与 Windows 相同），
-不会写入 Proton prefix 的 `drive_c`。
+- D3D/OpenGL：代理 DLL；Vulkan：显式层 JSON + 启动项 hint  
+- Linux Proton：部署到 `steamapps/common/<游戏>`；vkBasalt 可写回 `localconfig.vdf`  
+- macOS：仅 MetalFX 兼容层配置（GPTK / CrossOver / Bridgeplay）
+
+```bash
+python scripts/check_no_platform_branch.py   # C3 lint
+./scripts/deploy.sh                          # pyside6-deploy 打包骨架
+```

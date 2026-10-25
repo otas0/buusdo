@@ -23,6 +23,12 @@ from buusdo.core.transaction import Transaction
 STATE_DIR = ".buusdo"
 STATE_FILE = "reshade_state.json"
 
+_VULKAN_LAYER_NAME = "VK_LAYER_RESHADE"
+_VULKAN_JSON_64 = "ReShade64.json"
+_VULKAN_JSON_32 = "ReShade32.json"
+_VULKAN_DLL_64 = "ReShade64.dll"
+_VULKAN_DLL_32 = "ReShade32.dll"
+
 
 @dataclass(frozen=True)
 class ReshadeKit:
@@ -54,11 +60,13 @@ class ReshadeKit:
 @dataclass(frozen=True)
 class ReshadeDeployPlan:
     api: GraphicsApi
-    proxy_dll_name: str
+    mode: str  # "proxy" | "vulkan_layer"
+    proxy_dll_name: str | None
     source_dll: Path
     dest_dll: Path
     source_ini: Path | None
     dest_ini: Path | None
+    vulkan_json_name: str | None
     state_path: Path
 
 
@@ -66,6 +74,21 @@ def resolve_kit(kit_path: Path | str) -> ReshadeKit:
     kit = ReshadeKit(root=Path(kit_path).expanduser())
     kit.validate()
     return kit
+
+
+def _vulkan_layer_json(library_filename: str) -> str:
+    payload = {
+        "file_format_version": "1.0.0",
+        "layer": {
+            "name": _VULKAN_LAYER_NAME,
+            "type": "GLOBAL",
+            "library_path": library_filename,
+            "api_version": "1.2.0",
+            "implementation_version": "1",
+            "description": "ReShade",
+        },
+    }
+    return json.dumps(payload, indent=2) + "\n"
 
 
 def plan_deploy(
@@ -76,13 +99,6 @@ def plan_deploy(
     api: GraphicsApi | None = None,
 ) -> ReshadeDeployPlan:
     resolved_api = api or detect_graphics_api(executable)
-    proxy = RESHADE_PROXY_DLL.get(resolved_api)
-    if proxy is None:
-        raise BuusdoError(
-            "Vulkan ReShade uses an explicit layer, not a proxy DLL; "
-            "Vulkan deploy is not implemented in this phase."
-        )
-
     use64 = is_pe64(executable)
     source = kit.dll64 if use64 else kit.dll32
     if not source.is_file():
@@ -90,17 +106,35 @@ def plan_deploy(
     if not source.is_file():
         raise BuusdoError("No usable ReShade DLL in kit")
 
-    dest_dll = game_dir / proxy
     source_ini = kit.ini if kit.ini.is_file() else None
     dest_ini = game_dir / "ReShade.ini" if source_ini is not None else None
     state_path = game_dir / STATE_DIR / STATE_FILE
+
+    if resolved_api is GraphicsApi.VULKAN:
+        dll_name = _VULKAN_DLL_64 if (use64 and kit.dll64.is_file()) or not kit.dll32.is_file() else _VULKAN_DLL_32
+        json_name = _VULKAN_JSON_64 if dll_name == _VULKAN_DLL_64 else _VULKAN_JSON_32
+        return ReshadeDeployPlan(
+            api=resolved_api,
+            mode="vulkan_layer",
+            proxy_dll_name=None,
+            source_dll=source,
+            dest_dll=game_dir / dll_name,
+            source_ini=source_ini,
+            dest_ini=dest_ini,
+            vulkan_json_name=json_name,
+            state_path=state_path,
+        )
+
+    proxy = RESHADE_PROXY_DLL.get(resolved_api) or "dxgi.dll"
     return ReshadeDeployPlan(
         api=resolved_api,
+        mode="proxy",
         proxy_dll_name=proxy,
         source_dll=source,
-        dest_dll=dest_dll,
+        dest_dll=game_dir / proxy,
         source_ini=source_ini,
         dest_ini=dest_ini,
+        vulkan_json_name=None,
         state_path=state_path,
     )
 
@@ -127,9 +161,23 @@ def deploy(tx: Transaction, plan: ReshadeDeployPlan, *, target_name: str) -> dic
     deployed: dict = {
         "dll": str(plan.dest_dll),
         "api": plan.api.value,
+        "mode": plan.mode,
         "proxy": plan.proxy_dll_name,
         "created_dll": dll_backup is None,
     }
+
+    if plan.mode == "vulkan_layer" and plan.vulkan_json_name:
+        json_path = plan.dest_dll.parent / plan.vulkan_json_name
+        json_backup = _snapshot_existing(json_path)
+        if json_backup:
+            backups.append(json_backup)
+        tx.write_text(json_path, _vulkan_layer_json(plan.dest_dll.name))
+        deployed["vulkan_json"] = str(json_path)
+        deployed["vulkan_layer"] = _VULKAN_LAYER_NAME
+        deployed["steam_launch_hint"] = (
+            f"VK_LAYER_PATH=\"{plan.dest_dll.parent}\" "
+            f"VK_INSTANCE_LAYERS={_VULKAN_LAYER_NAME} %command%"
+        )
 
     if plan.dest_ini is not None and plan.source_ini is not None:
         ini_backup = _snapshot_existing(plan.dest_ini)
@@ -149,6 +197,7 @@ def deploy(tx: Transaction, plan: ReshadeDeployPlan, *, target_name: str) -> dic
     state = {
         "target": target_name,
         "api": plan.api.value,
+        "mode": plan.mode,
         "proxy_dll": plan.proxy_dll_name,
         "deployed": deployed,
         "backups": backups,
@@ -169,9 +218,10 @@ def uninstall(tx: Transaction, game_dir: Path) -> dict:
     restored: list[str] = []
     removed: list[str] = []
 
-    dll = deployed.get("dll")
-    if dll:
-        path = Path(dll)
+    def _restore_or_delete(path_str: str | None) -> None:
+        if not path_str:
+            return
+        path = Path(path_str)
         backup = backups.get(str(path))
         if backup and backup.get("existed") and backup.get("data_b64") is not None:
             tx.write_bytes(path, base64.b64decode(backup["data_b64"]))
@@ -180,16 +230,9 @@ def uninstall(tx: Transaction, game_dir: Path) -> dict:
             tx.delete(path)
             removed.append(str(path))
 
-    ini = deployed.get("ini")
-    if ini:
-        path = Path(ini)
-        backup = backups.get(str(path))
-        if backup and backup.get("existed") and backup.get("data_b64") is not None:
-            tx.write_bytes(path, base64.b64decode(backup["data_b64"]))
-            restored.append(str(path))
-        elif path.is_file():
-            tx.delete(path)
-            removed.append(str(path))
+    _restore_or_delete(deployed.get("dll"))
+    _restore_or_delete(deployed.get("ini"))
+    _restore_or_delete(deployed.get("vulkan_json"))
 
     for folder in deployed.get("folders") or []:
         _delete_tree_files(tx, Path(folder))

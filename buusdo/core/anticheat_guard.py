@@ -13,33 +13,57 @@ from buusdo.core.backend import EnhancementTarget
 from buusdo.core.errors import UnsafeTargetError
 from buusdo.core.platform_detect import HostPlatform
 
-# Known anti-cheat process / service / module name fragments (lowercase).
-# Expand over time; matching is substring-based on purpose (strict gate).
+# Process / service / module name fragments (lowercase). Substring match = refuse.
 _KNOWN_ANTICHEAT_MARKERS: frozenset[str] = frozenset(
     {
         "easyanticheat",
         "easy anti-cheat",
         "eac_",
         "eacservice",
+        "eac_launcher",
         "battleye",
         "beservice",
         "beclient",
+        "beservice_x64",
         "vanguard",
         "vgk",
         "vgc",
+        "vgtray",
         "faceit",
         "faceitservice",
+        "faceitclient",
         "nprotect",
+        "npgamemon",
         "gameguard",
+        "gameguard.des",
         "xigncode",
+        "x3.xem",
         "ricochet",
         "mrac",
         "wpfg",
         "equ8",
         "neac",
         "tenprotect",
+        "tcls",
         "ace-tray",
+        "aces-svc",
         "anticheatexpert",
+        "pbea",
+        "fairfight",
+        "punkbuster",
+        "pbsvc",
+        "vac",
+        "steam_vac",
+        "sac",
+        "denuvo",
+        "vmprotect",  # weak heuristic; paired with path markers
+        "nexon_api",
+        "ngclient",
+        "hackshield",
+        "hsbclhsvc",
+        "wellbia",
+        "theia",
+        "esports_client",
     }
 )
 
@@ -53,6 +77,32 @@ _KNOWN_ANTICHEAT_PATH_MARKERS: frozenset[str] = frozenset(
         "xigncode",
         "ricochet",
         "nprotect",
+        "punkbuster",
+        "hackshield",
+        "anticheatexpert",
+        "fairfight",
+        "denuvo",
+    }
+)
+
+_KNOWN_ANTICHEAT_MODULE_MARKERS: frozenset[str] = frozenset(
+    {
+        "easyanticheat",
+        "eac_",
+        "beclient",
+        "beservice",
+        "vgk",
+        "vgc",
+        "faceit",
+        "gameguard",
+        "xigncode",
+        "npgamemon",
+        "ace-",
+        "equ8",
+        "mrac",
+        "ricochet",
+        "pbsvc",
+        "hackshield",
     }
 )
 
@@ -78,7 +128,7 @@ def _scan_install_tree(root: Path) -> list[str]:
             hit = _matches_marker(path.name, _KNOWN_ANTICHEAT_PATH_MARKERS)
             if hit:
                 evidence.append(f"path:{path}")
-            if len(evidence) >= 20:
+            if len(evidence) >= 30:
                 break
     except OSError:
         pass
@@ -98,8 +148,32 @@ def _scan_running_processes() -> list[str]:
                 if hit:
                     evidence.append(f"process:{value}")
                     break
-            if len(evidence) >= 20:
+            if len(evidence) >= 30:
                 break
+    except (psutil.Error, OSError):
+        pass
+    return evidence
+
+
+def _scan_loaded_modules() -> list[str]:
+    """Scan memory-mapped files / modules of running processes (best-effort)."""
+    evidence: list[str] = []
+    try:
+        for proc in psutil.process_iter(["pid", "name"]):
+            try:
+                # memory_maps is expensive; sample limited processes
+                maps = proc.memory_maps(grouped=False)
+            except (psutil.Error, OSError, AttributeError):
+                continue
+            for mmap in maps:
+                path = getattr(mmap, "path", "") or ""
+                if not path:
+                    continue
+                hit = _matches_marker(path, _KNOWN_ANTICHEAT_MODULE_MARKERS)
+                if hit:
+                    evidence.append(f"module:{path}")
+                    if len(evidence) >= 30:
+                        return evidence
     except (psutil.Error, OSError):
         pass
     return evidence
@@ -116,6 +190,7 @@ def check(target: EnhancementTarget, platform: HostPlatform | str) -> None:
     evidence: list[str] = []
     evidence.extend(_scan_install_tree(target.install_path))
     evidence.extend(_scan_running_processes())
+    evidence.extend(_scan_loaded_modules())
 
     if evidence:
         raise UnsafeTargetError(

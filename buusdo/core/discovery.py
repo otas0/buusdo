@@ -21,10 +21,12 @@ class DiscoveredGame:
     launch_options: dict[str, Any] = field(default_factory=dict)
 
     def to_target(self) -> EnhancementTarget:
+        candidates = list_executable_candidates(self.install_path)
         meta: dict[str, Any] = {
             "source": "steam",
             "app_id": self.app_id,
             "library_path": str(self.library_path),
+            "executables": [str(p) for p in candidates],
         }
         if self.proton_prefix is not None:
             meta["proton_prefix"] = str(self.proton_prefix)
@@ -32,7 +34,7 @@ class DiscoveredGame:
         return EnhancementTarget(
             name=self.name,
             install_path=self.install_path,
-            executable=self.executable,
+            executable=self.executable or (candidates[0] if candidates else None),
             metadata=meta,
         )
 
@@ -150,8 +152,8 @@ def _game_from_manifest(manifest: Path, library: Path) -> DiscoveredGame | None:
     )
 
 
-def _guess_executable(install_path: Path) -> Path | None:
-    """Best-effort primary executable; only scans shallow depth for speed."""
+def list_executable_candidates(install_path: Path) -> list[Path]:
+    """Shallow scan for likely game binaries (multi-EXE support)."""
     suffixes = {".exe", ".x86_64", ".bin"}
     skip_parts = ("crash", "redistributable", "easyanticheat", "battleye", "uninstall")
     exes: list[Path] = []
@@ -174,10 +176,8 @@ def _guess_executable(install_path: Path) -> Path | None:
                 except OSError:
                     continue
     except OSError:
-        return None
+        return []
 
-    if not exes:
-        return None
     folder = install_path.name.lower().replace(" ", "")
 
     def score(p: Path) -> tuple[int, int, str]:
@@ -187,4 +187,9 @@ def _guess_executable(install_path: Path) -> Path | None:
         return (name_hit, depth, p.name.lower())
 
     exes.sort(key=score)
-    return exes[0]
+    return exes
+
+
+def _guess_executable(install_path: Path) -> Path | None:
+    candidates = list_executable_candidates(install_path)
+    return candidates[0] if candidates else None
