@@ -67,3 +67,5 @@ Intermittent `Forbidden` on `repos/*/actions/*` is usually auth/account context,
 3. Retry listing with: `gh api repos/otas0/buusdo/actions/artifacts` — HTTP 200 means OK.
 4. Avoid sandboxed shells that block GitHub HTTPS CONNECT (shows up as 502 / Forbidden).
 5. For CI triggers without push: `gh workflow run ci.yml --ref main` (requires `workflow_dispatch`).
+6. If jobs die in ~2s with *“recent account payments have failed or your spending limit needs to be increased”*, fix org Billing & plans first — auth scopes will not help.
+7. Prefer `GH_TOKEN=$(gh auth token) gh api …` in non-interactive shells so the active keyring account is used consistently.
