@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QColor, QIcon, QPixmap
+from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -562,7 +562,9 @@ class MainWindow(QMainWindow):
         if not uris:
             self._toast(t("settings.steam_uri_probe_no_game"))
             return
-        uri = uris[0]
+        index = 0  # first candidate in the probe order
+        uri = uris[index]
+        total = len(uris)
 
         def _open(u: str) -> bool:
             return bool(QDesktopServices.openUrl(QUrl(u)))
@@ -570,9 +572,23 @@ class MainWindow(QMainWindow):
         result = probe_open_uris([uri], opener=_open, cache_success=True, clear_cache_on_fail=False)
         self._refresh_steam_uri_controls()
         if result.get("opened"):
-            self._toast(t("settings.steam_uri_try_first_ok", uri=uri))
+            self._toast(
+                t(
+                    "settings.steam_uri_try_first_ok",
+                    index=index + 1,
+                    total=total,
+                    uri=uri,
+                )
+            )
         else:
-            self._toast(t("settings.steam_uri_try_first_fail", uri=uri))
+            self._toast(
+                t(
+                    "settings.steam_uri_try_first_fail",
+                    index=index + 1,
+                    total=total,
+                    uri=uri,
+                )
+            )
 
     def _clear_steam_uri_cache(self) -> None:
         cleared = clear_properties_uri_cache()
@@ -1187,6 +1203,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(remaining)
         layout.addWidget(QLabel(t("display.session_targets_list")))
         layout.addWidget(remaining_list)
+        layout.addWidget(QLabel(t("display.retry_hdr_shortcut")))
         retry = QPushButton(t("display.retry_one"))
         retry_hdr = QPushButton(t("display.retry_hdr"))
         retry_hdr_sel = QPushButton(t("display.retry_hdr_selected"))
@@ -1325,6 +1342,10 @@ class MainWindow(QMainWindow):
         retry_hdr.clicked.connect(_retry_hdr)
         retry_hdr_sel.clicked.connect(_retry_hdr_selected)
         remaining_list.itemDoubleClicked.connect(lambda _item: _retry_hdr_selected())
+        # Keyboard: Return / Ctrl+Return on the remaining CCD list retries selection.
+        QShortcut(QKeySequence(Qt.Key.Key_Return), remaining_list, activated=_retry_hdr_selected)
+        QShortcut(QKeySequence(Qt.Key.Key_Enter), remaining_list, activated=_retry_hdr_selected)
+        QShortcut(QKeySequence("Ctrl+Return"), remaining_list, activated=_retry_hdr_selected)
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
