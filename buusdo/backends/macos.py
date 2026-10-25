@@ -38,9 +38,11 @@ class MacOSBackend(EnhancementBackend):
     def platform_id(self) -> str:
         return HostPlatform.MACOS.value
 
-    def discover_games(self, *, should_cancel=None) -> list[EnhancementTarget]:
+    def discover_games(self, *, should_cancel=None, progress=None) -> list[EnhancementTarget]:
         games = load_cached_games(
-            steam_roots(HostPlatform.MACOS), should_cancel=should_cancel
+            steam_roots(HostPlatform.MACOS),
+            should_cancel=should_cancel,
+            progress=progress,
         )
         return [g.to_target() for g in games]
 

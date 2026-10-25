@@ -23,13 +23,14 @@ _KIT_MARKERS = (
 
 
 def resolve_kit(kit_path: Path | str) -> Path:
+    from buusdo.core.i18n import t
+
     root = Path(kit_path).expanduser()
     if not root.is_dir():
-        raise BuusdoError(f"OptiScaler kit not found: {root}")
+        raise BuusdoError(t("err.optiscaler_kit_missing", path=root))
     if not any((root / name).is_file() for name in _KIT_MARKERS):
         raise BuusdoError(
-            f"OptiScaler kit missing expected DLLs under {root} "
-            f"(looked for: {', '.join(_KIT_MARKERS)})"
+            t("err.optiscaler_kit_dlls", path=root, markers=", ".join(_KIT_MARKERS))
         )
     return root
 

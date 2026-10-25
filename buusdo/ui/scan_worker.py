@@ -32,12 +32,16 @@ class ScanWorker(QObject):
                 return
             self.progress.emit("start", 0.0)
             backend = get_backend()
-            self.progress.emit("discover", 0.3)
 
             def should_cancel() -> bool:
                 return self._cancel
 
-            games: list[EnhancementTarget] = backend.discover_games(should_cancel=should_cancel)
+            def on_progress(stage: str, value: float) -> None:
+                self.progress.emit(str(stage), float(value))
+
+            games: list[EnhancementTarget] = backend.discover_games(
+                should_cancel=should_cancel, progress=on_progress
+            )
             if self._cancel:
                 self.failed.emit("cancelled")
                 return

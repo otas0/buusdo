@@ -80,12 +80,12 @@ def materialize_shader_poc(game_dir: Path, *, target_name: str = "") -> dict[str
 
 
 def install(tx: Transaction | None = None, game_dir: Path | None = None, *, target_name: str = "") -> dict:
-    if not prototype_enabled():
-        from buusdo.core.i18n import t
+    from buusdo.core.i18n import t
 
+    if not prototype_enabled():
         raise BuusdoError(t("err.dwm_phase3"))
     if game_dir is None:
-        raise BuusdoError("dwm_hdr.prototype requires game_dir")
+        raise BuusdoError(t("err.dwm_needs_dir"))
     own_tx = tx is None
     tx = tx or Transaction()
     state_path = game_dir / _STATE

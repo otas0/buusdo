@@ -1,6 +1,8 @@
-"""Linux vkBasalt deploy options dialog (preset / sharpness / Steam writeback)."""
+"""Linux vkBasalt deploy options dialog (preset / sharpness / Steam / config path)."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -8,7 +10,11 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
     QVBoxLayout,
 )
 
@@ -17,7 +23,14 @@ from buusdo.core.vkbasalt_template import list_presets
 
 
 class LinuxDeployDialog(QDialog):
-    def __init__(self, parent=None, *, preset: str = "cas", sharpness: float = 0.4):
+    def __init__(
+        self,
+        parent=None,
+        *,
+        preset: str = "cas",
+        sharpness: float = 0.4,
+        config_path: str = "",
+    ):
         super().__init__(parent)
         self.setWindowTitle(t("linux.deploy_title"))
         layout = QVBoxLayout(self)
@@ -34,6 +47,14 @@ class LinuxDeployDialog(QDialog):
         self._sharp.setSingleStep(0.05)
         self._sharp.setValue(float(sharpness))
         form.addRow(t("linux.sharpness"), self._sharp)
+        path_row = QHBoxLayout()
+        self._config = QLineEdit(config_path)
+        self._config.setPlaceholderText("vkBasalt.conf")
+        browse = QPushButton(t("linux.browse_config"))
+        browse.clicked.connect(self._browse)
+        path_row.addWidget(self._config)
+        path_row.addWidget(browse)
+        form.addRow(t("linux.config_path"), path_row)
         self._write_steam = QCheckBox(t("linux.write_steam"))
         self._write_steam.setChecked(True)
         form.addRow(self._write_steam)
@@ -45,9 +66,20 @@ class LinuxDeployDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+    def _browse(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, t("linux.config_path"), "", "Config (*.conf);;All (*)"
+        )
+        if path:
+            self._config.setText(path)
+
     def options(self) -> dict:
-        return {
+        opts = {
             "vkbasalt_preset": self._preset.currentData() or "cas",
             "cas_sharpness": float(self._sharp.value()),
             "write_steam_launch": self._write_steam.isChecked(),
         }
+        conf = self._config.text().strip()
+        if conf:
+            opts["VKBASALT_CONFIG_FILE"] = str(Path(conf).expanduser())
+        return opts
