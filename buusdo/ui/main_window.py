@@ -88,6 +88,7 @@ from buusdo.core.steam_uris import (
     set_steam_uri_cache_ttl_s,
     steam_uri_cache_status,
     steam_uri_cache_ttl_s,
+    try_steam_uri_candidate,
 )
 from buusdo.core.transaction import Transaction
 from buusdo.core.vkbasalt_template import list_presets
@@ -545,12 +546,19 @@ class MainWindow(QMainWindow):
         self._btn_clear_steam_uri.setToolTip(tip)
         self._btn_steam_try_first.setEnabled(has_game)
         # "Try next" only after a failed attempt with remaining candidates.
+        remaining = self._steam_uri_candidates_left()
         can_next = (
             has_game
             and getattr(self, "_steam_uri_try_index", 0) > 0
-            and self._steam_uri_candidates_left() > 0
+            and remaining > 0
         )
         self._btn_steam_try_next.setEnabled(bool(can_next))
+        if can_next:
+            self._btn_steam_try_next.setText(
+                t("settings.steam_uri_try_next_count", remaining=remaining)
+            )
+        else:
+            self._btn_steam_try_next.setText(t("settings.steam_uri_try_next"))
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
 
@@ -571,55 +579,48 @@ class MainWindow(QMainWindow):
         uris = self._steam_uri_candidates()
         return t("settings.steam_uri_probe_preview", uris="\n".join(f"  {u}" for u in uris))
 
-    def _try_open_steam_uri_candidate(self, index: int) -> None:
+    def _try_open_steam_uri_candidate(self, index: int, *, opener=None) -> None:
         """Open one properties URI candidate by index; offer Try next on failure."""
-        from PySide6.QtCore import QUrl
-        from PySide6.QtGui import QDesktopServices
-
         uris = self._steam_uri_candidates()
         if not uris:
             self._steam_uri_try_index = 0
             self._toast(t("settings.steam_uri_probe_no_game"))
             self._refresh_steam_uri_controls()
             return
-        if index < 0 or index >= len(uris):
-            self._steam_uri_try_index = len(uris)
-            self._toast(t("settings.steam_uri_try_exhausted", total=len(uris)))
-            self._refresh_steam_uri_controls()
-            return
-        uri = uris[index]
-        total = len(uris)
 
-        def _open(u: str) -> bool:
-            return bool(QDesktopServices.openUrl(QUrl(u)))
+        if opener is None:
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
 
-        result = probe_open_uris([uri], opener=_open, cache_success=True, clear_cache_on_fail=False)
+            def opener(u: str) -> bool:
+                return bool(QDesktopServices.openUrl(QUrl(u)))
+
+        result = try_steam_uri_candidate(uris, index, opener=opener, cache_success=True)
+        self._steam_uri_try_index = int(result.get("next_index") or 0)
+        self._refresh_steam_uri_controls()
+        total = int(result.get("total") or 0)
+        uri = result.get("uri")
         if result.get("opened"):
-            self._steam_uri_try_index = 0
-            self._refresh_steam_uri_controls()
             self._toast(
                 t(
                     "settings.steam_uri_try_first_ok",
-                    index=index + 1,
+                    index=int(result.get("index") or 0) + 1,
                     total=total,
-                    uri=uri,
+                    uri=str(uri or ""),
                 )
             )
             return
-        # Advance so "Try next" opens the following candidate.
-        self._steam_uri_try_index = index + 1
-        self._refresh_steam_uri_controls()
-        if self._steam_uri_try_index >= total:
+        if result.get("exhausted"):
             self._toast(t("settings.steam_uri_try_exhausted", total=total))
-        else:
-            self._toast(
-                t(
-                    "settings.steam_uri_try_first_fail",
-                    index=index + 1,
-                    total=total,
-                    uri=uri,
-                )
+            return
+        self._toast(
+            t(
+                "settings.steam_uri_try_first_fail",
+                index=int(result.get("index") or 0) + 1,
+                total=total,
+                uri=str(uri or ""),
             )
+        )
 
     def _try_open_next_steam_uri(self) -> None:
         self._try_open_steam_uri_candidate(int(getattr(self, "_steam_uri_try_index", 0)))
@@ -1379,6 +1380,8 @@ class MainWindow(QMainWindow):
         def _clear_hdr_selection() -> None:
             remaining_list.clearSelection()
             remaining_list.setCurrentRow(-1)
+            table.clearSelection()
+            table.setCurrentCell(-1, -1)
 
         retry.clicked.connect(_retry)
         retry_hdr.clicked.connect(_retry_hdr)

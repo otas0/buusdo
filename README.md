@@ -42,16 +42,23 @@ python scripts/check_no_platform_branch.py   # C3 lint
 ./scripts/deploy.sh                          # pyside6-deploy packaging skeleton
 ```
 
+## Steam URI probe (UI)
+
+After **Clear cache now**, use **Try open first**; if that candidate fails, **Try next (N left)**
+walks the remaining deep-link schemes for the selected game without clearing the list.
+
 ## CI, artifacts, and billing failures
 
 GitHub Actions artifacts (`dwm-hdr-poc`, Qt diag tarballs) and common failure modes
 (artifact quota, 0-step jobs from Actions spending limits, Bearer token prune) are
 documented in [docs/CI_ARTIFACTS.md](docs/CI_ARTIFACTS.md).
 
+After fixing Billing, **one** `workflow_dispatch` is enough — do not poll Actions from agents.
+
 Quick local checks:
 
 ```bash
 python scripts/watch_ci_billing.py --notify --once   # exit 1 if newest run looks billing-blocked
 bash scripts/install_watch_ci_billing_launchd.sh     # hourly macOS LaunchAgent
-python scripts/compile_dwm_hdr_poc.py --out /tmp/buusdo-dwm-hdr-poc
+python scripts/verify_dwm_hdr_poc_local.py            # offline zip + hlsl_sha256 (no network)
 ```
