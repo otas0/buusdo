@@ -35,6 +35,8 @@ Do not pass `--require-live` until a real dual-monitor overwrite lands.
 
 ## Windows host checklist (real dual-monitor)
 
+This macOS/CI agent **cannot** run the live record — copy the block below onto a dual-monitor Windows machine.
+
 1. Attach ≥2 monitors; Windows Settings → System → Display shows both.
 2. From a checkout on that host:
 
@@ -46,3 +48,10 @@ python scripts/validate_ccd_fixture.py docs/fixtures/ccd_dual_monitor_sample.jso
 
 3. Confirm `host_windows: true`, `target_count` ≥ 2, and real `adapterLow`/`adapterHigh`/`targetId` (not sample placeholders).
 4. Commit only the fixture JSON after validate passes.
+
+Preflight on any OS (does **not** overwrite the fixture):
+
+```bash
+python scripts/validate_ccd_fixture.py docs/fixtures/ccd_dual_monitor_sample.json
+# expect ILLUSTRATIVE / host_windows false until Windows overwrite
+```

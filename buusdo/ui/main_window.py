@@ -535,20 +535,45 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
 
+    def _steam_uri_probe_preview_text(self) -> str:
+        """List URI candidates for the selected game after cache clear (no desktop open)."""
+        if not self._target or not self._target.metadata.get("app_id"):
+            return t("settings.steam_uri_probe_no_game")
+        app_id = str(self._target.metadata["app_id"])
+        uris = game_properties_uri_candidates(app_id)
+        return t("settings.steam_uri_probe_preview", uris="\n".join(f"  {u}" for u in uris))
+
     def _clear_steam_uri_cache(self) -> None:
         cleared = clear_properties_uri_cache()
         self._refresh_steam_uri_controls()
-        self._status.setText(
-            t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
-        )
+        preview = self._steam_uri_probe_preview_text()
+        base = t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
+        self._status.setText(f"{base}\n{preview}")
+        if hasattr(self, "_tray"):
+            self._tray.showMessage("buusdo", base)
+
+    def _toast(self, message: str) -> None:
+        self._status.setText(message)
+        if hasattr(self, "_tray"):
+            self._tray.showMessage("buusdo", message)
 
     def _complete_kits_setup(self) -> None:
         focus = self._missing_kit_side()
         if focus == "reshade":
-            # One-side CTA: jump straight to the missing side picker.
-            self._pick_reshade_kit()
+            # One-side CTA: jump straight to the missing side picker, then toast.
+            ok = self._pick_reshade_kit()
+            self._toast(
+                t("settings.kit_side_saved", side="ReShade")
+                if ok
+                else t("settings.kit_side_cancelled")
+            )
         elif focus == "optiscaler":
-            self._pick_optiscaler_kit()
+            ok = self._pick_optiscaler_kit()
+            self._toast(
+                t("settings.kit_side_saved", side="OptiScaler")
+                if ok
+                else t("settings.kit_side_cancelled")
+            )
         else:
             FirstRunWizard(self, focus_side=focus).exec()
         data = load_settings()
@@ -558,7 +583,7 @@ class MainWindow(QMainWindow):
             save_settings(data)
         self._refresh_kits_banner()
         kit = get_reshade_kit_path()
-        if kit:
+        if kit and focus is None:
             self._status.setText(f"ReShade: {kit}")
 
     def _tray_uninstall(self, data: dict) -> None:
@@ -833,27 +858,31 @@ class MainWindow(QMainWindow):
                 f"{event.get('ts', '')} [{ok}] {event.get('action')} · {event.get('target')}"
             )
 
-    def _pick_reshade_kit(self) -> None:
+    def _pick_reshade_kit(self) -> bool:
         path = QFileDialog.getExistingDirectory(self, "ReShade")
-        if path:
-            set_reshade_kit_path(path)
-            self._status.setText(path)
-            if self._kits_both_valid():
-                data = load_settings()
-                data["wizard_skipped_kits"] = False
-                save_settings(data)
-            self._refresh_kits_banner()
+        if not path:
+            return False
+        set_reshade_kit_path(path)
+        self._status.setText(path)
+        if self._kits_both_valid():
+            data = load_settings()
+            data["wizard_skipped_kits"] = False
+            save_settings(data)
+        self._refresh_kits_banner()
+        return True
 
-    def _pick_optiscaler_kit(self) -> None:
+    def _pick_optiscaler_kit(self) -> bool:
         path = QFileDialog.getExistingDirectory(self, "OptiScaler")
-        if path:
-            set_optiscaler_kit_path(path)
-            self._status.setText(path)
-            if self._kits_both_valid():
-                data = load_settings()
-                data["wizard_skipped_kits"] = False
-                save_settings(data)
-            self._refresh_kits_banner()
+        if not path:
+            return False
+        set_optiscaler_kit_path(path)
+        self._status.setText(path)
+        if self._kits_both_valid():
+            data = load_settings()
+            data["wizard_skipped_kits"] = False
+            save_settings(data)
+        self._refresh_kits_banner()
+        return True
 
     def _install_options(self) -> dict:
         opts: dict = {"mode": self._mode_combo.currentData()}
@@ -1086,6 +1115,24 @@ class MainWindow(QMainWindow):
             table.setItem(i, 6, QTableWidgetItem(str(row.get("targetId") if row.get("targetId") is not None else "")))
         table.resizeColumnsToContents()
         layout.addWidget(table)
+        remaining = QLabel("")
+        remaining.setWordWrap(True)
+
+        def _sync_remaining_targets() -> None:
+            st = display_session_status()
+            if not st.get("present"):
+                remaining.setText(t("display.session_targets_cleared"))
+            else:
+                remaining.setText(
+                    t(
+                        "display.session_targets_left",
+                        targets=int(st.get("targets") or 0),
+                        displays=int(st.get("displays") or 0),
+                    )
+                )
+
+        _sync_remaining_targets()
+        layout.addWidget(remaining)
         retry = QPushButton(t("display.retry_one"))
         retry_hdr = QPushButton(t("display.retry_hdr"))
 
@@ -1148,8 +1195,9 @@ class MainWindow(QMainWindow):
                     adapter_high=int(adapter_high or 0),
                     target_id=int(target_id),
                 )
-                # Sync banner (target/display counts) after session prune or clear.
+                # Sync banner + fail-table remaining CCD counts after session prune.
                 self._refresh_session_banner()
+                _sync_remaining_targets()
                 # Drop the selected mode-failure row when its CCD target HDR retry succeeds.
                 if row is not None and 0 <= r < len(failed):
                     if (
