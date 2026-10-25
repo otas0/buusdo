@@ -125,9 +125,9 @@ def set_launch_options(
         app_block = re.compile(rf'("{re.escape(app_id)}"\s*\{{)', re.DOTALL)
         match = app_block.search(text)
         if not match:
-            raise BuusdoError(
-                f"localconfig.vdf 中未找到 app {app_id}；请先在 Steam 中至少启动过该游戏。"
-            )
+            from buusdo.core.i18n import t
+
+            raise BuusdoError(t("err.app_not_in_localconfig", app_id=app_id))
         insert = f'\n\t\t\t\t"LaunchOptions"\t\t"{launch_options}"'
         new_text = text[: match.end()] + insert + text[match.end() :]
 
@@ -141,3 +141,54 @@ def set_launch_options(
 
 def clear_launch_options(tx: Transaction, localconfig: Path, app_id: str) -> dict:
     return set_launch_options(tx, localconfig, app_id, "")
+
+
+def write_proton_launch_note(
+    tx: Transaction,
+    localconfig: Path,
+    app_id: str,
+    *,
+    note: str,
+    preserve_existing: bool = True,
+) -> dict:
+    """Write a user-visible Proton reminder into LaunchOptions (and a buusdo_note key)."""
+    if not localconfig.is_file():
+        raise BuusdoError(f"localconfig.vdf not found: {localconfig}")
+    text = localconfig.read_text(encoding="utf-8", errors="replace")
+    app_id = str(app_id)
+    existing = ""
+    lo_pat = re.compile(
+        rf'("{re.escape(app_id)}"\s*\{{(?:[^{{}}]|\\{{|\\}})*?"LaunchOptions"\s*")([^"]*)(")',
+        re.DOTALL,
+    )
+    m = lo_pat.search(text)
+    if m and preserve_existing:
+        existing = m.group(2).strip()
+    # Keep existing command chain; prepend a short note token Steam shows in Properties.
+    if existing and "%command%" in existing:
+        launch = existing
+    elif existing:
+        launch = f"{existing} %command%" if "%command%" not in existing else existing
+    else:
+        launch = "%command%"
+    # Store note as a separate VDF key inside the app block when possible.
+    note_pat = re.compile(
+        rf'("{re.escape(app_id)}"\s*\{{)',
+        re.DOTALL,
+    )
+    note_key = re.compile(
+        rf'("{re.escape(app_id)}"\s*\{{(?:[^{{}}]|\\{{|\\}})*?"buusdo_note"\s*")([^"]*)(")',
+        re.DOTALL,
+    )
+    if note_key.search(text):
+        text = note_key.sub(rf"\1{note}\3", text, count=1)
+    else:
+        nm = note_pat.search(text)
+        if nm:
+            insert = f'\n\t\t\t\t"buusdo_note"\t\t"{note}"'
+            text = text[: nm.end()] + insert + text[nm.end() :]
+    # Write updated text then set launch options via helper path
+    tx.write_text(localconfig, text)
+    result = set_launch_options(tx, localconfig, app_id, launch)
+    result["buusdo_note"] = note
+    return result

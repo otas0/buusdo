@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtGui import QAction, QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
@@ -21,6 +22,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QSystemTrayIcon,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -44,15 +47,24 @@ from buusdo.core.conflict_preview import (
     preview_reshade_deploy,
     preview_triple_matrix,
 )
-from buusdo.core.crash_report import capture_exception
+from buusdo.backends.windows_display import clear_display_session, display_session_status
+from buusdo.core.crash_report import (
+    capture_exception,
+    crash_upload_opted_in,
+    redact,
+    set_crash_upload_opt_in,
+)
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
 from buusdo.core.i18n import available_locales, get_locale, set_locale, t
 from buusdo.core.platform_detect import steam_roots
 from buusdo.core.recent_games import list_recent
-from buusdo.core.steam_launch import list_steam_users
+from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
+from buusdo.core.transaction import Transaction
+from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
+from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
 from buusdo.ui.scan_worker import start_scan
 from buusdo.ui.theme import badge_color
 from buusdo.ui.tray_icon import make_mark_icon
@@ -177,7 +189,31 @@ class MainWindow(QMainWindow):
         ):
             self._mode_combo.addItem(label, mode)
         mode_row.addWidget(self._mode_combo)
+        mode_row.addWidget(QLabel("vkBasalt"))
+        self._vk_preset = QComboBox()
+        for name in list_presets():
+            self._vk_preset.addItem(name, name)
+        idx = self._vk_preset.findData("cas")
+        if idx >= 0:
+            self._vk_preset.setCurrentIndex(idx)
+        mode_row.addWidget(self._vk_preset)
         home.addLayout(mode_row)
+
+        self._crash_opt = QCheckBox(t("action.crash_opt_in"))
+        self._crash_opt.setChecked(crash_upload_opted_in())
+        self._crash_opt.toggled.connect(self._on_crash_opt_toggled)
+        home.addWidget(self._crash_opt)
+
+        self._session_banner = QLabel("")
+        self._session_banner.setWordWrap(True)
+        self._session_banner.setStyleSheet("color: #B08900;")
+        self._btn_clear_session = QPushButton(t("action.clear_display_session"))
+        self._btn_clear_session.clicked.connect(self._clear_display_session)
+        sess_row = QHBoxLayout()
+        sess_row.addWidget(self._session_banner, stretch=1)
+        sess_row.addWidget(self._btn_clear_session)
+        home.addLayout(sess_row)
+        self._refresh_session_banner()
 
         home.addWidget(QLabel("Capabilities"))
         self._cap_list = QListWidget()
@@ -194,6 +230,7 @@ class MainWindow(QMainWindow):
         self._btn_cancel.setEnabled(False)
         self._btn_preview = QPushButton(t("conflict.title"))
         self._btn_steam = QPushButton(t("proton.open_steam"))
+        self._btn_proton_note = QPushButton(t("action.proton_note"))
         self._btn_kit = QPushButton("ReShade…")
         self._btn_opti = QPushButton("OptiScaler…")
         self._btn_install = QPushButton(t("action.deploy"))
@@ -207,6 +244,7 @@ class MainWindow(QMainWindow):
             self._btn_cancel,
             self._btn_preview,
             self._btn_steam,
+            self._btn_proton_note,
             self._btn_kit,
             self._btn_opti,
             self._btn_install,
@@ -230,6 +268,7 @@ class MainWindow(QMainWindow):
         self._btn_cancel.clicked.connect(self._cancel_scan)
         self._btn_preview.clicked.connect(self._on_preview)
         self._btn_steam.clicked.connect(self._open_steam_for_target)
+        self._btn_proton_note.clicked.connect(self._write_proton_note)
         self._btn_kit.clicked.connect(self._pick_reshade_kit)
         self._btn_opti.clicked.connect(self._pick_optiscaler_kit)
         self._btn_install.clicked.connect(self._on_install)
@@ -283,8 +322,18 @@ class MainWindow(QMainWindow):
             menu.addAction(empty)
 
     def _tray_uninstall(self, data: dict) -> None:
+        name = str(data.get("name") or "game")
+        reply = QMessageBox.question(
+            self,
+            "buusdo",
+            t("action.confirm_uninstall", name=name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
         target = EnhancementTarget(
-            name=str(data.get("name") or "game"),
+            name=name,
             install_path=Path(str(data.get("install_path"))),
             executable=Path(data["executable"]) if data.get("executable") else None,
             metadata=dict(data.get("metadata") or {}),
@@ -294,6 +343,10 @@ class MainWindow(QMainWindow):
             self._status.setText(result.message)
             if hasattr(self, "_tray"):
                 self._tray.showMessage("buusdo", result.message)
+            self._rebuild_tray_recent()
+            self._refresh_game_list()
+            self._refresh_history()
+            self._refresh_session_banner()
         except (BuusdoError, UnsafeTargetError) as exc:
             QMessageBox.warning(self, "buusdo", str(exc))
 
@@ -381,6 +434,41 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl(uri))
         if not health.get("ok", True):
             QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+
+    def _write_proton_note(self) -> None:
+        if not self._target or not self._target.metadata.get("app_id"):
+            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            return
+        steam_id3 = self._steam_user.currentData() or self._target.metadata.get("steam_id3")
+        localconfig = find_localconfig(steam_roots(), steam_id3=steam_id3 or None)
+        if localconfig is None:
+            QMessageBox.warning(self, "buusdo", t("proton.missing_prefix"))
+            return
+        try:
+            with Transaction() as tx:
+                write_proton_launch_note(
+                    tx,
+                    localconfig,
+                    str(self._target.metadata["app_id"]),
+                    note=t("proton.note_text"),
+                )
+        except BuusdoError as exc:
+            QMessageBox.warning(self, "buusdo", str(exc))
+            return
+        self._status.setText(t("proton.note_written"))
+        QMessageBox.information(self, "buusdo", t("proton.note_written"))
+        app_id = str(self._target.metadata["app_id"])
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        # Prefer Steam game properties deep link when the client supports it.
+        for uri in (
+            f"steam://gameproperties/{app_id}",
+            f"steam://open/gameproperties/{app_id}",
+            f"steam://url/GameHub/{app_id}",
+        ):
+            if QDesktopServices.openUrl(QUrl(uri)):
+                break
 
     def _refresh_game_list(self) -> None:
         needle = self._filter.text().strip().lower()
@@ -488,22 +576,120 @@ class MainWindow(QMainWindow):
             opts["hdr_preferred"] = True
         if opts["mode"] == "preview":
             opts["preview_mode"] = "reshade"
+            opts["triple_matrix"] = True
+        if opts["mode"] == "vkbasalt":
+            dlg = LinuxDeployDialog(
+                self,
+                preset=str(self._vk_preset.currentData() or "cas"),
+            )
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                opts["_abort"] = True
+                return opts
+            opts.update(dlg.options())
+            idx = self._vk_preset.findData(opts.get("vkbasalt_preset"))
+            if idx >= 0:
+                self._vk_preset.setCurrentIndex(idx)
         return opts
+
+    def _severity_rank(self, severity: str) -> int:
+        order = {"block": 0, "warning": 1, "info": 2, "conflict": 3, "": 4}
+        return order.get(severity, 5)
 
     def _show_conflict_dialog(self, details: dict) -> None:
         dlg = QDialog(self)
         dlg.setWindowTitle(t("conflict.title"))
         layout = QVBoxLayout(dlg)
         layout.addWidget(QLabel(t("conflict.title")))
-        lst = QListWidget()
+        rows = []
         for item in details.get("diffs") or []:
-            lst.addItem(f"{item.get('action')}: {item.get('path') or ''} {item.get('detail')}")
-        layout.addWidget(lst)
+            detail = str(item.get("detail") or "")
+            severity = ""
+            if item.get("action") == "conflict":
+                if detail.startswith("[block]"):
+                    severity = "block"
+                elif detail.startswith("[warning]"):
+                    severity = "warning"
+                elif detail.startswith("[info]"):
+                    severity = "info"
+                else:
+                    severity = "conflict"
+            rows.append((severity, item, detail))
+        rows.sort(key=lambda r: self._severity_rank(r[0]))
+        table = QTableWidget(len(rows), 4)
+        table.setHorizontalHeaderLabels(
+            [
+                t("conflict.col.severity"),
+                t("conflict.col.action"),
+                t("conflict.col.path"),
+                t("conflict.col.detail"),
+            ]
+        )
+        table.setSortingEnabled(True)
+        colors = {
+            "block": QColor("#C73E1D"),
+            "warning": QColor("#B08900"),
+            "info": QColor("#2E86AB"),
+        }
+        for i, (severity, item, detail) in enumerate(rows):
+            values = [
+                severity,
+                str(item.get("action") or ""),
+                str(item.get("path") or ""),
+                detail,
+            ]
+            color = colors.get(severity)
+            for col, text in enumerate(values):
+                cell = QTableWidgetItem(text)
+                if color is not None:
+                    cell.setForeground(color)
+                table.setItem(i, col, cell)
+        table.resizeColumnsToContents()
+        layout.addWidget(table)
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         layout.addWidget(close)
-        dlg.resize(560, 360)
+        dlg.resize(720, 420)
         dlg.exec()
+
+    def _on_crash_opt_toggled(self, enabled: bool) -> None:
+        if not enabled:
+            set_crash_upload_opt_in(False)
+            return
+        sample = redact(f"boom at {Path.home()}/secret token=sekrit")
+        preview = QMessageBox(self)
+        preview.setWindowTitle(t("action.crash_opt_preview"))
+        preview.setText(t("action.crash_opt_confirm"))
+        preview.setInformativeText(sample)
+        preview.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        preview.setDefaultButton(QMessageBox.StandardButton.No)
+        if preview.exec() != QMessageBox.StandardButton.Yes:
+            self._crash_opt.blockSignals(True)
+            self._crash_opt.setChecked(False)
+            self._crash_opt.blockSignals(False)
+            return
+        set_crash_upload_opt_in(True)
+
+    def _refresh_session_banner(self) -> None:
+        st = display_session_status()
+        if not st.get("present"):
+            self._session_banner.setText("")
+            self._btn_clear_session.setEnabled(False)
+            return
+        self._btn_clear_session.setEnabled(True)
+        mins = max(1, int((st.get("ttl_remaining_s") or 0) / 60))
+        if st.get("warn_expiring"):
+            self._session_banner.setText(t("display.session_warn", minutes=mins))
+        else:
+            self._session_banner.setText(
+                t("display.session_warn", minutes=mins)
+            )
+
+    def _clear_display_session(self) -> None:
+        clear_display_session()
+        self._refresh_session_banner()
+        self._status.setText(t("action.clear_display_session"))
 
     def _on_preview(self) -> None:
         if not self._target:
@@ -517,7 +703,7 @@ class MainWindow(QMainWindow):
             api = GraphicsApi(api_raw) if api_raw else None
             if mode == "optiscaler":
                 if not o_kit:
-                    raise BuusdoError("OptiScaler kit not configured")
+                    raise BuusdoError(t("err.optiscaler_kit"))
                 details = preview_optiscaler_deploy(self._target, Path(o_kit))
             else:
                 details = preview_triple_matrix(
@@ -544,8 +730,11 @@ class MainWindow(QMainWindow):
         if not self._target:
             QMessageBox.information(self, "buusdo", "Select a game first.")
             return
+        opts = self._install_options()
+        if opts.pop("_abort", False):
+            return
         try:
-            result = self._backend.install(self._target, self._install_options())
+            result = self._backend.install(self._target, opts)
         except UnsafeTargetError as exc:
             self._show_blocked(exc)
             self._refresh_history()
@@ -561,6 +750,8 @@ class MainWindow(QMainWindow):
         self._stack.setCurrentWidget(self._home)
         self._refresh_game_list()
         self._refresh_history()
+        self._rebuild_tray_recent()
+        self._refresh_session_banner()
 
     def _on_uninstall(self) -> None:
         if not self._target:

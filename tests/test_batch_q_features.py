@@ -76,9 +76,13 @@ def test_bridgeplay_ini_plist(tmp_path: Path) -> None:
 
 
 def test_crash_upload_redacted(monkeypatch, tmp_path: Path) -> None:
+    from buusdo.core.crash_report import set_crash_upload_opt_in
+
+    set_crash_upload_opt_in(True)
     monkeypatch.setenv("BUUSDO_CRASH_REPORTS", "1")
     monkeypatch.setenv("BUUSDO_CRASH_UPLOAD", "1")
     monkeypatch.setenv("BUUSDO_CRASH_ENDPOINT", "https://example.test/crash")
+    monkeypatch.setenv("BUUSDO_CRASH_FORMAT", "json")
 
     class _Resp:
         status = 204

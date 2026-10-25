@@ -5,7 +5,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+CancelCb = Callable[[], bool]
 
 
 @dataclass(frozen=True)
@@ -44,8 +46,10 @@ class EnhancementBackend(ABC):
         """Stable id: windows | linux | macos."""
 
     @abstractmethod
-    def discover_games(self) -> list[EnhancementTarget]:
-        """Enumerate known games (e.g. Steam). Returns EnhancementTarget list."""
+    def discover_games(
+        self, *, should_cancel: CancelCb | None = None
+    ) -> list[EnhancementTarget]:
+        """Enumerate known games (e.g. Steam). should_cancel() True aborts mid-scan."""
 
     @abstractmethod
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:

@@ -44,3 +44,72 @@ jobs:
         run: |
           export QT_QPA_PLATFORM=offscreen
           xvfb-run -a pytest -q tests/test_ui_blocked_smoke.py
+
+  devui-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install UI extras
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[devui]"
+      - name: Blocked-page smoke (offscreen)
+        id: smoke
+        run: |
+          set -o pipefail
+          export QT_QPA_PLATFORM=offscreen
+          mkdir -p qt-diag
+          python -V | tee qt-diag/python.txt
+          python -c "import os; from PySide6.QtCore import QLibraryInfo; print('QT_QPA_PLATFORM=', os.environ.get('QT_QPA_PLATFORM')); print('PluginsPath=', QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))" | tee qt-diag/qt-plugins.txt || true
+          pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
+      - name: Upload Qt diagnostic artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-diag-macos
+          path: qt-diag/
+          if-no-files-found: warn
+
+  dwm-hdr-poc:
+    # phase3/dwm-hdr only — skipped on main when HLSL stubs are absent
+    if: hashFiles('buusdo/core/dwm_hdr_shaders/sdr_to_hdr_tonemap.hlsl') != ''
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev]"
+      - name: Offline fxc/dxc compile + sha256
+        shell: bash
+        run: |
+          python scripts/compile_dwm_hdr_poc.py --out dist/dwm_hdr_poc
+          test -f dist/dwm_hdr_poc/manifest.json
+          python - <<'PY'
+          import json, hashlib, pathlib, sys
+          root = pathlib.Path("dist/dwm_hdr_poc")
+          man = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+          cso = root / "sdr_to_hdr_tonemap.cso"
+          if man.get("status") == "ok":
+              assert cso.is_file(), "cso missing after ok compile"
+              digest = hashlib.sha256(cso.read_bytes()).hexdigest()
+              assert man.get("sha256") == digest, (man.get("sha256"), digest)
+              print("sha256 ok", digest)
+          elif man.get("status") == "skipped_no_compiler":
+              print("compiler missing on runner; HLSL materialize-only accepted")
+          else:
+              print(man)
+              sys.exit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dwm-hdr-poc
+          path: dist/dwm_hdr_poc/
+          if-no-files-found: warn

@@ -22,3 +22,30 @@ pyside6-deploy "${ENTRY}" -f -c "${ROOT}/scripts/pyside6-deploy.spec.json" || {
 }
 
 echo "Artifacts under ${OUT} (host-dependent)."
+
+# Optional local codesign (scripts/codesign.env must exist; never committed).
+if [[ "${BUUSDO_CODESIGN:-}" == "1" ]] || [[ -f "${ROOT}/scripts/codesign.env" ]]; then
+  HOOK="${ROOT}/scripts/codesign_hooks.sh"
+  if [[ -x "${HOOK}" ]]; then
+    signed_any=0
+    while IFS= read -r art; do
+      [[ -z "${art}" ]] && continue
+      echo "codesign: signing ${art}"
+      if ! "${HOOK}" "${art}"; then
+        echo "codesign: hook failed for ${art}" >&2
+        if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
+          exit 1
+        fi
+        echo "codesign: continuing (set BUUSDO_CODESIGN_STRICT=1 to fail the build)" >&2
+      fi
+      signed_any=1
+    done < <(find "${OUT}" -maxdepth 3 \( -name 'buusdo' -o -name 'buusdo.exe' -o -name 'buusdo.app' \) 2>/dev/null | head -5)
+    if [[ "${signed_any}" -eq 0 ]]; then
+      echo "codesign: no buusdo artifact found under ${OUT}; skip."
+      if [[ "${BUUSDO_CODESIGN_STRICT:-}" == "1" ]]; then
+        echo "codesign: strict mode requires an artifact to sign" >&2
+        exit 1
+      fi
+    fi
+  fi
+fi

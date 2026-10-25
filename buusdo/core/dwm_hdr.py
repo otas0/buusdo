@@ -81,7 +81,9 @@ def materialize_shader_poc(game_dir: Path, *, target_name: str = "") -> dict[str
 
 def install(tx: Transaction | None = None, game_dir: Path | None = None, *, target_name: str = "") -> dict:
     if not prototype_enabled():
-        raise BuusdoError("DWM SDR→HDR 模块为 Phase 3，当前不可用（接口已预留）。")
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.dwm_phase3"))
     if game_dir is None:
         raise BuusdoError("dwm_hdr.prototype requires game_dir")
     own_tx = tx is None
@@ -110,7 +112,9 @@ def install(tx: Transaction | None = None, game_dir: Path | None = None, *, targ
 
 def uninstall(tx: Transaction | None = None, game_dir: Path | None = None) -> dict:
     if not prototype_enabled():
-        raise BuusdoError("DWM SDR→HDR 模块为 Phase 3，当前不可用（接口已预留）。")
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.dwm_phase3"))
     if game_dir is None:
         return {"removed": False}
     state_path = game_dir / _STATE

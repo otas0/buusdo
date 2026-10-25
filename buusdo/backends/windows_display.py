@@ -6,6 +6,7 @@ import ctypes
 import json
 import os
 import re
+import time
 from ctypes import wintypes
 from pathlib import Path
 from typing import Any
@@ -131,24 +132,172 @@ class DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO(ctypes.Structure):
     ]
 
 
+SESSION_MAX_AGE_S = 12 * 3600
+SESSION_WARN_AGE_S = 10 * 3600  # UI tip before hard expiry
+_SESSION_REQUIRED = ("captured_at", "displays")
+
+
 def _session_path() -> Path:
     return user_config_dir() / "display_session.json"
 
 
-def capture_current_mode() -> dict[str, Any]:
-    """Snapshot current primary display mode for later rollback."""
+def clear_display_session() -> None:
+    path = _session_path()
+    path.unlink(missing_ok=True)
+
+
+def heal_display_session() -> dict[str, Any]:
+    """Drop corrupt or expired display_session.json. Returns heal status."""
+    path = _session_path()
+    if not path.is_file():
+        return {"ok": True, "action": "absent"}
+    try:
+        snap = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_corrupt"}
+    if not isinstance(snap, dict):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_invalid_type"}
+    # Migrate legacy single-monitor sessions.
+    if "displays" not in snap and "width" in snap and "height" in snap:
+        snap["displays"] = [
+            {
+                "device": None,
+                "width": snap["width"],
+                "height": snap["height"],
+                "refresh_hz": snap.get("refresh_hz"),
+                "primary": True,
+            }
+        ]
+    for key in _SESSION_REQUIRED:
+        if key not in snap:
+            clear_display_session()
+            return {"ok": True, "action": "deleted_missing_fields", "missing": key}
+    try:
+        age = time.time() - float(snap["captured_at"])
+    except (TypeError, ValueError):
+        clear_display_session()
+        return {"ok": True, "action": "deleted_bad_timestamp"}
+    if age > SESSION_MAX_AGE_S or age < 0:
+        clear_display_session()
+        return {"ok": True, "action": "deleted_expired", "age_s": age}
+    warn = age >= SESSION_WARN_AGE_S
+    return {
+        "ok": True,
+        "action": "kept",
+        "age_s": age,
+        "snap": snap,
+        "warn_expiring": warn,
+        "ttl_remaining_s": max(0, SESSION_MAX_AGE_S - age),
+    }
+
+
+def display_session_status() -> dict[str, Any]:
+    """UI helper: residual / expiring session without deleting yet."""
+    path = _session_path()
+    if not path.is_file():
+        return {"present": False}
+    status = heal_display_session()
+    if status.get("action") != "kept":
+        return {"present": False, "healed": status}
+    return {
+        "present": True,
+        "warn_expiring": bool(status.get("warn_expiring")),
+        "age_s": status.get("age_s"),
+        "ttl_remaining_s": status.get("ttl_remaining_s"),
+        "displays": len((status.get("snap") or {}).get("displays") or []),
+    }
+
+
+def load_display_session() -> dict[str, Any] | None:
+    """Return a valid session snap, or None after self-heal."""
+    status = heal_display_session()
+    if status.get("action") != "kept":
+        return None
+    snap = status.get("snap")
+    return snap if isinstance(snap, dict) else None
+
+
+def list_display_modes() -> list[dict[str, Any]]:
+    """Per-attached-monitor resolution/refresh via EnumDisplayDevices + EnumDisplaySettings."""
     if os.name != "nt":
-        return {"platform": "non_windows"}
+        return []
     user32 = ctypes.windll.user32
-    mode = DEVMODEW()
-    mode.dmSize = ctypes.sizeof(DEVMODEW)
-    if not user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
-        raise BuusdoError("EnumDisplaySettingsW failed while capturing mode")
+
+    class DISPLAY_DEVICEW(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD),
+            ("DeviceName", wintypes.WCHAR * 32),
+            ("DeviceString", wintypes.WCHAR * 128),
+            ("StateFlags", wintypes.DWORD),
+            ("DeviceID", wintypes.WCHAR * 128),
+            ("DeviceKey", wintypes.WCHAR * 128),
+        ]
+
+    DISPLAY_DEVICE_ATTACHED_TO_DESKTOP = 0x1
+    DISPLAY_DEVICE_PRIMARY_DEVICE = 0x4
+    out: list[dict[str, Any]] = []
+    i = 0
+    while True:
+        dev = DISPLAY_DEVICEW()
+        dev.cb = ctypes.sizeof(DISPLAY_DEVICEW)
+        if not user32.EnumDisplayDevicesW(None, i, ctypes.byref(dev), 0):
+            break
+        i += 1
+        if not (dev.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP):
+            continue
+        mode = DEVMODEW()
+        mode.dmSize = ctypes.sizeof(DEVMODEW)
+        if not user32.EnumDisplaySettingsW(dev.DeviceName, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
+            continue
+        out.append(
+            {
+                "device": str(dev.DeviceName),
+                "device_string": str(dev.DeviceString),
+                "width": int(mode.dmPelsWidth),
+                "height": int(mode.dmPelsHeight),
+                "refresh_hz": int(mode.dmDisplayFrequency),
+                "primary": bool(dev.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE),
+            }
+        )
+    return out
+
+
+def capture_current_mode() -> dict[str, Any]:
+    """Snapshot every attached display mode for later per-monitor rollback."""
+    if os.name != "nt":
+        return {
+            "platform": "non_windows",
+            "captured_at": time.time(),
+            "displays": [],
+        }
+    displays = list_display_modes()
+    if not displays:
+        # Fallback primary-only
+        user32 = ctypes.windll.user32
+        mode = DEVMODEW()
+        mode.dmSize = ctypes.sizeof(DEVMODEW)
+        if not user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
+            raise BuusdoError("EnumDisplaySettingsW failed while capturing mode")
+        displays = [
+            {
+                "device": None,
+                "width": int(mode.dmPelsWidth),
+                "height": int(mode.dmPelsHeight),
+                "refresh_hz": int(mode.dmDisplayFrequency),
+                "primary": True,
+            }
+        ]
+    primary = next((d for d in displays if d.get("primary")), displays[0])
     snap = {
-        "width": int(mode.dmPelsWidth),
-        "height": int(mode.dmPelsHeight),
-        "refresh_hz": int(mode.dmDisplayFrequency),
+        "width": primary["width"],
+        "height": primary["height"],
+        "refresh_hz": primary.get("refresh_hz"),
         "hdr": _query_hdr_enabled(),
+        "captured_at": time.time(),
+        "displays": displays,
+        "targets": list_advanced_color_targets(),
     }
     path = _session_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -157,23 +306,92 @@ def capture_current_mode() -> dict[str, Any]:
 
 
 def rollback_display_session(*, dry_run: bool = False) -> dict[str, Any]:
-    """Restore resolution/refresh/HDR from the last captured session."""
-    path = _session_path()
-    if not path.is_file():
+    """Restore each monitor's resolution/refresh + HDR from the last session."""
+    snap = load_display_session()
+    if snap is None:
         return {"restored": False, "reason": "no_session"}
-    snap = json.loads(path.read_text(encoding="utf-8"))
     if os.name != "nt":
         return {"restored": False, "reason": "not_windows", "snap": snap}
-    profile = DisplayProfile(
-        name="rollback",
-        resolution=f"{snap['width']}x{snap['height']}",
-        refresh_hz=snap.get("refresh_hz"),
-        hdr_preferred=bool(snap.get("hdr")),
+    steps: list[dict[str, Any]] = []
+    for disp in snap.get("displays") or []:
+        steps.append(
+            _apply_mode(
+                int(disp["width"]),
+                int(disp["height"]),
+                disp.get("refresh_hz"),
+                dry_run=dry_run,
+                device=disp.get("device"),
+            )
+        )
+    hdr_step = _set_hdr_advanced_color(bool(snap.get("hdr")), dry_run=dry_run)
+    steps.append(hdr_step)
+    ok = all(s.get("ok") for s in steps if s.get("action") != "hdr") or any(
+        s.get("ok") for s in steps
     )
-    result = apply_display_profile(profile, dry_run=dry_run, capture_before=False)
-    if result.get("applied") and not dry_run:
-        path.unlink(missing_ok=True)
-    return {"restored": bool(result.get("applied")), "details": result, "snap": snap}
+    # Prefer: all mode restores ok, and HDR attempted
+    mode_ok = all(
+        s.get("ok") for s in steps if s.get("action") in {"ChangeDisplaySettingsW", "ChangeDisplaySettingsExW"}
+    )
+    applied = bool(mode_ok or (not snap.get("displays") and hdr_step.get("ok")))
+    if applied and not dry_run:
+        clear_display_session()
+    return {
+        "restored": applied,
+        "details": {"steps": steps, "hdr": hdr_step},
+        "snap": snap,
+    }
+
+
+def list_advanced_color_targets() -> list[dict[str, Any]]:
+    """Enumerate active CCD paths with adapterId/targetId for multi-monitor HDR verify."""
+    if os.name != "nt":
+        return []
+    paths, err = _active_paths()
+    if paths is None:
+        return []
+    out: list[dict[str, Any]] = []
+    user32 = ctypes.windll.user32
+    for path in paths:
+        info = DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO()
+        info.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO
+        info.header.size = ctypes.sizeof(DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO)
+        info.header.adapterId = path.targetInfo.adapterId
+        info.header.id = path.targetInfo.id
+        status = user32.DisplayConfigGetDeviceInfo(ctypes.byref(info))
+        out.append(
+            {
+                "adapterLow": int(path.targetInfo.adapterId.LowPart),
+                "adapterHigh": int(path.targetInfo.adapterId.HighPart),
+                "targetId": int(path.targetInfo.id),
+                "get_status": int(status),
+                "advancedColorSupported": bool(info.value & 0x1) if status == 0 else None,
+                "advancedColorEnabled": bool(info.value & 0x2) if status == 0 else None,
+            }
+        )
+    return out
+
+
+def verify_set_advanced_color_state(*, enable: bool, dry_run: bool = True) -> dict[str, Any]:
+    """Multi-monitor verification helper for SET_ADVANCED_COLOR_STATE (real machine / dry-run)."""
+    before = list_advanced_color_targets()
+    if os.name != "nt":
+        return {
+            "ok": False,
+            "reason": "not_windows",
+            "before": before,
+            "note": "Run on a Windows host with multiple displays to verify adapterId/targetId.",
+        }
+    applied = _set_hdr_advanced_color(enable, dry_run=dry_run)
+    after = before if dry_run else list_advanced_color_targets()
+    return {
+        "ok": bool(applied.get("ok")),
+        "dry_run": dry_run,
+        "enable": enable,
+        "before": before,
+        "after": after,
+        "apply": applied,
+        "multi_monitor": len(before) > 1,
+    }
 
 
 def apply_display_profile(
@@ -210,7 +428,8 @@ def apply_display_profile(
         width, height = int(m.group(1)), int(m.group(2))
 
     if width and height:
-        step = _apply_mode(width, height, profile.refresh_hz, dry_run=dry_run)
+        # Apply preferred mode to primary; other monitors keep captured session values on rollback.
+        step = _apply_mode(width, height, profile.refresh_hz, dry_run=dry_run, device=None)
         result["steps"].append(step)
         if not step.get("ok"):
             raise BuusdoError(step.get("error") or "ChangeDisplaySettings failed")
@@ -229,13 +448,23 @@ def apply_display_profile(
 
 
 def _apply_mode(
-    width: int, height: int, refresh_hz: int | None, *, dry_run: bool
+    width: int,
+    height: int,
+    refresh_hz: int | None,
+    *,
+    dry_run: bool,
+    device: str | None = None,
 ) -> dict[str, Any]:
     user32 = ctypes.windll.user32
     mode = DEVMODEW()
     mode.dmSize = ctypes.sizeof(DEVMODEW)
-    if not user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
-        return {"ok": False, "action": "enum", "error": "EnumDisplaySettingsW failed"}
+    if not user32.EnumDisplaySettingsW(device, ENUM_CURRENT_SETTINGS, ctypes.byref(mode)):
+        return {
+            "ok": False,
+            "action": "enum",
+            "error": "EnumDisplaySettingsW failed",
+            "device": device,
+        }
 
     mode.dmPelsWidth = width
     mode.dmPelsHeight = height
@@ -245,10 +474,16 @@ def _apply_mode(
         mode.dmFields |= DM_DISPLAYFREQUENCY
 
     flags = CDS_TEST if dry_run else CDS_UPDATEREGISTRY
-    code = user32.ChangeDisplaySettingsW(ctypes.byref(mode), flags)
+    if device:
+        code = user32.ChangeDisplaySettingsExW(device, ctypes.byref(mode), None, flags, None)
+        action = "ChangeDisplaySettingsExW"
+    else:
+        code = user32.ChangeDisplaySettingsW(ctypes.byref(mode), flags)
+        action = "ChangeDisplaySettingsW"
     return {
         "ok": code == DISP_CHANGE_SUCCESSFUL,
-        "action": "ChangeDisplaySettingsW",
+        "action": action,
+        "device": device,
         "width": width,
         "height": height,
         "refresh_hz": refresh_hz,

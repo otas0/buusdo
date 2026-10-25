@@ -54,9 +54,9 @@ def detect(game_dir: Path) -> dict:
 def enable(tx: Transaction, game_dir: Path, *, target_name: str) -> dict:
     info = detect(game_dir)
     if not info["present"] and not (game_dir / "d3d9.dll.buusdo_disabled").is_file():
-        raise BuusdoError(
-            "未检测到已有的 RTX Remix mod。buusdo 只管理现成 mod，不重建场景。"
-        )
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.remix_missing"))
     disabled = game_dir / "d3d9.dll.buusdo_disabled"
     active = game_dir / "d3d9.dll"
     if disabled.is_file() and not active.exists():
@@ -83,7 +83,9 @@ def disable(tx: Transaction, game_dir: Path, *, target_name: str) -> dict:
         tx.write_bytes(disabled, active.read_bytes())
         tx.delete(active)
     elif not info["present"] and not disabled.is_file():
-        raise BuusdoError("未检测到可禁用的 RTX Remix mod。")
+        from buusdo.core.i18n import t
+
+        raise BuusdoError(t("err.remix_disable"))
 
     state_path = game_dir / STATE_FILE
     tx.ensure_dir(state_path.parent)
