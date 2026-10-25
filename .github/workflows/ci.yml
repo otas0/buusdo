@@ -84,6 +84,7 @@ jobs:
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
       - name: Upload Qt diagnostic artifact on failure
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: qt-diag-macos
@@ -92,7 +93,9 @@ jobs:
       - name: Upload Qt plugin dirs tarball on smoke failure
         # always() relative to job end is unnecessary; failure() covers smoke step failure.
         # Bundle includes qt-plugin-dirs.txt + qt-plugins.txt + devui-macos.log.
+        # continue-on-error: org artifact quota must not fail the job.
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: qt-plugin-dirs-macos
@@ -173,12 +176,14 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         if: always() && steps.hlsl.outputs.present == 'true'
+        continue-on-error: true
         with:
           name: dwm-hdr-poc
           path: dist/dwm_hdr_poc/
           if-no-files-found: warn
       - name: Upload HLSL sources zip when present
         if: always() && steps.hlsl.outputs.present == 'true'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: dwm-hdr-hlsl-sources
