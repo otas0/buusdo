@@ -162,3 +162,63 @@ def probe_open_uris(
         "cached": False,
         "cache_cleared": cleared,
     }
+
+
+def try_steam_uri_candidate(
+    uris: list[str],
+    index: int,
+    *,
+    opener,
+    cache_success: bool = True,
+) -> dict:
+    """Open one candidate by index; return next_index for a UI \"Try next\" control.
+
+    ``next_index`` is 0 after success, ``index+1`` after failure (capped at ``len(uris)``
+    when exhausted). Does not clear the properties cache on failure.
+    """
+    total = len(uris)
+    if total == 0:
+        return {
+            "opened": False,
+            "uri": None,
+            "index": index,
+            "total": 0,
+            "next_index": 0,
+            "exhausted": True,
+            "remaining": 0,
+        }
+    if index < 0 or index >= total:
+        return {
+            "opened": False,
+            "uri": None,
+            "index": index,
+            "total": total,
+            "next_index": total,
+            "exhausted": True,
+            "remaining": 0,
+        }
+    uri = uris[index]
+    result = probe_open_uris(
+        [uri], opener=opener, cache_success=cache_success, clear_cache_on_fail=False
+    )
+    if result.get("opened"):
+        return {
+            "opened": True,
+            "uri": uri,
+            "index": index,
+            "total": total,
+            "next_index": 0,
+            "exhausted": False,
+            "remaining": total,
+        }
+    next_index = index + 1
+    exhausted = next_index >= total
+    return {
+        "opened": False,
+        "uri": uri,
+        "index": index,
+        "total": total,
+        "next_index": next_index if not exhausted else total,
+        "exhausted": exhausted,
+        "remaining": max(0, total - next_index),
+    }
