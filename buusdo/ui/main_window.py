@@ -52,6 +52,7 @@ from buusdo.core.conflict_preview import (
 from buusdo.backends.windows_display import (
     clear_display_session,
     display_session_status,
+    drop_session_ccd_target,
     retry_display_mode,
     retry_hdr_target,
     rollback_display_session,
@@ -81,6 +82,7 @@ from buusdo.core.recent_games import (
 from buusdo.core.steam_launch import find_localconfig, list_steam_users, write_proton_launch_note
 from buusdo.core.steam_uris import (
     DEFAULT_STEAM_URI_CACHE_TTL_S,
+    clear_properties_uri_cache,
     game_properties_uri_candidates,
     probe_open_uris,
     set_steam_uri_cache_ttl_s,
@@ -261,6 +263,9 @@ class MainWindow(QMainWindow):
         )
         self._steam_ttl.valueChanged.connect(self._on_steam_ttl_changed)
         ttl_row.addWidget(self._steam_ttl)
+        self._btn_clear_steam_uri = QPushButton(t("settings.steam_uri_clear"))
+        self._btn_clear_steam_uri.clicked.connect(self._clear_steam_uri_cache)
+        ttl_row.addWidget(self._btn_clear_steam_uri)
         ttl_row.addStretch(1)
         home.addLayout(ttl_row)
 
@@ -417,34 +422,61 @@ class MainWindow(QMainWindow):
             get_optiscaler_kit_path()
         ).ok
 
+    def _kits_both_valid(self) -> bool:
+        return validate_reshade_kit(get_reshade_kit_path()).ok and validate_optiscaler_kit(
+            get_optiscaler_kit_path()
+        ).ok
+
     def _kit_banner_state(self) -> tuple[str, str]:
-        """Return (text, severity) where severity is empty|incomplete."""
-        parts: list[str] = [t("settings.kits_banner")]
+        """Return (text, severity): empty | one_side | incomplete."""
         r_path = get_reshade_kit_path()
         o_path = get_optiscaler_kit_path()
+        r_ok = validate_reshade_kit(r_path).ok
+        o_ok = validate_optiscaler_kit(o_path).ok
+        r_set = r_path is not None
+        o_set = o_path is not None
+
+        parts: list[str] = []
+        # Exactly one kit is valid → dedicated one-side copy.
+        if r_ok ^ o_ok:
+            parts.append(t("settings.kits_one_side"))
+            severity = "one_side"
+        else:
+            parts.append(t("settings.kits_banner"))
+            severity = "empty"
+
         incomplete = False
-        if r_path is not None:
+        if r_set and not r_ok:
+            incomplete = True
             rs = validate_reshade_kit(r_path)
-            if not rs.ok:
-                incomplete = True
-                miss = ", ".join(rs.missing) if rs.missing else rs.message
-                parts.append(f"ReShade: {t('wizard.kit_bad')} ({miss})")
-        else:
+            miss = ", ".join(rs.missing) if rs.missing else rs.message
+            parts.append(f"ReShade: {t('wizard.kit_bad')} ({miss})")
+        elif not r_set:
             parts.append(f"ReShade: {t('settings.kits_path_empty')}")
-        if o_path is not None:
-            os_ = validate_optiscaler_kit(o_path)
-            if not os_.ok:
-                incomplete = True
-                miss = ", ".join(os_.missing) if os_.missing else os_.message
-                parts.append(f"OptiScaler: {t('wizard.kit_bad')} ({miss})")
         else:
+            parts.append(f"ReShade: {t('wizard.kit_ok')}")
+
+        if o_set and not o_ok:
+            incomplete = True
+            os_ = validate_optiscaler_kit(o_path)
+            miss = ", ".join(os_.missing) if os_.missing else os_.message
+            parts.append(f"OptiScaler: {t('wizard.kit_bad')} ({miss})")
+        elif not o_set:
             parts.append(f"OptiScaler: {t('settings.kits_path_empty')}")
-        severity = "incomplete" if incomplete else "empty"
+        else:
+            parts.append(f"OptiScaler: {t('wizard.kit_ok')}")
+
+        if incomplete and severity != "one_side":
+            severity = "incomplete"
+        elif incomplete and severity == "one_side":
+            # Keep one_side as primary, but prefer red styling when DLL incomplete.
+            severity = "incomplete"
         return "\n".join(parts), severity
 
     def _refresh_kits_banner(self) -> None:
         skipped = bool(load_settings().get("wizard_skipped_kits"))
-        show = skipped and not self._has_valid_kit()
+        # Keep banner while either side is missing/invalid (incl. one-side-valid).
+        show = skipped and not self._kits_both_valid()
         if not show:
             self._kits_banner.setText("")
             self._kits_banner.setStyleSheet("")
@@ -452,9 +484,11 @@ class MainWindow(QMainWindow):
             return
         text, severity = self._kit_banner_state()
         self._kits_banner.setText(text)
-        # empty path: amber; path present but DLLs incomplete: red
+        # empty: amber; one_side: blue; incomplete DLLs: red
         if severity == "incomplete":
             self._kits_banner.setStyleSheet("color: #C73E1D; font-weight: 600;")
+        elif severity == "one_side":
+            self._kits_banner.setStyleSheet("color: #2E86AB; font-weight: 600;")
         else:
             self._kits_banner.setStyleSheet("color: #B08900;")
         self._btn_complete_kits.setVisible(True)
@@ -463,10 +497,16 @@ class MainWindow(QMainWindow):
         set_steam_uri_cache_ttl_s(int(days) * 86400)
         self._status.setText(t("settings.steam_uri_ttl_saved", days=int(days)))
 
+    def _clear_steam_uri_cache(self) -> None:
+        cleared = clear_properties_uri_cache()
+        self._status.setText(
+            t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
+        )
+
     def _complete_kits_setup(self) -> None:
         FirstRunWizard(self).exec()
         data = load_settings()
-        if self._has_valid_kit():
+        if self._kits_both_valid():
             data["wizard_skipped_kits"] = False
             data["wizard_completed"] = True
             save_settings(data)
@@ -751,7 +791,7 @@ class MainWindow(QMainWindow):
         if path:
             set_reshade_kit_path(path)
             self._status.setText(path)
-            if self._has_valid_kit():
+            if self._kits_both_valid():
                 data = load_settings()
                 data["wizard_skipped_kits"] = False
                 save_settings(data)
@@ -762,7 +802,7 @@ class MainWindow(QMainWindow):
         if path:
             set_optiscaler_kit_path(path)
             self._status.setText(path)
-            if self._has_valid_kit():
+            if self._kits_both_valid():
                 data = load_settings()
                 data["wizard_skipped_kits"] = False
                 save_settings(data)
@@ -1049,6 +1089,12 @@ class MainWindow(QMainWindow):
             )
             if out.get("ok"):
                 QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+                drop_session_ccd_target(
+                    adapter_low=int(adapter_low),
+                    adapter_high=int(adapter_high or 0),
+                    target_id=int(target_id),
+                )
+                self._refresh_session_banner()
                 # Drop the selected mode-failure row when its CCD target HDR retry succeeds.
                 if row is not None and 0 <= r < len(failed):
                     if (

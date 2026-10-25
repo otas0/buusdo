@@ -4,6 +4,12 @@ on:
   push:
     branches: [main, "phase3/**"]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this manual run (e.g. re-upload artifacts after quota recover)"
+        required: false
+        default: "manual"
 
 jobs:
   test:

@@ -431,6 +431,67 @@ def _prune_session_to_failed(
     path.write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")
 
 
+def drop_session_ccd_target(
+    *,
+    adapter_low: int,
+    adapter_high: int = 0,
+    target_id: int,
+) -> bool:
+    """Remove one CCD target (and matching display row) after a successful HDR retry."""
+    snap = load_display_session()
+    if snap is None:
+        return False
+    key = (int(adapter_low), int(adapter_high), int(target_id))
+
+    def _tkey(t: dict[str, Any]) -> tuple[int | None, int | None, int | None]:
+        return (
+            int(t["adapterLow"]) if t.get("adapterLow") is not None else None,
+            int(t["adapterHigh"]) if t.get("adapterHigh") is not None else None,
+            int(t["targetId"]) if t.get("targetId") is not None else None,
+        )
+
+    targets = list(snap.get("targets") or [])
+    kept_targets = [t for t in targets if _tkey(t) != key]
+    displays = list(snap.get("displays") or [])
+    kept_displays = [
+        d
+        for d in displays
+        if not (
+            d.get("adapterLow") is not None
+            and d.get("targetId") is not None
+            and (
+                int(d["adapterLow"]),
+                int(d.get("adapterHigh") or 0),
+                int(d["targetId"]),
+            )
+            == key
+        )
+    ]
+    # If displays lack adapter fields, drop by index when targets were 1:1 with displays.
+    if kept_displays == displays and targets and len(targets) == len(displays):
+        for i, t in enumerate(targets):
+            if _tkey(t) == key and i < len(kept_displays):
+                kept_displays = [d for j, d in enumerate(displays) if j != i]
+                break
+    if kept_targets == targets and kept_displays == displays:
+        return False
+    if not kept_displays and not kept_targets:
+        clear_display_session()
+        return True
+    snap = dict(snap)
+    snap["targets"] = kept_targets
+    if kept_displays:
+        snap["displays"] = kept_displays
+        primary = next((d for d in kept_displays if d.get("primary")), kept_displays[0])
+        snap["width"] = primary.get("width")
+        snap["height"] = primary.get("height")
+        snap["refresh_hz"] = primary.get("refresh_hz")
+    path = _session_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snap, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
 def list_advanced_color_targets() -> list[dict[str, Any]]:
     """Enumerate active CCD paths with adapterId/targetId for multi-monitor HDR verify."""
     if os.name != "nt":

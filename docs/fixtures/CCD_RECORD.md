@@ -30,3 +30,4 @@ git commit -m "Record real dual-monitor CCD adapterId/targetId."
 ```
 
 Status: still ILLUSTRATIVE on this machine — no dual-monitor Windows host available in CI/dev.
+Do not pass `--require-live` until a real dual-monitor overwrite lands.
