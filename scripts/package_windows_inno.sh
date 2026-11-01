@@ -131,11 +131,15 @@ fi
 echo "logo.ico OK ($(wc -c < "${ICO}" | tr -d ' ') bytes)"
 
 if [[ -n "${ISCC}" && -f "${OUT}/payload/buusdo.exe" ]]; then
-  "${ISCC}" "/DMyAppVersion=${VER}" "${ISS}"
+  # Git Bash rewrites leading /D... into a drive path ("more than one script filename").
+  # Invoke via PowerShell so /DMyAppVersion= stays a define, not a path.
+  echo "Running Inno Setup (unsigned) version=${VER}"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+    "& '${ISCC}' '/DMyAppVersion=${VER}' '${ISS}'"
 elif [[ -n "${ISCC}" ]]; then
-  echo "iscc found but payload missing — skip setup.exe" >&2
+  echo "iscc found but payload missing - skip setup.exe" >&2
 else
-  echo "iscc not found — install Inno Setup 6 (choco install innosetup) on Windows."
+  echo "iscc not found - install Inno Setup 6 (choco install innosetup) on Windows."
 fi
 
 echo "=== 3) INSTALL + checksums (no signing) ==="
