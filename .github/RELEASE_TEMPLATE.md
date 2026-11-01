@@ -31,7 +31,8 @@ shasum -a 256 -c SHA256SUMS
 
 Frozen screenshots from `scripts/screenshot_release_checklist.py` live under
 `docs/fixtures/release_visual_checklist/` (`main_window.png`, `about_dialog.png`,
-`tray_icon_sizes.png`). Re-run before the next tag if UI chrome changed.
+`tray_icon_sizes.png`). **Re-run before the next tag** if UI chrome changed;
+`scripts/check_release_visual_checklist.py` / CI `logo-assets` job enforce presence.
 
 ## Not in any current GitHub release
 

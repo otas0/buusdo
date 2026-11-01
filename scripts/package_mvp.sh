@@ -9,7 +9,19 @@ mkdir -p "${OUT}"
 
 PYTHON="${ROOT}/.venv/bin/python"
 if [[ ! -x "${PYTHON}" ]]; then
-  PYTHON="$(command -v python3)"
+  PYTHON="${ROOT}/.venv/Scripts/python.exe"
+fi
+if [[ ! -x "${PYTHON}" ]]; then
+  PYTHON="$(command -v python3 || command -v python || true)"
+fi
+# Prefer uv-run so Windows CI always sees the synced env (PySide6).
+if command -v uv >/dev/null 2>&1; then
+  RUN_PY=(uv run python)
+elif [[ -n "${PYTHON}" ]]; then
+  RUN_PY=("${PYTHON}")
+else
+  echo "FATAL: no Python interpreter found" >&2
+  exit 1
 fi
 
 echo "Ensuring logo.ico (Windows exe / Inno / wheel asset)…"
@@ -17,14 +29,25 @@ if [[ ! -f "${ROOT}/buusdo/assets/logo.png" ]]; then
   echo "FATAL: buusdo/assets/logo.png missing" >&2
   exit 1
 fi
-"${PYTHON}" "${ROOT}/scripts/generate_logo_ico.py"
-if [[ ! -f "${ROOT}/buusdo/assets/logo.ico" ]]; then
+ICO="${ROOT}/buusdo/assets/logo.ico"
+ICO_OK=0
+if [[ -f "${ICO}" ]]; then
+  ICO_BYTES="$(wc -c < "${ICO}" | tr -d ' ')"
+  if [[ "${ICO_BYTES}" -gt 50 && "${ICO_BYTES}" -le 96000 ]]; then
+    echo "logo.ico already present (${ICO_BYTES} bytes) — skip regenerate"
+    ICO_OK=1
+  fi
+fi
+if [[ "${ICO_OK}" -ne 1 ]]; then
+  "${RUN_PY[@]}" "${ROOT}/scripts/generate_logo_ico.py"
+fi
+if [[ ! -f "${ICO}" ]]; then
   echo "FATAL: logo.ico missing after generate_logo_ico.py" >&2
   exit 1
 fi
 # Best-effort macOS Dock icon when packaging on Darwin (non-fatal elsewhere).
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  "${PYTHON}" "${ROOT}/scripts/generate_logo_icns.py" || true
+  "${RUN_PY[@]}" "${ROOT}/scripts/generate_logo_icns.py" || true
 fi
 
 echo "Building wheel/sdist…"

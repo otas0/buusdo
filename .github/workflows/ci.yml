@@ -18,6 +18,21 @@ on:
         default: "manual"
 
 jobs:
+  logo-assets:
+    # Fails if logo.ico exceeds 96KB or logo_path() is not logo.png.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --extra dev
+      - name: Logo path + ico size gate
+        run: |
+          uv run python scripts/check_logo_assets.py
+          uv run python scripts/check_release_visual_checklist.py
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -53,10 +68,7 @@ jobs:
       - name: MVP self-test (developer gate)
         run: uv run python scripts/mvp_self_test.py
       - name: Logo assets (png + ico + logo_path)
-        run: |
-          test -f buusdo/assets/logo.png
-          test -f buusdo/assets/logo.ico
-          uv run python -c "from buusdo.assets import logo_path, logo_ico_path; p=logo_path(); assert p.name=='logo.png' and p.is_file(); i=logo_ico_path(); assert i.is_file() and 50 < i.stat().st_size <= 96_000"
+        run: uv run python scripts/check_logo_assets.py
       - name: Pytest
         run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
 

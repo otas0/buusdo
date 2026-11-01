@@ -60,3 +60,36 @@ def test_deploy_spec_sets_icon() -> None:
     data = json.loads(Path("scripts/pyside6-deploy.spec.json").read_text(encoding="utf-8"))
     assert data.get("icon") == "buusdo/assets/logo.ico"
     assert Path("packaging/pyinstaller_buusdo.spec").is_file()
+
+
+def test_check_logo_assets_script() -> None:
+    import importlib.util
+
+    path = Path("scripts/check_logo_assets.py")
+    spec = importlib.util.spec_from_file_location("check_logo_assets", path)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0
+
+
+def test_check_release_visual_checklist_script() -> None:
+    import importlib.util
+
+    path = Path("scripts/check_release_visual_checklist.py")
+    spec = importlib.util.spec_from_file_location("check_release_visual", path)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main() == 0
+
+
+def test_verify_pe_icon_skips_without_exe() -> None:
+    import importlib.util
+
+    path = Path("scripts/verify_pe_icon.py")
+    spec = importlib.util.spec_from_file_location("verify_pe_icon", path)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main(["--search-dist"]) == 0

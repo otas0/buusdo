@@ -72,12 +72,30 @@ do
 done
 
 # Hard gate: Windows packaging never ships without logo.ico (Setup + exe icon source).
-"${PY}" "${ROOT}/scripts/generate_logo_ico.py"
-if [[ ! -f "${ROOT}/buusdo/assets/logo.ico" ]]; then
+ICO="${ROOT}/buusdo/assets/logo.ico"
+if [[ -f "${ICO}" ]]; then
+  ICO_BYTES="$(wc -c < "${ICO}" | tr -d ' ')"
+  if [[ "${ICO_BYTES}" -le 50 || "${ICO_BYTES}" -gt 96000 ]]; then
+    if command -v uv >/dev/null 2>&1; then
+      uv run python "${ROOT}/scripts/generate_logo_ico.py"
+    else
+      "${PY}" "${ROOT}/scripts/generate_logo_ico.py"
+    fi
+  else
+    echo "logo.ico present (${ICO_BYTES} bytes) — skip regenerate"
+  fi
+else
+  if command -v uv >/dev/null 2>&1; then
+    uv run python "${ROOT}/scripts/generate_logo_ico.py"
+  else
+    "${PY}" "${ROOT}/scripts/generate_logo_ico.py"
+  fi
+fi
+if [[ ! -f "${ICO}" ]]; then
   echo "FATAL: buusdo/assets/logo.ico missing — refusing Inno / payload package." >&2
   exit 1
 fi
-echo "logo.ico OK ($(wc -c < "${ROOT}/buusdo/assets/logo.ico" | tr -d ' ') bytes)"
+echo "logo.ico OK ($(wc -c < "${ICO}" | tr -d ' ') bytes)"
 
 if [[ -n "${ISCC}" && -f "${OUT}/payload/buusdo.exe" ]]; then
   "${ISCC}" "/DMyAppVersion=${VER}" "${ISS}"

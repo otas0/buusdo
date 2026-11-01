@@ -1,6 +1,6 @@
 # Share blurb (copy/paste)
 
-Wordmark (use this, not the old pixel `brand_mark.png`):
+Wordmark (canonical share / badge asset — `logo.png` only):
 
 ![buusdo wordmark](../buusdo/assets/logo.png)
 

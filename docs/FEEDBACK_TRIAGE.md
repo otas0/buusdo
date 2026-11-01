@@ -15,11 +15,12 @@ Do **not** agent-poll Actions or re-fire `workflow_dispatch` while waiting on fe
 
 ### Icon missing after install
 
-Triage under **`launch`** (startup/shell presence), not a new feature label:
+Triage under **`launch`** (startup/shell presence) **before** any feature work:
 
 - Confirm artifact used Setup/`logo.ico` (Explorer shows wordmark on `buusdo-setup-*.exe` and `buusdo.exe`).
+- PE check: `python scripts/verify_pe_icon.py path\to\buusdo.exe` (expects `RT_GROUP_ICON`).
 - Wheel-only installs use the in-app / tray PNG via `logo_path()` — no PE icon expected.
-- macOS Dock mark needs `logo.icns` (Mac package track only).
+- macOS Dock mark needs `logo.icns` — see [MAC_PACKAGE.md](MAC_PACKAGE.md).
 
 ## Installer track (parallel, not 0.1.1 scope)
 

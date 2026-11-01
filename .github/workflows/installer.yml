@@ -40,37 +40,36 @@ jobs:
         run: |
           uv run python scripts/smoke_github_release_gate.py
           uv run python scripts/mvp_self_test.py
-          test -f buusdo/assets/logo.png
-          test -f buusdo/assets/logo.ico
-          uv run python -c "from buusdo.assets import logo_path; assert logo_path().name=='logo.png'"
-          # Cap committed/generated ico size (wheel bloat gate).
-          python - <<'PY'
-          from pathlib import Path
-          n = Path("buusdo/assets/logo.ico").stat().st_size
-          assert 50 < n <= 96_000, n
-          print("logo.ico bytes", n)
-          PY
+          uv run python scripts/check_logo_assets.py
+          uv run python scripts/check_release_visual_checklist.py
       - name: Wheel + Inno package
         shell: bash
         run: |
           bash scripts/package_mvp.sh
           bash scripts/package_windows_inno.sh
-      - name: List dist + icon smoke notes
+      - name: List dist + PE icon verify
         shell: bash
         run: |
           ls -la dist || true
           ls -la buusdo/assets/logo.ico
+          uv run python scripts/verify_pe_icon.py --search-dist
           {
-            echo "## Icon smoke (manual after download)"
-            echo "1. Open \`dist/buusdo-setup-*.exe\` in Explorer — Setup icon must be logo."
-            echo "2. Install, then check \`buusdo.exe\` icon in Explorer / Start Menu."
-            echo "3. Run \`scripts/smoke_windows_install.ps1 -SetupExe dist\\\\buusdo-setup-*.exe\`."
-            echo "Authenticode still deferred. Do **not** tag \`v1.*\` until this smoke passes."
+            echo "## Icon smoke"
+            echo "- PE resource check ran via \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON)."
+            echo "- Manual: Explorer must show wordmark on Setup + \`buusdo.exe\`."
+            echo "- Authenticode deferred. Do **not** tag \`v1.*\` until smoke passes."
+            echo "- Hold \`0.1.1\` until real \`launch\`/\`scan\` Issues are filed and fixed."
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Structural install smoke (no GUI)
+      - name: Install + launch smoke
         shell: powershell
         run: |
-          powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
+          $setup = Get-ChildItem -Path dist -Filter "buusdo-setup-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($setup) {
+            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SetupExe $setup.FullName
+          } else {
+            Write-Host "WARN no setup.exe — structural smoke only"
+            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: buusdo-windows-installer
@@ -79,5 +78,6 @@ jobs:
             dist/SHA256SUMS
             dist/INSTALL.txt
             dist/*.whl
+            dist/payload/buusdo.exe
           if-no-files-found: warn
           retention-days: 14

@@ -10,7 +10,7 @@ def asset_path(name: str) -> Path:
 
 
 def logo_path() -> Path:
-    """Primary product logo (wordmark). Prefer logo.png over the pixel brand mark."""
+    """Primary product logo (wordmark). Prefer logo.png; brand_mark.png is legacy fallback only."""
     logo = asset_path("logo.png")
     if logo.is_file():
         return logo
@@ -21,6 +21,7 @@ def logo_path() -> Path:
 
 
 def brand_mark_path() -> Path:
+    """Legacy pixel mark — keep on disk for fallback; do not use in share/UI surfaces."""
     return asset_path("brand_mark.png")
 
 

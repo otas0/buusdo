@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -69,6 +70,15 @@ def main() -> int:
         failed += 1
     else:
         print(f"OK  logo.ico {ico_size} bytes")
+
+    # Logo + frozen screenshots (pre-tag chrome checklist).
+    for script in ("check_logo_assets.py", "check_release_visual_checklist.py"):
+        rc = subprocess.call([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT)
+        if rc != 0:
+            print(f"FAIL {script}", file=sys.stderr)
+            failed += 1
+        else:
+            print(f"OK  {script}")
 
     if failed:
         print(f"gate FAILED ({failed})", file=sys.stderr)

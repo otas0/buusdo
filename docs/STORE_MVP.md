@@ -3,7 +3,11 @@
 **Channel:** GitHub Releases only (not Microsoft Store, not signed SmartScreen reputation).  
 **Primary OS:** Windows. Linux / macOS stay **experimental** source/wheel only — not formal release assets.
 
-Installer builds can run now via `.github/workflows/installer.yml` (`workflow_dispatch`, unsigned Inno on `windows-latest`). Tag **`v1.0.0` only after** downloading that artifact and passing `smoke_windows_install.ps1` **and** confirming `logo.ico` is visible on Setup + `buusdo.exe` in Explorer. Until then keep calling ships **preview**. Authenticode stays **deferred**. `0.1.1` stays **fixes-only** and ships **only after** `launch`/`scan` Issues are filed and fixed — do not tag `v1.*` early.
+Installer builds can run now via `.github/workflows/installer.yml` (`workflow_dispatch` on **`main`**, unsigned Inno on `windows-latest`). Tag **`v1.0.0` only after** downloading that artifact and passing `smoke_windows_install.ps1` **and** confirming `logo.ico` is visible on Setup + `buusdo.exe` in Explorer. Until then keep calling ships **preview**. Authenticode stays **deferred**. `0.1.1` stays **fixes-only** and ships **only after** `launch`/`scan` Issues are filed and fixed — do not tag `v1.*` early.
+
+After a **green** installer run: download `buusdo-windows-installer`, PE-check with `python scripts/verify_pe_icon.py dist/buusdo-setup-*.exe`, then optionally `bash scripts/draft_preview_release.sh` (draft only — never `v1.*` / never `0.1.1` from that script).
+
+macOS Dock/Finder (when Mac package track starts): [MAC_PACKAGE.md](MAC_PACKAGE.md) + committed `logo.icns`.
 
 ## Freeze decisions
 
