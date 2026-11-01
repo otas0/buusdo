@@ -1,45 +1,116 @@
 """Product UI theme — instrument-panel clarity (Nothing × teenage engineering cues).
 
-Light cool surface (not cream), ink type, single orange accent, monospace labels,
-hairline borders, flat fills — no glow, no purple, no multi-layer shadows.
+Light / dark modes share the same layout language: cool surfaces, ink type,
+single orange accent, monospace labels, hairline borders, flat fills.
 """
 
 from __future__ import annotations
 
+from typing import Literal
+
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QApplication
 
+ThemeName = Literal["light", "dark"]
+
 # Colorblind-safe-ish: blue (ok) / orange (warn+accent) / vermillion (block)
 COLOR_OK = "#1F6F8B"
-COLOR_WARN = "#FF4F00"  # TE-adjacent orange — also primary accent
+COLOR_WARN = "#FF4F00"
 COLOR_BLOCK = "#C73E1D"
-COLOR_MUTED = "#6B6B6B"
-COLOR_BG = "#EDEDED"  # cool light gray (avoid cream #F4F1EA cluster)
-COLOR_SURFACE = "#FAFAFA"
-COLOR_INK = "#111111"
-COLOR_LINE = "#111111"
-COLOR_BTN = "#111111"
-COLOR_BTN_TEXT = "#FAFAFA"
-COLOR_BTN_SECONDARY = "#E4E4E4"
 
-# Keep legacy aliases used by badge helpers / blocked page
+_LIGHT = {
+    "bg": "#EDEDED",
+    "surface": "#FAFAFA",
+    "ink": "#111111",
+    "muted": "#6B6B6B",
+    "line": "#111111",
+    "btn": "#111111",
+    "btn_text": "#FAFAFA",
+    "btn_secondary": "#E4E4E4",
+    "btn_hover": "#DADADA",
+    "btn_pressed": "#CFCFCF",
+    "disabled_fg": "#9A9A9A",
+    "disabled_border": "#BDBDBD",
+    "disabled_bg": "#EFEFEF",
+    "list_rule": "#E2E2E2",
+    "grid": "#D0D0D0",
+    "alt_base": "#E6E6E6",
+    "scroll": "#B5B5B5",
+    "primary_hover": "#2A2A2A",
+}
+
+_DARK = {
+    "bg": "#1A1A1A",
+    "surface": "#242424",
+    "ink": "#F2F2F2",
+    "muted": "#9A9A9A",
+    "line": "#F2F2F2",
+    "btn": "#F2F2F2",
+    "btn_text": "#111111",
+    "btn_secondary": "#2E2E2E",
+    "btn_hover": "#3A3A3A",
+    "btn_pressed": "#444444",
+    "disabled_fg": "#666666",
+    "disabled_border": "#444444",
+    "disabled_bg": "#222222",
+    "list_rule": "#333333",
+    "grid": "#333333",
+    "alt_base": "#2A2A2A",
+    "scroll": "#555555",
+    "primary_hover": "#FFFFFF",
+}
+
+# Mutable module colors — updated by apply_theme()
+COLOR_BG = _LIGHT["bg"]
+COLOR_SURFACE = _LIGHT["surface"]
+COLOR_INK = _LIGHT["ink"]
+COLOR_MUTED = _LIGHT["muted"]
+COLOR_LINE = _LIGHT["line"]
+COLOR_BTN = _LIGHT["btn"]
+COLOR_BTN_TEXT = _LIGHT["btn_text"]
+COLOR_BTN_SECONDARY = _LIGHT["btn_secondary"]
 COLOR_TEXT = COLOR_INK
+
+_current: ThemeName = "light"
+
+
+def current_theme() -> ThemeName:
+    return _current
 
 
 def _mono_family() -> str:
-    # Prefer readable monospace stacks present on macOS / Windows / Linux.
     return "Menlo, Courier New, monospace"
 
 
 def apply_dark_theme(app: QApplication) -> None:
-    """Historically named; applies the light instrument theme."""
-    apply_product_theme(app)
+    """Legacy alias — applies the product theme (default light)."""
+    apply_theme(app, "light")
 
 
 def apply_product_theme(app: QApplication) -> None:
+    apply_theme(app, "light")
+
+
+def apply_theme(app: QApplication, mode: ThemeName = "light") -> None:
+    global COLOR_BG, COLOR_SURFACE, COLOR_INK, COLOR_MUTED, COLOR_LINE
+    global COLOR_BTN, COLOR_BTN_TEXT, COLOR_BTN_SECONDARY, COLOR_TEXT, _current
+
+    mode = "dark" if mode == "dark" else "light"
+    _current = mode
+    c = _DARK if mode == "dark" else _LIGHT
+
+    COLOR_BG = c["bg"]
+    COLOR_SURFACE = c["surface"]
+    COLOR_INK = c["ink"]
+    COLOR_MUTED = c["muted"]
+    COLOR_LINE = c["line"]
+    COLOR_BTN = c["btn"]
+    COLOR_BTN_TEXT = c["btn_text"]
+    COLOR_BTN_SECONDARY = c["btn_secondary"]
+    COLOR_TEXT = COLOR_INK
+
     app.setStyle("Fusion")
     font = QFont()
-    # Prefer fonts that exist on stock macOS/Windows/Linux (avoid missing-family lag).
     font.setFamilies(["Helvetica Neue", "Arial"])
     font.setPointSize(11)
     app.setFont(font)
@@ -48,7 +119,7 @@ def apply_product_theme(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.Window, QColor(COLOR_BG))
     palette.setColor(QPalette.ColorRole.WindowText, QColor(COLOR_INK))
     palette.setColor(QPalette.ColorRole.Base, QColor(COLOR_SURFACE))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#E6E6E6"))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(c["alt_base"]))
     palette.setColor(QPalette.ColorRole.Text, QColor(COLOR_INK))
     palette.setColor(QPalette.ColorRole.Button, QColor(COLOR_BTN_SECONDARY))
     palette.setColor(QPalette.ColorRole.ButtonText, QColor(COLOR_INK))
@@ -57,9 +128,9 @@ def apply_product_theme(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(COLOR_SURFACE))
     palette.setColor(QPalette.ColorRole.ToolTipText, QColor(COLOR_INK))
     palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(COLOR_MUTED))
-    palette.setColor(QPalette.ColorRole.Light, QColor("#FFFFFF"))
-    palette.setColor(QPalette.ColorRole.Mid, QColor("#C8C8C8"))
-    palette.setColor(QPalette.ColorRole.Dark, QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Light, QColor(COLOR_SURFACE))
+    palette.setColor(QPalette.ColorRole.Mid, QColor(COLOR_MUTED))
+    palette.setColor(QPalette.ColorRole.Dark, QColor(COLOR_INK))
     app.setPalette(palette)
 
     mono = _mono_family()
@@ -74,6 +145,7 @@ def apply_product_theme(app: QApplication) -> None:
         }}
         QLabel#brandMark {{
             margin-right: 4px;
+            background: transparent;
         }}
         QLabel#brandTitle {{
             font-family: {mono};
@@ -121,15 +193,15 @@ def apply_product_theme(app: QApplication) -> None:
             color: {COLOR_INK};
         }}
         QPushButton:hover {{
-            background: #DADADA;
+            background: {c["btn_hover"]};
         }}
         QPushButton:pressed {{
-            background: #CFCFCF;
+            background: {c["btn_pressed"]};
         }}
         QPushButton:disabled {{
-            color: #9A9A9A;
-            border-color: #BDBDBD;
-            background: #EFEFEF;
+            color: {c["disabled_fg"]};
+            border-color: {c["disabled_border"]};
+            background: {c["disabled_bg"]};
         }}
         QPushButton:default, QPushButton#primaryAction {{
             background: {COLOR_BTN};
@@ -137,7 +209,7 @@ def apply_product_theme(app: QApplication) -> None:
             border: 1px solid {COLOR_BTN};
         }}
         QPushButton:default:hover, QPushButton#primaryAction:hover {{
-            background: #2A2A2A;
+            background: {c["primary_hover"]};
         }}
         QPushButton#accentAction {{
             background: {COLOR_WARN};
@@ -165,11 +237,11 @@ def apply_product_theme(app: QApplication) -> None:
             border-radius: 0px;
             background: {COLOR_SURFACE};
             outline: none;
-            gridline-color: #D0D0D0;
+            gridline-color: {c["grid"]};
         }}
         QListWidget::item {{
             padding: 8px 10px;
-            border-bottom: 1px solid #E2E2E2;
+            border-bottom: 1px solid {c["list_rule"]};
         }}
         QListWidget::item:selected, QTableWidget::item:selected {{
             background: {COLOR_WARN};
@@ -184,7 +256,7 @@ def apply_product_theme(app: QApplication) -> None:
             color: {COLOR_MUTED};
             border: none;
             border-bottom: 1px solid {COLOR_LINE};
-            border-right: 1px solid #D0D0D0;
+            border-right: 1px solid {c["grid"]};
             padding: 6px 8px;
         }}
         QProgressBar {{
@@ -221,7 +293,7 @@ def apply_product_theme(app: QApplication) -> None:
             margin: 0;
         }}
         QScrollBar::handle:vertical {{
-            background: #B5B5B5;
+            background: {c["scroll"]};
             min-height: 24px;
             border-radius: 0px;
         }}

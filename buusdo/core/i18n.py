@@ -10,6 +10,8 @@ _STRINGS: dict[str, dict[str, str]] = {
     "zh": {
         "app.subtitle": "图形增强调度器 · 配置协调器",
         "about.button": "关于",
+        "theme.to_dark": "深色",
+        "theme.to_light": "浅色",
         "about.title": "关于 buusdo",
         "about.version": "版本 {version}",
         "about.channel": "发布渠道：GitHub Releases（未代码签名）",
@@ -178,6 +180,8 @@ _STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "app.subtitle": "Graphics enhancement scheduler · config coordinator",
         "about.button": "About",
+        "theme.to_dark": "Dark",
+        "theme.to_light": "Light",
         "about.title": "About buusdo",
         "about.version": "Version {version}",
         "about.channel": "Channel: GitHub Releases (unsigned)",

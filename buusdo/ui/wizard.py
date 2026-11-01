@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialog,
@@ -26,6 +26,7 @@ from buusdo.core.config_store import (
 )
 from buusdo.core.i18n import t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
+from buusdo.ui.logo_widget import make_logo_label
 
 _HIGHLIGHT = (
     "color: #C73E1D; font-weight: 600; border: 1px solid #C73E1D; padding: 8px 12px;"
@@ -48,7 +49,9 @@ class FirstRunWizard(QDialog):
         self.setWindowTitle(t("wizard.title"))
         self.setModal(True)
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel(t("wizard.title")))
+        logo = make_logo_label(72, self)
+        logo.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(logo)
         hint = QLabel(t("wizard.hint"))
         hint.setWordWrap(True)
         layout.addWidget(hint)

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QPixmap
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from buusdo import __version__
-from buusdo.assets import logo_path
 from buusdo.core.i18n import t
+from buusdo.ui.logo_widget import make_logo_label
 
 FEEDBACK_URL = "https://github.com/otas0/buusdo/issues"
 REPO_URL = "https://github.com/otas0/buusdo"
@@ -24,18 +24,9 @@ def show_about_dialog(parent=None) -> None:
     layout.setContentsMargins(16, 16, 16, 16)
     layout.setSpacing(10)
 
-    logo = logo_path()
-    if logo.is_file():
-        mark = QLabel()
-        mark.setObjectName("brandMark")
-        mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        pix = QPixmap(str(logo)).scaledToHeight(64, Qt.TransformationMode.SmoothTransformation)
-        mark.setPixmap(pix)
-        layout.addWidget(mark)
-
-    title = QLabel("buusdo")
-    title.setObjectName("brandTitle")
-    layout.addWidget(title)
+    mark = make_logo_label(64, dlg)
+    mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    layout.addWidget(mark)
 
     layout.addWidget(QLabel(t("about.version", version=__version__)))
     layout.addWidget(QLabel(t("about.channel")))

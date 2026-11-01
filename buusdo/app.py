@@ -7,9 +7,13 @@ import sys
 from buusdo.backends import get_backend
 from buusdo.core.crash_report import capture_exception
 from buusdo.core.errors import BuusdoError
+from buusdo.macos_name import ensure_process_name
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Before Qt: Dock/menu should say "buusdo", not "Python".
+    ensure_process_name("buusdo")
+
     argv = list(sys.argv if argv is None else argv)
     try:
         from PySide6.QtWidgets import QApplication
@@ -20,13 +24,21 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    from buusdo.core.config_store import load_settings
     from buusdo.ui.main_window import MainWindow
-    from buusdo.ui.theme import apply_dark_theme
+    from buusdo.ui.theme import ThemeName, apply_theme
     from buusdo.ui.tray_icon import app_icon
 
     app = QApplication(argv)
     app.setApplicationName("buusdo")
-    apply_dark_theme(app)
+    app.setApplicationDisplayName("buusdo")
+    app.setOrganizationName("buusdo")
+    app.setOrganizationDomain("buusdo.app")
+
+    settings = load_settings()
+    mode: ThemeName = "dark" if settings.get("ui_theme") == "dark" else "light"
+    apply_theme(app, mode)
+
     icon = app_icon()
     app.setWindowIcon(icon)
     try:

@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QColor, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -29,7 +30,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from buusdo.assets import logo_path
 from buusdo.ui.tray_icon import app_icon, tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
@@ -96,9 +96,10 @@ from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
 from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
 from buusdo.ui.scan_worker import start_scan
-from buusdo.ui.theme import badge_color
+from buusdo.ui.theme import ThemeName, apply_theme, badge_color, current_theme
 from buusdo.ui.tray_icon import make_mark_icon
 from buusdo.ui.about_dialog import show_about_dialog
+from buusdo.ui.logo_widget import make_logo_label, refresh_logo_label
 from buusdo.ui.selection_utils import clear_row_selections
 from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 
@@ -129,23 +130,10 @@ class MainWindow(QMainWindow):
         brand = QHBoxLayout()
         brand.setContentsMargins(4, 8, 4, 12)
         brand.setSpacing(14)
-        logo = logo_path()
-        logo_label = QLabel()
-        logo_label.setObjectName("brandMark")
-        logo_label.setAccessibleName("buusdo logo")
-        if logo.is_file():
-            # Wordmark logo — smooth scale for UI chrome.
-            pix = QPixmap(str(logo)).scaledToHeight(
-                56, Qt.TransformationMode.SmoothTransformation
-            )
-            logo_label.setPixmap(pix)
-        brand.addWidget(logo_label)
+        self._logo_label = make_logo_label(56, self)
+        brand.addWidget(self._logo_label)
         brand_text = QVBoxLayout()
         brand_text.setSpacing(4)
-        # Logo already carries the wordmark; keep a compact text title for a11y / i18n chrome.
-        title = QLabel("buusdo")
-        title.setObjectName("brandTitle")
-        brand_text.addWidget(title)
         self._subtitle = QLabel(t("app.subtitle"))
         self._subtitle.setObjectName("brandSubtitle")
         brand_text.addWidget(self._subtitle)
@@ -154,6 +142,10 @@ class MainWindow(QMainWindow):
         backend_chip = QLabel(f"backend · {self._backend.platform_id()}")
         backend_chip.setObjectName("backendChip")
         brand.addWidget(backend_chip)
+        self._theme_btn = QPushButton()
+        self._theme_btn.clicked.connect(self._toggle_theme)
+        self._refresh_theme_button()
+        brand.addWidget(self._theme_btn)
         self._lang = QComboBox()
         for loc in available_locales():
             self._lang.addItem(loc, loc)
@@ -762,6 +754,24 @@ class MainWindow(QMainWindow):
         except (BuusdoError, UnsafeTargetError) as exc:
             QMessageBox.warning(self, "buusdo", str(exc))
 
+    def _refresh_theme_button(self) -> None:
+        # Button shows the mode you can switch *to*.
+        if current_theme() == "dark":
+            self._theme_btn.setText(t("theme.to_light"))
+        else:
+            self._theme_btn.setText(t("theme.to_dark"))
+
+    def _toggle_theme(self) -> None:
+        nxt: ThemeName = "light" if current_theme() == "dark" else "dark"
+        app = QApplication.instance()
+        if app is not None:
+            apply_theme(app, nxt)
+        data = load_settings()
+        data["ui_theme"] = nxt
+        save_settings(data)
+        refresh_logo_label(self._logo_label, 56)
+        self._refresh_theme_button()
+
     def _on_locale_changed(self) -> None:
         loc = self._lang.currentData()
         if not loc:
@@ -772,6 +782,7 @@ class MainWindow(QMainWindow):
         save_settings(data)
         self._subtitle.setText(t("app.subtitle"))
         self._btn_about.setText(t("about.button"))
+        self._refresh_theme_button()
         self._btn_scan.setText(t("action.scan"))
         self._btn_force.setText(t("action.force_scan"))
         self._btn_cancel.setText(t("action.cancel_scan"))
