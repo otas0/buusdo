@@ -28,7 +28,7 @@ from buusdo.core.i18n import t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 
 _HIGHLIGHT = (
-    "color: #C73E1D; font-weight: 600; border: 1px solid #C73E1D; padding: 4px;"
+    "color: #C73E1D; font-weight: 600; border: 1px solid #C73E1D; padding: 8px 12px;"
 )
 _NORMAL = ""
 
@@ -125,7 +125,7 @@ class FirstRunWizard(QDialog):
     def _set_status(label: QLabel, ok: bool, detail: str) -> None:
         if ok:
             label.setText(f"{t('wizard.kit_ok')}: {detail}")
-            label.setStyleSheet("color: #2E86AB;")
+            label.setStyleSheet("color: #1F6F8B;")
         else:
             label.setText(f"{t('wizard.kit_bad')}: {detail}")
             label.setStyleSheet("color: #C73E1D; font-weight: 600;")

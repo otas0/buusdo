@@ -28,8 +28,8 @@ ui = [
 requires-dist = [
     { name = "pefile", specifier = ">=2023.2.7" },
     { name = "psutil", specifier = ">=5.9" },
-    { name = "pyside6-essentials", marker = "extra == 'devui'", specifier = ">=6.6" },
-    { name = "pyside6-essentials", marker = "extra == 'ui'", specifier = ">=6.6" },
+    { name = "pyside6-essentials", marker = "extra == 'devui'", specifier = "==6.12.0" },
+    { name = "pyside6-essentials", marker = "extra == 'ui'", specifier = "==6.12.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest", marker = "extra == 'devui'", specifier = ">=8.0" },
     { name = "pytest-qt", marker = "extra == 'devui'", specifier = ">=4.4" },

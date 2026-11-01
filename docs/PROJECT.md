@@ -89,3 +89,17 @@ is not a goal.
 
 Do not introduce: Electron, Tauri, Rust build chains, kernel drivers, or
 in-house Vulkan/D3D hooks.
+
+### UI visual language
+
+Light instrument panel (cool gray, ink type, monospace labels, single orange
+accent, hairline borders). Cues from stark product UIs (Nothing / teenage
+engineering) without copying cream/terracotta or purple-glow defaults. Theme
+lives in `buusdo/ui/theme.py`.
+
+### Steam properties URI probe
+
+After clearing the URI cache, **Try open first** probes candidate deep links;
+**Try next** (also **Ctrl+N** while enabled) advances to the next candidate and
+shows that URI in the button tooltip. Exhaustion disables the control and the
+shortcut together.
