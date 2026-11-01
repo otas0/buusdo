@@ -26,7 +26,13 @@ _build_pyinstaller_payload() {
   # CI restores dist/payload/buusdo.exe under the same actions/cache key as .pyi-work.
   # Reusing the exe skips a full rebuild: PyInstaller's workdir TOCs still invalidate on
   # fresh checkout mtimes + uv-synced .venv paths every run (~65s Analysis/PKG/EXE).
-  if [[ "${BUUSDO_REUSE_CACHED_PAYLOAD:-0}" == "1" && -f "${OUT}/payload/buusdo.exe" ]]; then
+  # actions/cache outputs cache-hit as "true"/"false" (not 1/0).
+  _reuse="${BUUSDO_REUSE_CACHED_PAYLOAD:-0}"
+  case "${_reuse}" in
+    1|true|TRUE|yes|YES) _reuse=1 ;;
+    *) _reuse=0 ;;
+  esac
+  if [[ "${_reuse}" == "1" && -f "${OUT}/payload/buusdo.exe" ]]; then
     local sz pe_ok=0
     sz="$(wc -c < "${OUT}/payload/buusdo.exe" | tr -d ' ')"
     # ~40MB onefile expected; reject tiny/corrupt cache blobs before skip.
