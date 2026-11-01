@@ -130,14 +130,11 @@ class MainWindow(QMainWindow):
         outer.setSpacing(0)
 
         brand = QHBoxLayout()
-        # Flush wordmark to the top-left corner.
+        # Flush wordmark to the top-left corner (no subtitle chrome).
         brand.setContentsMargins(12, 10, 12, 8)
         brand.setSpacing(12)
         self._logo_label = make_logo_label(22, self)
         brand.addWidget(self._logo_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self._subtitle = QLabel(t("app.subtitle"))
-        self._subtitle.setObjectName("brandSubtitle")
-        brand.addWidget(self._subtitle, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         brand.addStretch(1)
         backend_chip = QLabel(f"backend · {self._backend.platform_id()}")
         backend_chip.setObjectName("backendChip")
@@ -792,7 +789,6 @@ class MainWindow(QMainWindow):
         data = load_settings()
         data["locale"] = loc
         save_settings(data)
-        self._subtitle.setText(t("app.subtitle"))
         self._btn_about.setText(t("about.button"))
         self._refresh_theme_button()
         self._btn_scan.setText(t("action.scan"))
@@ -849,25 +845,33 @@ class MainWindow(QMainWindow):
                 )
             )
 
-        def on_finished(games: list) -> None:
-            self._games = games
-            self._refresh_game_list()
-            self._reload_steam_users()
-            self._status.setText(f"{len(games)} games")
+        def _scan_ui_idle() -> None:
+            self._progress.setValue(0)
             self._progress.setVisible(False)
             self._btn_scan.setEnabled(True)
             self._btn_force.setEnabled(True)
             self._btn_cancel.setEnabled(False)
-            self._rebuild_tray_recent()
+
+        def on_finished(games: list) -> None:
+            try:
+                self._games = list(games or [])
+                self._refresh_game_list()
+                self._reload_steam_users()
+                self._status.setText(f"{len(self._games)} games")
+                self._rebuild_tray_recent()
+            except Exception as exc:  # noqa: BLE001
+                capture_exception(exc, context={"op": "scan_finished"})
+                self._status.setText(str(exc))
+            finally:
+                _scan_ui_idle()
 
         def on_failed(message: str) -> None:
-            self._status.setText(message)
-            self._progress.setVisible(False)
-            self._btn_scan.setEnabled(True)
-            self._btn_force.setEnabled(True)
-            self._btn_cancel.setEnabled(False)
-            if message != "cancelled":
-                capture_exception(RuntimeError(message), context={"op": "scan"})
+            try:
+                self._status.setText(message)
+                if message != "cancelled":
+                    capture_exception(RuntimeError(message), context={"op": "scan"})
+            finally:
+                _scan_ui_idle()
 
         self._scan_thread, self._scan_worker = start_scan(
             force=force,

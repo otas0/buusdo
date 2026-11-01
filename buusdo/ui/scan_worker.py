@@ -58,13 +58,14 @@ def start_scan(*, force: bool, on_progress, on_finished, on_failed) -> tuple[QTh
     worker = ScanWorker(force=force)
     worker.moveToThread(thread)
     thread.started.connect(worker.run)
+    # Queued connections keep UI slots on the GUI thread; quit/deleteLater after
+    # the UI handler so a finished@100% cannot leave the progress bar stuck.
     worker.progress.connect(on_progress)
     worker.finished.connect(on_finished)
     worker.failed.connect(on_failed)
     worker.finished.connect(thread.quit)
     worker.failed.connect(thread.quit)
-    worker.finished.connect(worker.deleteLater)
-    worker.failed.connect(worker.deleteLater)
+    thread.finished.connect(worker.deleteLater)
     thread.finished.connect(thread.deleteLater)
     thread.start()
     return thread, worker
