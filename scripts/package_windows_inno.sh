@@ -131,11 +131,27 @@ fi
 echo "logo.ico OK ($(wc -c < "${ICO}" | tr -d ' ') bytes)"
 
 if [[ -n "${ISCC}" && -f "${OUT}/payload/buusdo.exe" ]]; then
-  # Git Bash rewrites leading /D... into a drive path ("more than one script filename").
-  # Invoke via PowerShell so /DMyAppVersion= stays a define, not a path.
+  # Convert Git Bash paths (/c/...) to Windows paths for PowerShell.
+  to_win() {
+    local p="$1"
+    if command -v cygpath >/dev/null 2>&1; then
+      cygpath -w "$p"
+      return
+    fi
+    if [[ "$p" =~ ^/([a-zA-Z])/(.*)$ ]]; then
+      echo "${BASH_REMATCH[1]^}:/${BASH_REMATCH[2]}" | sed 's|/|\\|g'
+      return
+    fi
+    echo "$p"
+  }
+  ISCC_WIN="$(to_win "${ISCC}")"
+  ISS_WIN="$(to_win "${ISS}")"
   echo "Running Inno Setup (unsigned) version=${VER}"
+  echo "  ISCC=${ISCC_WIN}"
+  echo "  ISS=${ISS_WIN}"
+  # PowerShell keeps /DMyAppVersion= as a define (Git Bash would mangle /D...).
   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-    "& '${ISCC}' '/DMyAppVersion=${VER}' '${ISS}'"
+    "& '${ISCC_WIN}' '/DMyAppVersion=${VER}' '${ISS_WIN}'"
 elif [[ -n "${ISCC}" ]]; then
   echo "iscc found but payload missing - skip setup.exe" >&2
 else
