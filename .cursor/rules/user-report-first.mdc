@@ -1,0 +1,12 @@
+---
+description: Prefer user reports over complex agent smoke/VM testing
+alwaysApply: true
+---
+
+# User-report-first (no complex test theater)
+
+- Do **not** spin up UTM/VMs, hunt ISOs, laptop artifact pulls, or multi-step Explorer/UI smoke just to “confirm” shipping.
+- When verification would be heavy or environment-dependent, **stop** and leave it to real user `launch` / `scan` (or similar) Issues.
+- Maximize fixes **inside what is already known** from CI logs, PE checks, code, and prior green runs — then move on.
+- Keep holds simple: draft unpublished until a human decides; no `v1.*` / no premature `0.1.1`; Authenticode off until explicitly requested.
+- Prefer CI/`attach_draft` automation over local repro theater.

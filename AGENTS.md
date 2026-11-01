@@ -14,3 +14,8 @@ language).
 ## Hard constraints
 
 See `docs/PROJECT.md` and `.cursor/rules/buusdo-constraints.mdc` (C1–C5).
+
+## Verification style
+
+Prefer **user reports** over complex agent smoke (VM/ISO/Explorer theater).
+Fix what is already known from CI/logs/code; see `.cursor/rules/user-report-first.mdc`.
