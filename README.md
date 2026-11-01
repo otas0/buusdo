@@ -5,11 +5,14 @@ Cross-platform graphics enhancement **scheduler + config coordinator** (Windows 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
 **MVP preview:** Windows is the supported target. Linux and macOS are **experimental**.
-Latest preview release: [v0.1.0](https://github.com/otas0/buusdo/releases/tag/v0.1.0) (wheel only; no official installer — **not** “v1 / 正式版”).
+Latest preview release: [v0.1.0](https://github.com/otas0/buusdo/releases/tag/v0.1.0) (wheel only; no official installer — **not** v1 / not an official release).
 Scope freeze: [docs/MVP.md](docs/MVP.md). GitHub v1 installer (Inno, **unsigned**): [docs/STORE_MVP.md](docs/STORE_MVP.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
-**Share blurb:** buusdo preview — bring your own ReShade/OptiScaler kits; Windows-first; no DWM HDR; feedback via Issues.
+**Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md)):
+buusdo preview — BYO ReShade/OptiScaler kits · Windows-first · https://github.com/otas0/buusdo/releases/tag/v0.1.0
+
+**0.1.1:** fixes only (`launch` / `scan` Issues first). Installer track is separate → future `v1.0.0` after smoke.
 
 ## End-user install (three steps)
 

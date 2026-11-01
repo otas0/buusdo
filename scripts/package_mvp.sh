@@ -22,23 +22,19 @@ else
   "${PYTHON}" -m build --outdir "${OUT}"
 fi
 
-# Three-step end-user install notes (kits remain external).
+# End-user install notes (kits remain external). Keep PySide6 on one line.
 cat > "${OUT}/INSTALL.txt" <<'EOF'
-buusdo — three-step install (MVP)
+buusdo preview — install
 
-1. Install Python 3.11+ (Windows: python.org or Store).
-2. Install the wheel from this folder, then launch:
-     python -m pip install buusdo-*.whl
-     python -m pip install "buusdo[ui]"   # if the wheel was built without extras
-     # or: uv pip install ./buusdo-*.whl
-     python -m buusdo
-3. In the UI, pick your ReShade / OptiScaler kit folders (binaries are not bundled).
+  pip install buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0"
+  python -m buusdo
 
-Windows is the supported MVP platform. Linux and macOS are experimental.
-Do not expect DWM HDR injection in this preview (Phase 3).
+Then pick your own ReShade/OptiScaler kit folders in the UI (not bundled).
 
-Verify downloads:
-  sha256sum -c SHA256SUMS    # or: shasum -a 256 -c SHA256SUMS
+Windows-first. Linux/macOS experimental. No official installer in wheel-only tags.
+No DWM HDR (Phase 3). Not v1 / not an official release.
+
+Verify: shasum -a 256 -c SHA256SUMS
 EOF
 
 # Checksums for all files currently in dist/ (except SHA256SUMS itself).
