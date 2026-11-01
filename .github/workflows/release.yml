@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Manual package run (after Billing fix: one dispatch only)"
+        required: false
+        default: "manual"
 
 jobs:
   build:
@@ -18,35 +24,27 @@ jobs:
             artifact: buusdo-macos
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Billing / spending-limit tip
+        shell: bash
+        run: |
+          {
+            echo "## Runner preflight"
+            echo "0s empty-step fails ⇒ raise Actions spending limit."
+            echo "After Billing is fixed: **one** workflow_dispatch only."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev,ui]"
-      - name: Test
-        run: |
-          python scripts/check_no_platform_branch.py
-          pytest -q
-      - name: Package note
+        run: uv sync --extra devui
+      - name: MVP self-test
+        run: uv run python scripts/mvp_self_test.py
+      - name: Package wheel/sdist + checksums
         shell: bash
-        run: |
-          mkdir -p dist
-          echo "Run scripts/deploy.sh on a signed builder with pyside6-deploy/Nuitka." > dist/README-PACKAGING.txt
-          echo "Then: ./scripts/codesign_hooks.sh <artifact>  (local secrets via scripts/codesign.env; never in CI)." >> dist/README-PACKAGING.txt
-          echo "artifact=${{ matrix.artifact }}" >> dist/README-PACKAGING.txt
-      - name: Checksums
-        shell: bash
-        run: |
-          cd dist
-          if command -v sha256sum >/dev/null; then
-            find . -type f ! -name 'SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-          else
-            shasum -a 256 $(find . -type f ! -name 'SHA256SUMS' | sort) > SHA256SUMS
-          fi
+        run: bash scripts/package_mvp.sh
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: dist/
+          if-no-files-found: warn

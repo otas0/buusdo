@@ -73,24 +73,25 @@ class LinuxBackend(EnhancementBackend):
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
         is_proton = bool(target.metadata.get("proton_prefix") or target.metadata.get("runtime") == "proton")
         goverlay = find_goverlay()
+        exp = t("cap.experimental")
         return [
             Capability(
                 id="vkbasalt",
-                title=t("cap.vkbasalt"),
+                title=f"{t('cap.vkbasalt')} ({exp})",
                 description=t("cap.vkbasalt.desc"),
                 available=not is_proton,
                 notes=f"{t('copy.approx')}; presets={','.join(list_presets())}",
             ),
             Capability(
                 id="goverlay",
-                title=t("cap.goverlay"),
+                title=f"{t('cap.goverlay')} ({exp})",
                 description=t("cap.goverlay.desc"),
                 available=goverlay is not None,
                 notes=str(goverlay) if goverlay else "goverlay not found",
             ),
             Capability(
                 id="proton_reshade",
-                title=t("cap.reshade"),
+                title=f"{t('cap.reshade')} ({exp})",
                 description=t("cap.reshade.desc"),
                 available=is_proton or self._looks_like_windows_game(target),
             ),

@@ -75,7 +75,8 @@ CI `run-name` + each job's first step write this tip into the Actions summary wh
 `scripts/watch_ci_billing.py` (and the hourly LaunchAgent) exit 1 / notify when the newest run looks blocked.
 Local `python scripts/prune_actions_artifacts.py --list` still works without runners; the `prune-artifacts` workflow needs billing fixed too.
 
-After spending limit is fixed: trigger **one** `workflow_dispatch` (or push) and stop — do not agent-poll CI.
+After spending limit is fixed: trigger **one** `workflow_dispatch` on `ci` **or** `release` (or one push) and stop — do not agent-poll CI.
+MVP packaging also lands on the `release` workflow (`package_mvp.sh` → wheel + SHA256SUMS).
 Offline PoC check (no Actions needed): `python scripts/verify_dwm_hdr_poc_local.py`.
 
 Local detector (bell + optional macOS notification):

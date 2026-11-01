@@ -4,7 +4,26 @@ Cross-platform graphics enhancement **scheduler + config coordinator** (Windows 
 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
-Full product semantics and hard constraints: [docs/PROJECT.md](docs/PROJECT.md).
+**MVP preview:** Windows is the supported target. Linux and macOS are **experimental**.
+Scope freeze: [docs/MVP.md](docs/MVP.md). Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
+
+## End-user install (three steps)
+
+1. Install Python 3.11+ and get a wheel from a release/`dist/` build (`buusdo-*.whl`).
+2. Install and launch:
+
+```bash
+python -m pip install ./buusdo-*.whl
+python -m pip install "PySide6-Essentials==6.12.0"   # UI
+python -m buusdo
+```
+
+3. In the UI, choose your **ReShade / OptiScaler kit** folders (third-party binaries are not bundled).
+
+Verify: `shasum -a 256 -c dist/SHA256SUMS` (or `sha256sum -c`).
+
+Developer self-test (no third-party acceptance): `python scripts/mvp_self_test.py`  
+Package: `bash scripts/package_mvp.sh`
 
 ## Development
 
@@ -17,6 +36,7 @@ uv sync --extra devui
 # Equivalent editable path:
 #   uv pip install -e ".[devui]"
 pytest
+python scripts/mvp_self_test.py
 python -m buusdo
 ```
 
