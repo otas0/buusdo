@@ -12,7 +12,9 @@ Full product semantics and hard constraints: [docs/PROJECT.md](docs/PROJECT.md).
 # Prefer uv (Homebrew Python on this machine may have a broken platform.mac_ver)
 uv venv --python 3.12 .venv
 source .venv/bin/activate
-uv pip install -e ".[dev,ui]"
+# pytest + PySide6-Essentials (pinned in uv.lock) — preferred for UI/dev
+uv pip install -e ".[devui]"
+# or split: uv pip install -e ".[dev,ui]"
 pytest
 python -m buusdo
 ```
@@ -45,7 +47,8 @@ python scripts/check_no_platform_branch.py   # C3 lint
 ## Steam URI probe (UI)
 
 After **Clear cache now**, use **Try open first**; if that candidate fails, **Try next (N left)**
-walks the remaining deep-link schemes for the selected game without clearing the list.
+(or **Ctrl+N** while that button is enabled) walks the remaining deep-link schemes for the
+selected game without clearing the list. The button tooltip previews the next URI candidate.
 
 ## CI, artifacts, and billing failures
 
@@ -61,7 +64,14 @@ Quick local checks:
 ```bash
 python scripts/watch_ci_billing.py --notify --once   # exit 1 if newest run looks billing-blocked
 bash scripts/install_watch_ci_billing_launchd.sh     # hourly macOS LaunchAgent (appending logs)
+bash scripts/assert_watch_ci_billing_log_append.sh    # kickstart + exit-after-timestamp assert
 python scripts/verify_dwm_hdr_poc_local.py            # offline zip + hlsl_sha256 (no network)
 python scripts/verify_dwm_hdr_poc_local.py --json     # machine-readable summary
 bash scripts/push_when_online.sh                     # finite-retry git push (flaky HTTPS)
+```
+
+Optional weekly local cron (LaunchAgent assert only — still no Actions poll):
+
+```cron
+0 9 * * 1 cd /path/to/buusdo && bash scripts/assert_watch_ci_billing_log_append.sh >>~/Library/Logs/buusdo/assert-cron.log 2>&1
 ```

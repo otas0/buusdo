@@ -277,6 +277,10 @@ class MainWindow(QMainWindow):
         self._btn_steam_try_next.setToolTip(t("settings.steam_uri_try_next"))
         self._btn_steam_try_next.clicked.connect(self._try_open_next_steam_uri)
         self._btn_steam_try_next.setEnabled(False)
+        self._steam_try_next_shortcut = QShortcut(QKeySequence("Ctrl+N"), self)
+        self._steam_try_next_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._steam_try_next_shortcut.activated.connect(self._try_open_next_steam_uri)
+        self._steam_try_next_shortcut.setEnabled(False)
         ttl_row.addWidget(self._btn_steam_try_next)
         self._steam_uri_try_index = 0
         self._steam_uri_cache_label = QLabel("")
@@ -566,17 +570,20 @@ class MainWindow(QMainWindow):
             uris = self._steam_uri_candidates()
             idx = int(getattr(self, "_steam_uri_try_index", 0))
             next_uri = uris[idx] if 0 <= idx < len(uris) else ""
+            tip_next = t(
+                "settings.steam_uri_try_next_tip",
+                index=idx + 1,
+                total=len(uris),
+                uri=next_uri,
+            )
             self._btn_steam_try_next.setToolTip(
-                t(
-                    "settings.steam_uri_try_next_tip",
-                    index=idx + 1,
-                    total=len(uris),
-                    uri=next_uri,
-                )
+                f"{tip_next}\n{t('settings.steam_uri_try_next_shortcut')}"
             )
         else:
             self._btn_steam_try_next.setText(t("settings.steam_uri_try_next"))
             self._btn_steam_try_next.setToolTip(t("settings.steam_uri_try_next"))
+        if hasattr(self, "_steam_try_next_shortcut"):
+            self._steam_try_next_shortcut.setEnabled(self._btn_steam_try_next.isEnabled())
         if hasattr(self, "_btn_steam"):
             self._btn_steam.setToolTip(tip)
 
@@ -1063,6 +1070,8 @@ class MainWindow(QMainWindow):
             ]
         )
         table.setSortingEnabled(True)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         colors = {
             "block": QColor("#C73E1D"),
             "warning": QColor("#B08900"),
@@ -1211,6 +1220,8 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dlg)
         layout.addWidget(QLabel(t("display.fail_table")))
         table = QTableWidget(len(failed), 7)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         table.setHorizontalHeaderLabels(
             ["device", "name", "code", "size", "refresh", "adapter", "targetId"]
         )
@@ -1234,6 +1245,7 @@ class MainWindow(QMainWindow):
         remaining = QLabel("")
         remaining.setWordWrap(True)
         remaining_list = QListWidget()
+        remaining_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         remaining_list.setAccessibleName(t("display.session_targets_list"))
 
         def _sync_remaining_targets() -> None:
@@ -1412,17 +1424,23 @@ class MainWindow(QMainWindow):
         retry_hdr.clicked.connect(_retry_hdr)
         retry_hdr_sel.clicked.connect(_retry_hdr_selected)
         remaining_list.itemDoubleClicked.connect(lambda _item: _retry_hdr_selected())
-        # Keyboard: Return / Ctrl+Return retries; Esc clears selection.
+        # Keyboard: Return / Ctrl+Return retries; Esc clears multi-select on list + fail table.
         QShortcut(QKeySequence(Qt.Key.Key_Return), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence(Qt.Key.Key_Enter), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence("Ctrl+Return"), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence(Qt.Key.Key_Escape), remaining_list, activated=_clear_hdr_selection)
+        QShortcut(QKeySequence(Qt.Key.Key_Escape), table, activated=_clear_hdr_selection)
+        clear_sel = QPushButton(t("action.clear_selection"))
+        clear_sel.setToolTip(t("ui.clear_selection_tip"))
+        clear_sel.clicked.connect(_clear_hdr_selection)
+        table.setToolTip(t("ui.clear_selection_tip"))
         close = QPushButton("OK")
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
         row.addWidget(retry)
         row.addWidget(retry_hdr)
         row.addWidget(retry_hdr_sel)
+        row.addWidget(clear_sel)
         row.addWidget(close)
         layout.addLayout(row)
         dlg.resize(720, 420)

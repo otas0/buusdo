@@ -141,6 +141,13 @@ python -c "import json,zipfile; from pathlib import Path; r=Path('/tmp/buusdo-dw
 - Local awareness of 0-step failures: macOS LaunchAgent via `scripts/install_watch_ci_billing_launchd.sh` only (appending logs). Do **not** agent-poll Actions.
 - After Billing is fixed by a human: **one** `workflow_dispatch` (or push), then stop.
 - Verify LaunchAgent append markers: `bash scripts/assert_watch_ci_billing_log_append.sh`
+  (stricter: `---- exit N ----` must follow the latest `---- 20xx-… ----` timestamp).
+- Optional weekly local cron for that assert (still LaunchAgent/log only — no Actions poll):
+
+  ```cron
+  0 9 * * 1 cd /path/to/buusdo && bash scripts/assert_watch_ci_billing_log_append.sh >>~/Library/Logs/buusdo/assert-cron.log 2>&1
+  ```
+
 - Flaky `git push` HTTPS: `bash scripts/push_when_online.sh` (finite retries).
 
 ## Current status (checked offline)
