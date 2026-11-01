@@ -24,14 +24,17 @@ Triage under **`launch`** (startup/shell presence) **before** any feature work:
 
 ## Installer track (parallel, not 0.1.1 scope)
 
-Unsigned Inno installer may be built now (Windows / CI `installer` workflow).  
-Ship installer on GitHub when smoke passes; tag **`v1.0.0` only then**. Until then keep calling builds **preview**.
+See [INSTALLER_PREVIEW.md](INSTALLER_PREVIEW.md). Unsigned Inno may be built via `installer.yml`.  
+Draft `v0.1.0-installer-preview` stays **unpublished** until Explorer wordmark smoke.  
+**Authenticode stays off** until that Explorer check. Tag **`v1.0.0` only** after STORE_MVP smoke.  
+Promote draft → published preview (still not v1) is a **human** decision after Explorer OK.
 
-Out of band forever for preview:
+Out of band for preview:
 
-- Authenticode / SmartScreen reputation  
-- Phase 3 DWM HDR (stay isolated on `phase3/dwm-hdr`)  
-- Calling the preview an “official release” or tagging `v1.*` early
+- Authenticode / SmartScreen reputation (until Explorer smoke)  
+- Phase 3 DWM HDR (**isolated on `phase3/dwm-hdr`**; default branch is `main`)  
+- Calling the preview an “official release” or tagging `v1.*` early  
+- Shipping `0.1.1` without real `launch` / `scan` Issues
 
 ## Share copy
 

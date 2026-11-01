@@ -53,9 +53,5 @@ ASSETS=("${SETUP}" dist/SHA256SUMS)
 shopt -s nullglob
 for w in dist/buusdo-*.whl; do ASSETS+=("${w}"); done
 
-gh release create "${TAG}" "${ASSETS[@]}" \
-  --draft \
-  --title "buusdo ${TAG} (installer preview draft)" \
-  --notes-file "${NOTES}"
-
-echo "Draft release created for ${TAG}. Review on GitHub; do not publish as v1."
+# Prefer attach helper (updates existing draft without publishing).
+exec bash "${ROOT}/scripts/attach_installer_to_draft.sh" "${TAG}"

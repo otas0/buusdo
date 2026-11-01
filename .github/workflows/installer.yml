@@ -2,6 +2,7 @@ name: installer
 
 # Build unsigned Windows Inno setup.exe for GitHub Releases.
 # Prefer workflow_dispatch (one shot). Do not agent-poll; download the artifact when green.
+# Optional: attach Setup + SHA256SUMS to the draft preview release (never publishes, never v1.*).
 
 on:
   workflow_dispatch:
@@ -10,6 +11,15 @@ on:
         description: "Why build installer (preview packaging)"
         required: false
         default: "unsigned-inno"
+      attach_draft:
+        description: "Attach Setup+SHA256SUMS to draft v0.1.0-installer-preview (unpublished)"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   windows-inno:
@@ -20,14 +30,23 @@ jobs:
         run: |
           {
             echo "## Unsigned Inno installer"
-            echo "No Authenticode. SmartScreen may warn."
-            echo "v1.0.0 only after manual smoke of the artifact."
-            echo "0.1.1 remains fixes-only; this job is the installer track."
+            echo "No Authenticode until Explorer wordmark smoke on Setup + buusdo.exe."
+            echo "v1.0.0 only after manual smoke. Keep draft unpublished."
+            echo "0.1.1 remains fixes-only after real launch/scan Issues."
+            echo "Phase 3 stays on phase3/dwm-hdr (default branch is main)."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
+      - name: Cache PyInstaller workdir
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist/.pyi-work
+          key: pyi-${{ runner.os }}-${{ hashFiles('packaging/pyinstaller_buusdo.spec', 'buusdo/assets/logo.ico', 'uv.lock', 'buusdo/app.py') }}
+          restore-keys: |
+            pyi-${{ runner.os }}-
       - name: Install Python deps
         run: uv sync --extra devui
       - name: Install Inno Setup
@@ -44,6 +63,8 @@ jobs:
           uv run python scripts/check_release_visual_checklist.py
       - name: Wheel + Inno package
         shell: bash
+        env:
+          BUUSDO_PAYLOAD_BACKEND: pyinstaller
         run: |
           bash scripts/package_mvp.sh
           bash scripts/package_windows_inno.sh
@@ -56,10 +77,9 @@ jobs:
           uv run python scripts/verify_pe_icon.py --search-dist
           {
             echo "## Icon smoke"
-            echo "- PE resource check: \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON)."
-            echo "- Manual: Explorer wordmark on Setup + buusdo.exe."
-            echo "- Authenticode deferred. Do not tag v1.* until smoke passes."
-            echo "- Hold 0.1.1 until real launch/scan Issues are filed and fixed."
+            echo "- PE: \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON on Setup + buusdo.exe)."
+            echo "- Manual Explorer: wordmark on Setup + buusdo.exe before Authenticode."
+            echo "- Keep draft unpublished; no v1.*; hold 0.1.1 for launch/scan Issues."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -84,3 +104,11 @@ jobs:
             Write-Host "WARN no setup.exe - structural smoke only"
             powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
           }
+      - name: Attach Setup + SHA256SUMS to draft (unpublished)
+        if: ${{ success() && inputs.attach_draft }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/attach_installer_to_draft.sh
+          bash scripts/attach_installer_to_draft.sh v0.1.0-installer-preview

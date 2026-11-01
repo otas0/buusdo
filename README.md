@@ -12,6 +12,7 @@ It reuses each platform’s existing enhancement stack. It does not implement re
 Latest preview release: [v0.1.0](https://github.com/otas0/buusdo/releases/tag/v0.1.0) (wheel only; no official installer — **not** v1 / not an official release).
 Scope freeze: [docs/MVP.md](docs/MVP.md). GitHub v1 installer (Inno, **unsigned**): [docs/STORE_MVP.md](docs/STORE_MVP.md).
 Mac Dock icon track (experimental): [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
+Installer preview draft (unsigned): [docs/INSTALLER_PREVIEW.md](docs/INSTALLER_PREVIEW.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
