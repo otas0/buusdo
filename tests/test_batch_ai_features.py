@@ -13,7 +13,13 @@ def test_brand_mark_asset_exists() -> None:
     path = brand_mark_path()
     assert path.is_file()
     assert path.stat().st_size > 50
-    assert logo_path() == path
+
+
+def test_logo_path_prefers_logo_png() -> None:
+    path = logo_path()
+    assert path.is_file()
+    assert path.name == "logo.png"
+    assert path.stat().st_size > 50
 
 
 def test_ci_uses_uv_sync_extra_devui() -> None:

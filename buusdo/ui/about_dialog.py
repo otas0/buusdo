@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from buusdo import __version__
+from buusdo.assets import logo_path
 from buusdo.core.i18n import t
 
 FEEDBACK_URL = "https://github.com/otas0/buusdo/issues"
@@ -18,9 +19,19 @@ def show_about_dialog(parent=None) -> None:
     dlg = QDialog(parent)
     dlg.setObjectName("instrumentDialog")
     dlg.setWindowTitle(t("about.title"))
+    dlg.setWindowIcon(parent.windowIcon() if parent is not None else dlg.windowIcon())
     layout = QVBoxLayout(dlg)
     layout.setContentsMargins(16, 16, 16, 16)
     layout.setSpacing(10)
+
+    logo = logo_path()
+    if logo.is_file():
+        mark = QLabel()
+        mark.setObjectName("brandMark")
+        mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        pix = QPixmap(str(logo)).scaledToHeight(64, Qt.TransformationMode.SmoothTransformation)
+        mark.setPixmap(pix)
+        layout.addWidget(mark)
 
     title = QLabel("buusdo")
     title.setObjectName("brandTitle")
@@ -49,5 +60,5 @@ def show_about_dialog(parent=None) -> None:
     row.addWidget(repo)
     row.addWidget(close)
     layout.addLayout(row)
-    dlg.resize(420, 280)
+    dlg.resize(420, 320)
     dlg.exec()

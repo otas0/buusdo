@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from buusdo.assets import logo_path
+from buusdo.ui.tray_icon import app_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
@@ -108,9 +109,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("buusdo")
         self.resize(980, 720)
 
-        logo = logo_path()
-        if logo.is_file():
-            self.setWindowIcon(QIcon(str(logo)))
+        self.setWindowIcon(app_icon())
 
         self._backend = backend or get_backend()
         self._target: EnhancementTarget | None = None
@@ -130,16 +129,20 @@ class MainWindow(QMainWindow):
         brand = QHBoxLayout()
         brand.setContentsMargins(4, 8, 4, 12)
         brand.setSpacing(14)
+        logo = logo_path()
         logo_label = QLabel()
         logo_label.setObjectName("brandMark")
         logo_label.setAccessibleName("buusdo logo")
         if logo.is_file():
-            # Nearest-neighbor keeps the original dot-matrix crisp.
-            pix = QPixmap(str(logo)).scaledToHeight(48, Qt.TransformationMode.FastTransformation)
+            # Wordmark logo — smooth scale for UI chrome.
+            pix = QPixmap(str(logo)).scaledToHeight(
+                56, Qt.TransformationMode.SmoothTransformation
+            )
             logo_label.setPixmap(pix)
         brand.addWidget(logo_label)
         brand_text = QVBoxLayout()
         brand_text.setSpacing(4)
+        # Logo already carries the wordmark; keep a compact text title for a11y / i18n chrome.
         title = QLabel("buusdo")
         title.setObjectName("brandTitle")
         brand_text.addWidget(title)
@@ -410,7 +413,7 @@ class MainWindow(QMainWindow):
     def _setup_tray(self) -> None:
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
-        self._tray = QSystemTrayIcon(make_mark_icon(64), self)
+        self._tray = QSystemTrayIcon(app_icon(), self)
         self._tray.setToolTip("buusdo")
         show = QAction("Show", self)
         show.triggered.connect(self.showNormal)

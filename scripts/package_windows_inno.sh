@@ -71,6 +71,11 @@ do
   fi
 done
 
+# Ensure Windows installer icon exists.
+if [[ ! -f "${ROOT}/buusdo/assets/logo.ico" ]]; then
+  "${PY}" "${ROOT}/scripts/generate_logo_ico.py" || true
+fi
+
 if [[ -n "${ISCC}" && -f "${OUT}/payload/buusdo.exe" ]]; then
   "${ISCC}" "/DMyAppVersion=${VER}" "${ISS}"
 elif [[ -n "${ISCC}" ]]; then

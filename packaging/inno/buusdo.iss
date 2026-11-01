@@ -28,6 +28,7 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#MyAppExeName}
+SetupIconFile=..\..\buusdo\assets\logo.ico
 ; No SignTool* keys — unsigned GitHub build on purpose.
 
 [Languages]

@@ -1,34 +1,47 @@
-"""Generate a simplified parallelogram tray icon inspired by the buusdo logo mark."""
+"""App / tray icons from the bundled logo."""
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QPolygon
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap
+
+from buusdo.assets import logo_path
 
 
 def make_mark_icon(size: int = 64) -> QIcon:
+    """Build a QIcon from logo.png (multi-size when used via app_icon())."""
+    path = logo_path()
+    if path.is_file():
+        pix = QPixmap(str(path))
+        if not pix.isNull():
+            scaled = pix.scaled(
+                size,
+                size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            return QIcon(scaled)
+    # Minimal fallback if assets missing.
     pix = QPixmap(size, size)
-    pix.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pix)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-    # Two overlapping parallelograms (logo "uu" mark), black + dark grey.
-    def para(ox: int, oy: int, color: QColor) -> None:
-        w, h, skew = int(size * 0.42), int(size * 0.55), int(size * 0.18)
-        pts = QPolygon(
-            [
-                QPoint(ox + skew, oy),
-                QPoint(ox + skew + w, oy),
-                QPoint(ox + w, oy + h),
-                QPoint(ox, oy + h),
-            ]
-        )
-        painter.setBrush(color)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawPolygon(pts)
-
-    margin = int(size * 0.12)
-    para(margin, margin + 4, QColor("#000000"))
-    para(margin + int(size * 0.16), margin, QColor("#4A4A4A"))
-    painter.end()
+    pix.fill(Qt.GlobalColor.black)
     return QIcon(pix)
+
+
+def app_icon() -> QIcon:
+    """Window / taskbar / tray icon with several resolutions from logo.png."""
+    path = logo_path()
+    icon = QIcon()
+    if path.is_file():
+        src = QPixmap(str(path))
+        if not src.isNull():
+            for side in (16, 24, 32, 48, 64, 128, 256):
+                icon.addPixmap(
+                    src.scaled(
+                        side,
+                        side,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+            return icon
+    return make_mark_icon(64)
