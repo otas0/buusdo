@@ -24,7 +24,7 @@
 - Actions `logo-assets` on `main`: blocked by **spending limit** — raise at https://github.com/settings/billing/summary then re-run `ci` (agent cannot change billing).
 - Phase 3 stays on `phase3/dwm-hdr`. Re-run `uv run python scripts/screenshot_release_checklist.py` before any new tag if UI chrome changes.
 - Explorer still **manual**; draft stays unpublished; Authenticode off; no `v1.*` / no `0.1.1` until launch/scan Issues.
-- Local UTM **Windows 2** has no guest disk/ISO yet — install a Windows 11 ARM64 ISO before Explorer wordmark smoke (Microsoft software-download).
+- Local UTM/ISO Explorer smoke **skipped** (user reports via `launch`). Payload reuse confirmed on run `41304170487`: `Reusing cached … skip PyInstaller`.
 
 ## Attach artifacts to draft
 
