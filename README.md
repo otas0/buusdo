@@ -12,9 +12,10 @@ Full product semantics and hard constraints: [docs/PROJECT.md](docs/PROJECT.md).
 # Prefer uv (Homebrew Python on this machine may have a broken platform.mac_ver)
 uv venv --python 3.12 .venv
 source .venv/bin/activate
-# pytest + PySide6-Essentials (pinned in uv.lock) — preferred for UI/dev
-uv pip install -e ".[devui]"
-# or split: uv pip install -e ".[dev,ui]"
+# Canonical once lock consumers standardize:
+uv sync --extra devui
+# Equivalent editable path:
+#   uv pip install -e ".[devui]"
 pytest
 python -m buusdo
 ```
@@ -70,8 +71,9 @@ python scripts/verify_dwm_hdr_poc_local.py --json     # machine-readable summary
 bash scripts/push_when_online.sh                     # finite-retry git push (flaky HTTPS)
 ```
 
-Optional weekly local cron (LaunchAgent assert only — still no Actions poll):
+Optional weekly Monday assert (LaunchAgent — still no Actions poll):
 
-```cron
-0 9 * * 1 cd /path/to/buusdo && bash scripts/assert_watch_ci_billing_log_append.sh >>~/Library/Logs/buusdo/assert-cron.log 2>&1
+```bash
+bash scripts/install_assert_watch_ci_billing_weekly.sh
+# or crontab: 0 9 * * 1 cd /path/to/buusdo && bash scripts/assert_watch_ci_billing_log_append.sh >>~/Library/Logs/buusdo/assert-cron.log 2>&1
 ```

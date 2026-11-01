@@ -127,26 +127,26 @@ class MainWindow(QMainWindow):
         outer = QVBoxLayout(root)
 
         brand = QHBoxLayout()
+        brand.setSpacing(16)
         logo_label = QLabel()
         logo_label.setAccessibleName("buusdo logo")
         if logo.is_file():
-            pix = QPixmap(str(logo)).scaledToHeight(48, Qt.TransformationMode.SmoothTransformation)
+            pix = QPixmap(str(logo)).scaledToHeight(56, Qt.TransformationMode.SmoothTransformation)
             logo_label.setPixmap(pix)
-        else:
-            logo_label.setText("buusdo")
         brand.addWidget(logo_label)
         brand_text = QVBoxLayout()
+        brand_text.setSpacing(2)
         title = QLabel("buusdo")
-        tf = title.font()
-        tf.setPointSize(18)
-        tf.setBold(True)
-        title.setFont(tf)
+        title.setObjectName("brandTitle")
         brand_text.addWidget(title)
         self._subtitle = QLabel(t("app.subtitle"))
         self._subtitle.setObjectName("brandSubtitle")
         brand_text.addWidget(self._subtitle)
         brand.addLayout(brand_text)
         brand.addStretch(1)
+        backend_chip = QLabel(f"backend · {self._backend.platform_id()}")
+        backend_chip.setObjectName("backendChip")
+        brand.addWidget(backend_chip)
         self._lang = QComboBox()
         for loc in available_locales():
             self._lang.addItem(loc, loc)
@@ -154,7 +154,6 @@ class MainWindow(QMainWindow):
         self._lang.currentIndexChanged.connect(self._on_locale_changed)
         brand.addWidget(self._lang)
         outer.addLayout(brand)
-        outer.addWidget(QLabel(f"backend: {self._backend.platform_id()}"))
 
         self._stack = QStackedWidget()
         outer.addWidget(self._stack, stretch=1)
@@ -163,8 +162,11 @@ class MainWindow(QMainWindow):
         home = QVBoxLayout(self._home)
 
         filter_row = QHBoxLayout()
-        filter_row.addWidget(QLabel("Filter"))
+        filter_lbl = QLabel("Filter")
+        filter_lbl.setObjectName("sectionLabel")
+        filter_row.addWidget(filter_lbl)
         self._filter = QLineEdit()
+        self._filter.setPlaceholderText("filter games…")
         self._filter.setAccessibleName("游戏列表过滤")
         self._filter.textChanged.connect(self._refresh_game_list)
         filter_row.addWidget(self._filter)
@@ -172,8 +174,9 @@ class MainWindow(QMainWindow):
 
         self._kits_banner = QLabel("")
         self._kits_banner.setWordWrap(True)
-        self._kits_banner.setStyleSheet("color: #B08900;")
+        self._kits_banner.setStyleSheet("color: #FF4F00;")
         self._btn_complete_kits = QPushButton(t("settings.complete_kits"))
+        self._btn_complete_kits.setObjectName("accentAction")
         self._btn_complete_kits.clicked.connect(self._complete_kits_setup)
         kits_row = QHBoxLayout()
         kits_row.addWidget(self._kits_banner, stretch=1)
@@ -181,7 +184,9 @@ class MainWindow(QMainWindow):
         home.addLayout(kits_row)
         self._refresh_kits_banner()
 
-        home.addWidget(QLabel("Games"))
+        games_lbl = QLabel("Games")
+        games_lbl.setObjectName("sectionLabel")
+        home.addWidget(games_lbl)
         self._game_list = QListWidget()
         self._game_list.setAccessibleName("游戏列表")
         self._game_list.currentRowChanged.connect(self._on_game_selected)
@@ -291,10 +296,11 @@ class MainWindow(QMainWindow):
 
         self._session_banner = QLabel("")
         self._session_banner.setWordWrap(True)
-        self._session_banner.setStyleSheet("color: #B08900;")
+        self._session_banner.setStyleSheet("color: #FF4F00;")
         self._btn_clear_session = QPushButton(t("action.clear_display_session"))
         self._btn_clear_session.clicked.connect(self._clear_display_session)
         self._btn_rollback_now = QPushButton(t("action.rollback_now"))
+        self._btn_rollback_now.setObjectName("primaryAction")
         self._btn_rollback_now.clicked.connect(self._rollback_display_now)
         sess_row = QHBoxLayout()
         sess_row.addWidget(self._session_banner, stretch=1)
@@ -303,11 +309,15 @@ class MainWindow(QMainWindow):
         home.addLayout(sess_row)
         self._refresh_session_banner()
 
-        home.addWidget(QLabel("Capabilities"))
+        caps_lbl = QLabel("Capabilities")
+        caps_lbl.setObjectName("sectionLabel")
+        home.addWidget(caps_lbl)
         self._cap_list = QListWidget()
         home.addWidget(self._cap_list)
 
-        home.addWidget(QLabel("History"))
+        hist_lbl = QLabel("History")
+        hist_lbl.setObjectName("sectionLabel")
+        home.addWidget(hist_lbl)
         self._history_list = QListWidget()
         home.addWidget(self._history_list)
 
@@ -514,13 +524,13 @@ class MainWindow(QMainWindow):
             return
         text, severity = self._kit_banner_state()
         self._kits_banner.setText(text)
-        # empty: amber; one_side: blue; incomplete DLLs: red
+        # incomplete: block red; one_side: ok blue; empty: accent orange
         if severity == "incomplete":
             self._kits_banner.setStyleSheet("color: #C73E1D; font-weight: 600;")
         elif severity == "one_side":
-            self._kits_banner.setStyleSheet("color: #2E86AB; font-weight: 600;")
+            self._kits_banner.setStyleSheet("color: #1F6F8B; font-weight: 600;")
         else:
-            self._kits_banner.setStyleSheet("color: #B08900;")
+            self._kits_banner.setStyleSheet("color: #FF4F00;")
         missing = self._missing_kit_side()
         if missing == "reshade":
             self._btn_complete_kits.setText(t("settings.complete_kits_reshade"))
@@ -1033,17 +1043,31 @@ class MainWindow(QMainWindow):
         order = {"block": 0, "warning": 1, "info": 2, "conflict": 3, "": 4}
         return order.get(severity, 5)
 
+    @staticmethod
+    def _esc_clears_selection_not_reject(dlg: QDialog, *widgets) -> None:
+        """Esc clears row selection; does not close the dialog (override reject)."""
+
+        def _clear() -> None:
+            clear_row_selections(*widgets)
+
+        def _reject_clear() -> None:
+            _clear()
+
+        dlg.reject = _reject_clear  # type: ignore[method-assign]
+        for w in widgets:
+            if w is not None:
+                QShortcut(QKeySequence(Qt.Key.Key_Escape), w, activated=_clear)
+
     def _show_conflict_dialog(self, details: dict) -> None:
         dlg = QDialog(self)
         dlg.setWindowTitle(t("conflict.title"))
         layout = QVBoxLayout(dlg)
-        layout.addWidget(QLabel(t("conflict.title")))
+        title = QLabel(t("conflict.title"))
+        title.setObjectName("sectionLabel")
+        layout.addWidget(title)
         schema_v = details.get("schema_version") or 1
         badge = QLabel(t("conflict.schema_badge", version=schema_v))
-        badge.setStyleSheet(
-            "color: #2E86AB; font-weight: 600; border: 1px solid #2E86AB; "
-            "padding: 2px 8px; align-self: flex-start;"
-        )
+        badge.setObjectName("backendChip")
         layout.addWidget(badge)
         rows = []
         for item in details.get("diffs") or []:
@@ -1074,8 +1098,8 @@ class MainWindow(QMainWindow):
         table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         colors = {
             "block": QColor("#C73E1D"),
-            "warning": QColor("#B08900"),
-            "info": QColor("#2E86AB"),
+            "warning": QColor("#FF4F00"),
+            "info": QColor("#1F6F8B"),
         }
         for i, (severity, item, detail) in enumerate(rows):
             values = [
@@ -1131,8 +1155,10 @@ class MainWindow(QMainWindow):
         copy_btn.clicked.connect(_copy)
         export_btn.clicked.connect(_export)
         clear_sel.clicked.connect(_clear_conflict_selection)
+        close.setObjectName("primaryAction")
+        close.setDefault(True)
         close.clicked.connect(dlg.accept)
-        QShortcut(QKeySequence(Qt.Key.Key_Escape), table, activated=_clear_conflict_selection)
+        self._esc_clears_selection_not_reject(dlg, table)
         table.setToolTip(t("ui.clear_selection_tip"))
         clear_sel.setToolTip(t("ui.clear_selection_tip"))
         actions.addWidget(copy_btn)
@@ -1428,13 +1454,14 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence(Qt.Key.Key_Return), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence(Qt.Key.Key_Enter), remaining_list, activated=_retry_hdr_selected)
         QShortcut(QKeySequence("Ctrl+Return"), remaining_list, activated=_retry_hdr_selected)
-        QShortcut(QKeySequence(Qt.Key.Key_Escape), remaining_list, activated=_clear_hdr_selection)
-        QShortcut(QKeySequence(Qt.Key.Key_Escape), table, activated=_clear_hdr_selection)
+        self._esc_clears_selection_not_reject(dlg, remaining_list, table)
         clear_sel = QPushButton(t("action.clear_selection"))
         clear_sel.setToolTip(t("ui.clear_selection_tip"))
         clear_sel.clicked.connect(_clear_hdr_selection)
         table.setToolTip(t("ui.clear_selection_tip"))
         close = QPushButton("OK")
+        close.setObjectName("primaryAction")
+        close.setDefault(True)
         close.clicked.connect(dlg.accept)
         row = QHBoxLayout()
         row.addWidget(retry)
