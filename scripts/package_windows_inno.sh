@@ -18,43 +18,76 @@ VER="$("${PY}" -c "from buusdo import __version__; print(__version__)" 2>/dev/nu
 mkdir -p "${OUT}/payload"
 export PATH="${ROOT}/.venv/bin:${ROOT}/.venv/Scripts:${PATH:-}"
 
-echo "=== 1) App payload (pyside6-deploy) ==="
-DEPLOY_BIN="$(command -v pyside6-deploy || true)"
-if [[ -z "${DEPLOY_BIN}" && -x "${ROOT}/.venv/Scripts/pyside6-deploy.exe" ]]; then
-  DEPLOY_BIN="${ROOT}/.venv/Scripts/pyside6-deploy.exe"
-fi
-if [[ -z "${DEPLOY_BIN}" && -x "${ROOT}/.venv/bin/pyside6-deploy" ]]; then
-  DEPLOY_BIN="${ROOT}/.venv/bin/pyside6-deploy"
-fi
+# Payload backend: pyinstaller (default, icon= reliable on CI) or nuitka (pyside6-deploy).
+PAYLOAD_BACKEND="${BUUSDO_PAYLOAD_BACKEND:-pyinstaller}"
+echo "=== 1) App payload (backend=${PAYLOAD_BACKEND}) ==="
 
-if [[ -n "${DEPLOY_BIN}" ]]; then
+_build_pyinstaller_payload() {
+  echo "Building onefile via PyInstaller (icon=logo.ico)…"
+  if command -v uv >/dev/null 2>&1; then
+    uv pip install -q pyinstaller
+    uv run pyinstaller "${ROOT}/packaging/pyinstaller_buusdo.spec" \
+      --distpath "${OUT}/payload" --workpath "${OUT}/.pyi-work" --noconfirm
+  else
+    "${PY}" -m pip install -q pyinstaller
+    "${PY}" -m PyInstaller "${ROOT}/packaging/pyinstaller_buusdo.spec" \
+      --distpath "${OUT}/payload" --workpath "${OUT}/.pyi-work" --noconfirm
+  fi
+}
+
+_build_nuitka_payload() {
+  DEPLOY_BIN="$(command -v pyside6-deploy || true)"
+  if [[ -z "${DEPLOY_BIN}" && -x "${ROOT}/.venv/Scripts/pyside6-deploy.exe" ]]; then
+    DEPLOY_BIN="${ROOT}/.venv/Scripts/pyside6-deploy.exe"
+  fi
+  if [[ -z "${DEPLOY_BIN}" && -x "${ROOT}/.venv/bin/pyside6-deploy" ]]; then
+    DEPLOY_BIN="${ROOT}/.venv/bin/pyside6-deploy"
+  fi
+  if [[ -z "${DEPLOY_BIN}" ]]; then
+    echo "pyside6-deploy not found" >&2
+    return 1
+  fi
   bash "${ROOT}/scripts/deploy.sh" || true
-  # Normalize into dist/payload for Inno.
   if [[ -d "${OUT}/buusdo.dist" ]]; then
     rm -rf "${OUT}/payload"
     mkdir -p "${OUT}/payload"
     cp -R "${OUT}/buusdo.dist/." "${OUT}/payload/" || true
   fi
-  # Nuitka/pyside6-deploy layouts vary; gather buusdo.exe if present anywhere under dist/.
   if [[ ! -f "${OUT}/payload/buusdo.exe" ]]; then
     found="$(find "${OUT}" -maxdepth 3 -iname 'buusdo.exe' 2>/dev/null | head -1 || true)"
     if [[ -n "${found}" ]]; then
       mkdir -p "${OUT}/payload"
       cp -f "${found}" "${OUT}/payload/buusdo.exe"
-      # Copy sibling runtime files if exe lives in a folder.
       parent="$(dirname "${found}")"
       if [[ "${parent}" != "${OUT}/payload" ]]; then
         cp -R "${parent}/." "${OUT}/payload/" 2>/dev/null || true
       fi
     fi
   fi
+}
+
+if [[ "${PAYLOAD_BACKEND}" == "nuitka" ]]; then
+  _build_nuitka_payload || true
+  if [[ ! -f "${OUT}/payload/buusdo.exe" ]]; then
+    echo "Nuitka payload missing — falling back to PyInstaller." >&2
+    _build_pyinstaller_payload || true
+  fi
 else
-  echo "pyside6-deploy not found — stub payload (CI should install .[devui] first)."
-  echo "Run: uv sync --extra devui" > "${OUT}/payload/README-PAYLOAD.txt"
+  _build_pyinstaller_payload || true
+  if [[ ! -f "${OUT}/payload/buusdo.exe" ]]; then
+    echo "PyInstaller payload missing — trying Nuitka/pyside6-deploy." >&2
+    _build_nuitka_payload || true
+  fi
 fi
 
 if [[ ! -f "${OUT}/payload/buusdo.exe" ]]; then
-  echo "WARN: dist/payload/buusdo.exe missing — Inno may fail until deploy succeeds." >&2
+  found="$(find "${OUT}/payload" -maxdepth 2 -iname 'buusdo.exe' 2>/dev/null | head -1 || true)"
+  if [[ -n "${found}" && "${found}" != "${OUT}/payload/buusdo.exe" ]]; then
+    cp -f "${found}" "${OUT}/payload/buusdo.exe"
+  fi
+fi
+if [[ ! -f "${OUT}/payload/buusdo.exe" ]]; then
+  echo "WARN: dist/payload/buusdo.exe still missing — Inno will skip setup.exe." >&2
 fi
 
 echo "=== 2) Inno Setup (unsigned) ==="

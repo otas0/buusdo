@@ -36,29 +36,28 @@ if [[ ! -f "${ICO}" ]]; then
   echo "FATAL: buusdo/assets/logo.ico missing — Windows onefile icon cannot be set." >&2
   exit 1
 fi
-DEPLOY_SPEC="${ROOT}/scripts/pyside6-deploy.spec.json"
+DEPLOY_SPEC="${ROOT}/scripts/pyside6-deploy.spec"
 if [[ "$(uname -s)" == "Darwin" ]]; then
   if [[ ! -f "${ICNS}" ]]; then
     "${PY}" "${ROOT}/scripts/generate_logo_icns.py" || true
   fi
-  # Prefer .icns on macOS for Dock/Finder.
+  # Prefer .icns on macOS for Dock/Finder (--macos-app-icon).
   if [[ -f "${ICNS}" ]]; then
     SPEC_TMP="$(mktemp)"
     ROOT="${ROOT}" SPEC_TMP="${SPEC_TMP}" "${PY}" - <<'PY'
-import json, os
+import os
 from pathlib import Path
 root = Path(os.environ["ROOT"])
-src = root / "scripts" / "pyside6-deploy.spec.json"
-data = json.loads(src.read_text(encoding="utf-8"))
-data["icon"] = "buusdo/assets/logo.icns"
-Path(os.environ["SPEC_TMP"]).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+src = (root / "scripts" / "pyside6-deploy.spec").read_text(encoding="utf-8")
+out = src.replace("icon = buusdo/assets/logo.ico", "icon = buusdo/assets/logo.icns")
+Path(os.environ["SPEC_TMP"]).write_text(out, encoding="utf-8")
 PY
     DEPLOY_SPEC="${SPEC_TMP}"
   fi
 fi
 
 # Nuitka-backed deploy; outputs vary by host (.exe / .bin / .app).
-# Icon is set via pyside6-deploy.spec.json → --windows-icon-from-ico / --macos-app-icon.
+# Icon via pysidedeploy.spec [app] icon → --windows-icon-from-ico / --macos-app-icon.
 pyside6-deploy "${ENTRY}" -f -c "${DEPLOY_SPEC}" || {
   echo "pyside6-deploy failed; falling back to module reminder." >&2
   echo "Manual: pyside6-deploy buusdo/app.py" >&2

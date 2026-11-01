@@ -55,10 +55,9 @@ def test_generate_logo_ico_compact() -> None:
 
 
 def test_deploy_spec_sets_icon() -> None:
-    import json
-
-    data = json.loads(Path("scripts/pyside6-deploy.spec.json").read_text(encoding="utf-8"))
-    assert data.get("icon") == "buusdo/assets/logo.ico"
+    text = Path("scripts/pyside6-deploy.spec").read_text(encoding="utf-8")
+    assert "[app]" in text
+    assert "logo.ico" in text
     assert Path("packaging/pyinstaller_buusdo.spec").is_file()
 
 

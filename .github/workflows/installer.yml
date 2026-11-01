@@ -51,26 +51,19 @@ jobs:
         shell: bash
         run: |
           ls -la dist || true
+          ls -la dist/payload || true
           ls -la buusdo/assets/logo.ico
           uv run python scripts/verify_pe_icon.py --search-dist
           {
             echo "## Icon smoke"
-            echo "- PE resource check ran via \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON)."
-            echo "- Manual: Explorer must show wordmark on Setup + \`buusdo.exe\`."
-            echo "- Authenticode deferred. Do **not** tag \`v1.*\` until smoke passes."
-            echo "- Hold \`0.1.1\` until real \`launch\`/\`scan\` Issues are filed and fixed."
+            echo "- PE resource check: \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON)."
+            echo "- Manual: Explorer wordmark on Setup + buusdo.exe."
+            echo "- Authenticode deferred. Do not tag v1.* until smoke passes."
+            echo "- Hold 0.1.1 until real launch/scan Issues are filed and fixed."
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Install + launch smoke
-        shell: powershell
-        run: |
-          $setup = Get-ChildItem -Path dist -Filter "buusdo-setup-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($setup) {
-            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SetupExe $setup.FullName
-          } else {
-            Write-Host "WARN no setup.exe — structural smoke only"
-            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
-          }
       - uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
         with:
           name: buusdo-windows-installer
           path: |
@@ -81,3 +74,13 @@ jobs:
             dist/payload/buusdo.exe
           if-no-files-found: warn
           retention-days: 14
+      - name: Install + launch smoke
+        shell: powershell
+        run: |
+          $setup = Get-ChildItem -Path dist -Filter "buusdo-setup-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -ne $setup) {
+            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SetupExe $setup.FullName
+          } else {
+            Write-Host "WARN no setup.exe - structural smoke only"
+            powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
+          }

@@ -1,8 +1,0 @@
-{
-  "app": "buusdo",
-  "icon": "buusdo/assets/logo.ico",
-  "qml_files": [],
-  "excluded_qml_plugins": [],
-  "local_packages": ["buusdo"],
-  "mode": "onefile"
-}

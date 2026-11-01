@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Optional PyInstaller onefile path (Nuitka/pyside6-deploy remains primary).
-# Usage (Windows): pyinstaller packaging/pyinstaller_buusdo.spec
+# PyInstaller onefile fallback when pyside6-deploy/Nuitka is unavailable.
+# Usage: pyinstaller packaging/pyinstaller_buusdo.spec
 from pathlib import Path
 
 ROOT = Path(SPECPATH).resolve().parent.parent  # noqa: F821 — PyInstaller injects SPECPATH
