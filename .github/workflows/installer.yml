@@ -1,0 +1,60 @@
+name: installer
+
+# Build unsigned Windows Inno setup.exe for GitHub Releases.
+# Prefer workflow_dispatch (one shot). Do not agent-poll; download the artifact when green.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why build installer (preview packaging)"
+        required: false
+        default: "unsigned-inno"
+
+jobs:
+  windows-inno:
+    runs-on: windows-latest
+    steps:
+      - name: Notes
+        shell: bash
+        run: |
+          {
+            echo "## Unsigned Inno installer"
+            echo "No Authenticode. SmartScreen may warn."
+            echo "v1.0.0 only after manual smoke of the artifact."
+            echo "0.1.1 remains fixes-only; this job is the installer track."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python deps
+        run: uv sync --extra devui
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Gates
+        shell: bash
+        run: |
+          uv run python scripts/smoke_github_release_gate.py
+          uv run python scripts/mvp_self_test.py
+      - name: Wheel + Inno package
+        shell: bash
+        run: |
+          bash scripts/package_mvp.sh
+          bash scripts/package_windows_inno.sh
+      - name: List dist
+        shell: bash
+        run: ls -la dist || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-windows-installer
+          path: |
+            dist/buusdo-setup-*.exe
+            dist/SHA256SUMS
+            dist/INSTALL.txt
+            dist/*.whl
+          if-no-files-found: warn
+          retention-days: 14
