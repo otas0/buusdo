@@ -44,11 +44,19 @@ EOF
 # Checksums for all files currently in dist/ (except SHA256SUMS itself).
 (
   cd "${OUT}"
-  if command -v shasum >/dev/null 2>&1; then
-    find . -type f ! -name 'SHA256SUMS' -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS
-  else
-    find . -type f ! -name 'SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-  fi
+  : > SHA256SUMS
+  while IFS= read -r f; do
+    [[ -z "${f}" ]] && continue
+    base="$(basename "${f}")"
+    [[ "${base}" == "SHA256SUMS" || "${base}" == ".gitignore" ]] && continue
+    # Skip nested payload stubs from other packaging scripts.
+    [[ "${f}" == ./payload/* ]] && continue
+    if command -v shasum >/dev/null 2>&1; then
+      shasum -a 256 "${f}" >> SHA256SUMS
+    else
+      sha256sum "${f}" >> SHA256SUMS
+    fi
+  done < <(find . -type f | sort)
 )
 
 echo "Wrote ${OUT}/INSTALL.txt and ${OUT}/SHA256SUMS"
