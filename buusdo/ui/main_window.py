@@ -127,15 +127,18 @@ class MainWindow(QMainWindow):
         outer = QVBoxLayout(root)
 
         brand = QHBoxLayout()
-        brand.setSpacing(16)
+        brand.setContentsMargins(4, 8, 4, 12)
+        brand.setSpacing(14)
         logo_label = QLabel()
+        logo_label.setObjectName("brandMark")
         logo_label.setAccessibleName("buusdo logo")
         if logo.is_file():
-            pix = QPixmap(str(logo)).scaledToHeight(56, Qt.TransformationMode.SmoothTransformation)
+            # Nearest-neighbor keeps the original dot-matrix crisp.
+            pix = QPixmap(str(logo)).scaledToHeight(48, Qt.TransformationMode.FastTransformation)
             logo_label.setPixmap(pix)
         brand.addWidget(logo_label)
         brand_text = QVBoxLayout()
-        brand_text.setSpacing(2)
+        brand_text.setSpacing(4)
         title = QLabel("buusdo")
         title.setObjectName("brandTitle")
         brand_text.addWidget(title)
@@ -160,6 +163,8 @@ class MainWindow(QMainWindow):
 
         self._home = QWidget()
         home = QVBoxLayout(self._home)
+        home.setContentsMargins(8, 4, 8, 8)
+        home.setSpacing(10)
 
         filter_row = QHBoxLayout()
         filter_lbl = QLabel("Filter")
@@ -321,8 +326,14 @@ class MainWindow(QMainWindow):
         self._history_list = QListWidget()
         home.addWidget(self._history_list)
 
-        buttons = QHBoxLayout()
+        actions_col = QVBoxLayout()
+        actions_col.setSpacing(8)
+        row_primary = QHBoxLayout()
+        row_primary.setSpacing(8)
+        row_secondary = QHBoxLayout()
+        row_secondary.setSpacing(8)
         self._btn_scan = QPushButton(t("action.scan"))
+        self._btn_scan.setObjectName("accentAction")
         self._btn_force = QPushButton(t("action.force_scan"))
         self._btn_cancel = QPushButton(t("action.cancel_scan"))
         self._btn_cancel.setEnabled(False)
@@ -332,6 +343,8 @@ class MainWindow(QMainWindow):
         self._btn_kit = QPushButton("ReShade…")
         self._btn_opti = QPushButton("OptiScaler…")
         self._btn_install = QPushButton(t("action.deploy"))
+        self._btn_install.setObjectName("primaryAction")
+        self._btn_install.setDefault(True)
         self._btn_uninstall = QPushButton(t("action.uninstall"))
         self._btn_export = QPushButton("Export")
         self._btn_import = QPushButton("Import")
@@ -340,19 +353,24 @@ class MainWindow(QMainWindow):
             self._btn_scan,
             self._btn_force,
             self._btn_cancel,
+            self._btn_install,
+            self._btn_uninstall,
+        ):
+            row_primary.addWidget(b)
+        for b in (
             self._btn_preview,
             self._btn_steam,
             self._btn_proton_note,
             self._btn_kit,
             self._btn_opti,
-            self._btn_install,
-            self._btn_uninstall,
             self._btn_export,
             self._btn_import,
             self._btn_history,
         ):
-            buttons.addWidget(b)
-        home.addLayout(buttons)
+            row_secondary.addWidget(b)
+        actions_col.addLayout(row_primary)
+        actions_col.addLayout(row_secondary)
+        home.addLayout(actions_col)
 
         self._status = QLabel("")
         self._status.setWordWrap(True)
@@ -1061,7 +1079,10 @@ class MainWindow(QMainWindow):
     def _show_conflict_dialog(self, details: dict) -> None:
         dlg = QDialog(self)
         dlg.setWindowTitle(t("conflict.title"))
+        dlg.setObjectName("instrumentDialog")
         layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
         title = QLabel(t("conflict.title"))
         title.setObjectName("sectionLabel")
         layout.addWidget(title)
@@ -1243,8 +1264,13 @@ class MainWindow(QMainWindow):
     def _show_rollback_failures(self, failed: list, *, hdr_step: dict | None = None) -> None:
         dlg = QDialog(self)
         dlg.setWindowTitle(t("display.fail_table"))
+        dlg.setObjectName("instrumentDialog")
         layout = QVBoxLayout(dlg)
-        layout.addWidget(QLabel(t("display.fail_table")))
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+        fail_title = QLabel(t("display.fail_table"))
+        fail_title.setObjectName("sectionLabel")
+        layout.addWidget(fail_title)
         table = QTableWidget(len(failed), 7)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
@@ -1310,6 +1336,7 @@ class MainWindow(QMainWindow):
         retry = QPushButton(t("display.retry_one"))
         retry_hdr = QPushButton(t("display.retry_hdr"))
         retry_hdr_sel = QPushButton(t("display.retry_hdr_selected"))
+        retry_hdr_sel.setObjectName("accentAction")
         retry_hdr_sel.setToolTip(t("display.retry_hdr_shortcut"))
         remaining_list.setToolTip(t("display.retry_hdr_shortcut"))
 

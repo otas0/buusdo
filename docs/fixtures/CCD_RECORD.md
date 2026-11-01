@@ -34,6 +34,7 @@ Do not mark `--require-live` green until a real dual-monitor Windows record over
 Do not pass `--require-live` until a real dual-monitor overwrite lands.
 This macOS agent cannot execute `scripts/ccd_record_windows.bat`. A human on a dual-monitor
 Windows PC must run it and commit `docs/fixtures/ccd_dual_monitor_sample.json`.
+(Still blocked as of the AI UI batch — fixture remains ILLUSTRATIVE.)
 
 ## Windows host checklist (real dual-monitor)
 

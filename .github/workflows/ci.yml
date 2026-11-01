@@ -34,25 +34,24 @@ jobs:
             echo "Until runners start, \`dwm-hdr-poc\` will not appear under Artifacts."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
         run: |
-          python -m pip install -U pip
-          pip install -e ".[dev]"
+          uv sync --extra dev
       - name: Platform-branch lint (C3)
-        run: python scripts/check_no_platform_branch.py
+        run: uv run python scripts/check_no_platform_branch.py
       - name: err.* i18n completeness (zh/en)
-        run: python scripts/check_err_i18n.py
+        run: uv run python scripts/check_err_i18n.py
       - name: Conflict-export schema drift (migrate JSONL)
-        run: python scripts/check_conflict_export_schema_drift.py
+        run: uv run python scripts/check_conflict_export_schema_drift.py
       - name: Docs language (no Han under docs/)
-        run: python scripts/check_docs_language.py
+        run: uv run python scripts/check_docs_language.py
       - name: Offline dwm-hdr PoC verify (JSON)
-        run: python scripts/verify_dwm_hdr_poc_local.py --json
+        run: uv run python scripts/verify_dwm_hdr_poc_local.py --json
       - name: Pytest
-        run: pytest -q --ignore=tests/test_ui_blocked_smoke.py
+        run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
 
   devui:
     runs-on: ubuntu-latest
@@ -62,9 +61,10 @@ jobs:
           {
             echo "## Runner preflight"
             echo "0s empty-step failures ⇒ raise Actions spending limit (Billing & plans)."
+            echo "After Billing is fixed: **one** workflow_dispatch only — do not agent-poll Actions."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: System deps for Qt/offscreen
@@ -72,13 +72,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libxcb-cursor0 xvfb
       - name: Install UI extras
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[devui]"
+        run: uv sync --extra devui
       - name: UI smoke under xvfb
         run: |
           export QT_QPA_PLATFORM=offscreen
-          xvfb-run -a pytest -q tests/test_ui_blocked_smoke.py
+          xvfb-run -a uv run pytest -q tests/test_ui_blocked_smoke.py
 
   devui-macos:
     runs-on: macos-latest
@@ -88,15 +86,14 @@ jobs:
           {
             echo "## Runner preflight"
             echo "0s empty-step failures ⇒ raise Actions spending limit (Billing & plans)."
+            echo "After Billing is fixed: **one** workflow_dispatch only — do not agent-poll Actions."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: Install UI extras
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[devui]"
+        run: uv sync --extra devui
       - name: Blocked-page smoke (offscreen)
         id: smoke
         run: |
@@ -104,10 +101,10 @@ jobs:
           export QT_QPA_PLATFORM=offscreen
           export QT_DEBUG_PLUGINS=1
           mkdir -p qt-diag
-          python -V | tee qt-diag/python.txt
+          uv run python -V | tee qt-diag/python.txt
           echo "QT_DEBUG_PLUGINS=$QT_DEBUG_PLUGINS" | tee qt-diag/qt-env.txt
-          python -c "import os; from PySide6.QtCore import QLibraryInfo; print('QT_QPA_PLATFORM=', os.environ.get('QT_QPA_PLATFORM')); print('PluginsPath=', QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))" | tee qt-diag/qt-plugins.txt || true
-          python - <<'PY' | tee qt-diag/qt-plugin-dirs.txt || true
+          uv run python -c "import os; from PySide6.QtCore import QLibraryInfo; print('QT_QPA_PLATFORM=', os.environ.get('QT_QPA_PLATFORM')); print('PluginsPath=', QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))" | tee qt-diag/qt-plugins.txt || true
+          uv run python - <<'PY' | tee qt-diag/qt-plugin-dirs.txt || true
           from pathlib import Path
           from PySide6.QtCore import QLibraryInfo
           root = Path(QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))
@@ -117,7 +114,7 @@ jobs:
                   if p.is_dir():
                       print(p.relative_to(root))
           PY
-          pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
+          uv run pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
           # Compress Qt plugin listing + smoke log for the dedicated failure artifact.
           tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt devui-macos.log 2>/dev/null || true
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
@@ -172,24 +169,22 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "HLSL stub absent; skipping dwm-hdr compile job body"
           fi
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         if: steps.hlsl.outputs.present == 'true'
         with:
           python-version: "3.12"
       - name: Install
         if: steps.hlsl.outputs.present == 'true'
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev]"
+        run: uv sync --extra dev
       - name: Offline fxc/dxc compile + sha256
         if: steps.hlsl.outputs.present == 'true'
         shell: bash
         run: |
           set +e
-          python scripts/compile_dwm_hdr_poc.py --out dist/dwm_hdr_poc
+          uv run python scripts/compile_dwm_hdr_poc.py --out dist/dwm_hdr_poc
           set -e
           test -f dist/dwm_hdr_poc/manifest.json
-          python - <<'PY'
+          uv run python - <<'PY'
           import json, hashlib, pathlib, shutil, sys
           root = pathlib.Path("dist/dwm_hdr_poc")
           man = json.loads((root / "manifest.json").read_text(encoding="utf-8"))

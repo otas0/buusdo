@@ -28,7 +28,7 @@ COLOR_TEXT = COLOR_INK
 
 def _mono_family() -> str:
     # Prefer readable monospace stacks present on macOS / Windows / Linux.
-    return "IBM Plex Mono, Menlo, Consolas, monospace"
+    return "Menlo, Courier New, monospace"
 
 
 def apply_dark_theme(app: QApplication) -> None:
@@ -39,8 +39,9 @@ def apply_dark_theme(app: QApplication) -> None:
 def apply_product_theme(app: QApplication) -> None:
     app.setStyle("Fusion")
     font = QFont()
-    font.setFamilies(["IBM Plex Sans", "Helvetica Neue", "Arial"])
-    font.setPointSize(12)
+    # Prefer fonts that exist on stock macOS/Windows/Linux (avoid missing-family lag).
+    font.setFamilies(["Helvetica Neue", "Arial"])
+    font.setPointSize(11)
     app.setFont(font)
 
     palette = QPalette()
@@ -71,19 +72,25 @@ def apply_product_theme(app: QApplication) -> None:
         QMainWindow, QDialog {{
             background: {COLOR_BG};
         }}
+        QLabel#brandMark {{
+            margin-right: 4px;
+        }}
         QLabel#brandTitle {{
             font-family: {mono};
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             color: {COLOR_INK};
             text-transform: lowercase;
         }}
         QLabel#brandSubtitle {{
             font-family: {mono};
-            font-size: 11px;
+            font-size: 10px;
             color: {COLOR_MUTED};
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
+        }}
+        QDialog#instrumentDialog {{
+            background: {COLOR_BG};
         }}
         QLabel#sectionLabel, QLabel#backendChip {{
             font-family: {mono};
@@ -106,8 +113,8 @@ def apply_product_theme(app: QApplication) -> None:
         QLabel#badgeWarn {{ color: {COLOR_WARN}; font-weight: 600; }}
         QPushButton {{
             font-family: {mono};
-            font-size: 12px;
-            padding: 8px 14px;
+            font-size: 11px;
+            padding: 7px 12px;
             border: 1px solid {COLOR_LINE};
             border-radius: 2px;
             background: {COLOR_BTN_SECONDARY};
