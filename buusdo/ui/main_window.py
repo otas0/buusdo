@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPixmap, QShortcut
+from PySide6.QtGui import QAction, QColor, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
