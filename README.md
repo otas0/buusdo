@@ -25,7 +25,9 @@ Verify: `shasum -a 256 -c dist/SHA256SUMS` (or `sha256sum -c`).
 
 Developer self-test (no third-party acceptance): `python scripts/mvp_self_test.py`  
 Wheel package: `bash scripts/package_mvp.sh`  
-Windows Inno installer (on a Windows builder, unsigned): `bash scripts/package_windows_inno.sh`
+Windows Inno installer (**Windows builder only**, unsigned; SmartScreen may warn):
+`scripts\windows_github_release.bat` or `bash scripts/package_windows_inno.sh`  
+Kits are self-provided; DWM HDR is not in the GitHub v1 release ([docs/STORE_MVP.md](docs/STORE_MVP.md)).
 
 ## Development
 

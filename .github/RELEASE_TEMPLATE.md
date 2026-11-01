@@ -1,13 +1,21 @@
 # buusdo $VERSION
 
-GitHub Releases channel only — **unsigned** Windows installer (SmartScreen may warn).
+GitHub Releases only — **unsigned** Windows installer.
 
-## Assets
+> **SmartScreen:** Windows may show “Windows protected your PC” / unknown publisher.
+> That is expected for unsigned GitHub builds. Choose **More info → Run anyway** if you trust the SHA256.
 
-- `buusdo-setup-$VERSION.exe` — Inno Setup installer (Windows 10/11 x64)
-- `SHA256SUMS` — verify before running
-- `INSTALL.txt` — three-step install
-- Optional: `buusdo-$VERSION-py3-none-any.whl` (advanced / experimental hosts)
+## Assets (formal)
+
+- `buusdo-setup-$VERSION.exe` — Inno Setup (Windows 10/11 x64), **not** Authenticode-signed
+- `SHA256SUMS`
+- `INSTALL.txt`
+
+Do **not** publish Linux/macOS installers on this release.
+
+## Optional experimental
+
+- `buusdo-$VERSION-py3-none-any.whl` — advanced users / Linux / macOS (experimental)
 
 ## Supported
 
@@ -15,18 +23,17 @@ GitHub Releases channel only — **unsigned** Windows installer (SmartScreen may
 
 ## Experimental (no official installer)
 
-- Linux, macOS — use source / wheel; capabilities marked experimental in-app
+- Linux, macOS — source / wheel only; in-app capabilities marked experimental
 
 ## You must provide
 
-- Your own **ReShade** / **OptiScaler** kit folders (not bundled)
+- Your own **ReShade** / **OptiScaler** kit folders (**not** bundled)
 
 ## Not in this release
 
-- Authenticode / SmartScreen reputation work
-- Microsoft Store package
-- DWM HDR injection (Phase 3)
-- Ray tracing enablement claims
+- Authenticode / SmartScreen reputation / Microsoft Store
+- DWM HDR injection (Phase 3 — unavailable by design)
+- Ray tracing “enabled” claims
 - Bundled third-party enhancement binaries
 
 ## Verify
@@ -37,6 +44,6 @@ certutil -hashfile buusdo-setup-$VERSION.exe SHA256
 
 Compare to `SHA256SUMS`.
 
-## Feedback
+## Feedback / 1.0.1
 
-https://github.com/otas0/buusdo/issues
+https://github.com/otas0/buusdo/issues — About → Feedback opens the same URL.

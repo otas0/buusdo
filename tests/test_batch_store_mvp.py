@@ -40,6 +40,12 @@ def test_about_i18n() -> None:
     )
 
 
+def test_about_feedback_url_is_issues() -> None:
+    from buusdo.ui.about_dialog import FEEDBACK_URL
+
+    assert FEEDBACK_URL == "https://github.com/otas0/buusdo/issues"
+
+
 def test_smoke_github_gate_script() -> None:
     path = Path("scripts/smoke_github_release_gate.py")
     spec = importlib.util.spec_from_file_location("smoke_github_release_gate", path)
