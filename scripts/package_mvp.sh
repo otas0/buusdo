@@ -12,6 +12,21 @@ if [[ ! -x "${PYTHON}" ]]; then
   PYTHON="$(command -v python3)"
 fi
 
+echo "Ensuring logo.ico (Windows exe / Inno / wheel asset)…"
+if [[ ! -f "${ROOT}/buusdo/assets/logo.png" ]]; then
+  echo "FATAL: buusdo/assets/logo.png missing" >&2
+  exit 1
+fi
+"${PYTHON}" "${ROOT}/scripts/generate_logo_ico.py"
+if [[ ! -f "${ROOT}/buusdo/assets/logo.ico" ]]; then
+  echo "FATAL: logo.ico missing after generate_logo_ico.py" >&2
+  exit 1
+fi
+# Best-effort macOS Dock icon when packaging on Darwin (non-fatal elsewhere).
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  "${PYTHON}" "${ROOT}/scripts/generate_logo_icns.py" || true
+fi
+
 echo "Building wheel/sdist…"
 if command -v uv >/dev/null 2>&1; then
   uv build --out-dir "${OUT}"

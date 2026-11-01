@@ -40,14 +40,37 @@ jobs:
         run: |
           uv run python scripts/smoke_github_release_gate.py
           uv run python scripts/mvp_self_test.py
+          test -f buusdo/assets/logo.png
+          test -f buusdo/assets/logo.ico
+          uv run python -c "from buusdo.assets import logo_path; assert logo_path().name=='logo.png'"
+          # Cap committed/generated ico size (wheel bloat gate).
+          python - <<'PY'
+          from pathlib import Path
+          n = Path("buusdo/assets/logo.ico").stat().st_size
+          assert 50 < n <= 96_000, n
+          print("logo.ico bytes", n)
+          PY
       - name: Wheel + Inno package
         shell: bash
         run: |
           bash scripts/package_mvp.sh
           bash scripts/package_windows_inno.sh
-      - name: List dist
+      - name: List dist + icon smoke notes
         shell: bash
-        run: ls -la dist || true
+        run: |
+          ls -la dist || true
+          ls -la buusdo/assets/logo.ico
+          {
+            echo "## Icon smoke (manual after download)"
+            echo "1. Open \`dist/buusdo-setup-*.exe\` in Explorer — Setup icon must be logo."
+            echo "2. Install, then check \`buusdo.exe\` icon in Explorer / Start Menu."
+            echo "3. Run \`scripts/smoke_windows_install.ps1 -SetupExe dist\\\\buusdo-setup-*.exe\`."
+            echo "Authenticode still deferred. Do **not** tag \`v1.*\` until this smoke passes."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Structural install smoke (no GUI)
+        shell: powershell
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1 -SkipLaunch
       - uses: actions/upload-artifact@v4
         with:
           name: buusdo-windows-installer

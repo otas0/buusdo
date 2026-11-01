@@ -20,6 +20,12 @@ $iss = Join-Path $Root "packaging\inno\buusdo.iss"
 if (-not (Test-Path $iss)) { Fail "missing $iss" }
 Ok "Inno script present"
 
+$logoIco = Join-Path $Root "buusdo\assets\logo.ico"
+$logoPng = Join-Path $Root "buusdo\assets\logo.png"
+if (-not (Test-Path $logoPng)) { Fail "missing logo.png" }
+if (-not (Test-Path $logoIco)) { Fail "missing logo.ico — run scripts/generate_logo_ico.py" }
+Ok "logo.png + logo.ico present (check Setup/exe icon in Explorer after install)"
+
 $store = Join-Path $Root "docs\STORE_MVP.md"
 if (-not (Test-Path $store)) { Fail "missing STORE_MVP.md" }
 Ok "STORE_MVP.md present"

@@ -27,3 +27,6 @@ assignees: ""
 **MVP notes**
 - Windows is the supported preview target; Linux/macOS are experimental.
 - DWM HDR injection is Phase 3 and should stay unavailable.
+- Startup / missing app icon after install → add label `launch`.
+- Library scan problems → add label `scan`.
+- `0.1.1` is fixes-only after real `launch`/`scan` Issues; no feature requests here.

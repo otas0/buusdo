@@ -27,8 +27,15 @@ GitHub Releases channel. Prefer documenting which asset set this tag ships.
 shasum -a 256 -c SHA256SUMS
 ```
 
+## Visual checklist (attach or link)
+
+Frozen screenshots from `scripts/screenshot_release_checklist.py` live under
+`docs/fixtures/release_visual_checklist/` (`main_window.png`, `about_dialog.png`,
+`tray_icon_sizes.png`). Re-run before the next tag if UI chrome changed.
+
 ## Not in any current GitHub release
 
-- Authenticode / Microsoft Store
+- Authenticode / Microsoft Store (signing deferred until after unsigned Inno smoke)
 - Bundled third-party enhancement binaries
 - Ray tracing “enabled” claims
+- Premature `v1.*` tags (installer smoke must pass first)

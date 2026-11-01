@@ -3,7 +3,7 @@
 **Channel:** GitHub Releases only (not Microsoft Store, not signed SmartScreen reputation).  
 **Primary OS:** Windows. Linux / macOS stay **experimental** source/wheel only — not formal release assets.
 
-Installer builds can run now via `.github/workflows/installer.yml` (`workflow_dispatch`, unsigned Inno on `windows-latest`). Tag **`v1.0.0` only after** downloading that artifact and passing `smoke_windows_install.ps1`. Until then keep calling ships **preview**. `0.1.1` stays **fixes-only**.
+Installer builds can run now via `.github/workflows/installer.yml` (`workflow_dispatch`, unsigned Inno on `windows-latest`). Tag **`v1.0.0` only after** downloading that artifact and passing `smoke_windows_install.ps1` **and** confirming `logo.ico` is visible on Setup + `buusdo.exe` in Explorer. Until then keep calling ships **preview**. Authenticode stays **deferred**. `0.1.1` stays **fixes-only** and ships **only after** `launch`/`scan` Issues are filed and fixed — do not tag `v1.*` early.
 
 ## Freeze decisions
 

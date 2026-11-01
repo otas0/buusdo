@@ -46,6 +46,25 @@ def test_brand_mark() -> bool:
     return True
 
 
+def test_logo_assets() -> bool:
+    sys.path.insert(0, str(ROOT))
+    from buusdo.assets import logo_ico_path, logo_path
+
+    logo = logo_path()
+    if logo.name != "logo.png" or not logo.is_file() or logo.stat().st_size < 50:
+        _fail("logo_path() must resolve to existing logo.png")
+        return False
+    ico = logo_ico_path()
+    if not ico.is_file() or ico.stat().st_size < 50:
+        _fail("logo.ico missing — run scripts/generate_logo_ico.py")
+        return False
+    if ico.stat().st_size > 96_000:
+        _fail(f"logo.ico too large ({ico.stat().st_size})")
+        return False
+    _ok("logo.png + logo.ico")
+    return True
+
+
 def test_anticheat_block() -> bool:
     sys.path.insert(0, str(ROOT))
     from buusdo.core.anticheat_guard import check
@@ -158,6 +177,7 @@ def main() -> int:
     checks = [
         test_docs,
         test_brand_mark,
+        test_logo_assets,
         test_anticheat_block,
         test_transaction_roundtrip,
         test_c3_lint,

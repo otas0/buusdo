@@ -8,6 +8,9 @@
 | `dwm-hdr-hlsl-sources` | `dwm-hdr-poc` | HLSL present | 3 days |
 | `qt-diag-macos` | `devui-macos` | smoke failure | default |
 | `qt-plugin-dirs-macos` | `devui-macos` | smoke failure | default |
+| `buusdo-windows-installer` | `installer` / `windows-inno` | `workflow_dispatch` (unsigned Inno + wheel) | 14 days |
+
+After downloading `buusdo-windows-installer`, confirm `logo.ico` on Setup/`buusdo.exe` in Explorer, then run `scripts/smoke_windows_install.ps1`. Authenticode stays deferred; do not tag `v1.*` until that smoke passes.
 
 `dwm-hdr-poc` includes `manifest.json`, optional `.cso`, and (on `skipped_no_compiler` / `compile_failed`) `hlsl_sources/` + `hlsl_sources.zip`.
 

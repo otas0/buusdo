@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from buusdo.assets import logo_path
-from buusdo.ui.tray_icon import app_icon
+from buusdo.ui.tray_icon import app_icon, tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
@@ -413,7 +413,7 @@ class MainWindow(QMainWindow):
     def _setup_tray(self) -> None:
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
-        self._tray = QSystemTrayIcon(app_icon(), self)
+        self._tray = QSystemTrayIcon(tray_icon(), self)
         self._tray.setToolTip("buusdo")
         show = QAction("Show", self)
         show.triggered.connect(self.showNormal)

@@ -7,21 +7,31 @@ from PySide6.QtGui import QIcon, QPixmap
 
 from buusdo.assets import logo_path
 
+# Tray / menu-bar critical sizes (logical); Qt picks 2× for Retina when present.
+TRAY_SIZES = (16, 32, 64)
+APP_SIZES = (16, 24, 32, 48, 64, 128, 256)
+
+
+def _scaled_square(src: QPixmap, side: int) -> QPixmap:
+    return src.scaled(
+        side,
+        side,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+
 
 def make_mark_icon(size: int = 64) -> QIcon:
-    """Build a QIcon from logo.png (multi-size when used via app_icon())."""
+    """Build a multi-resolution mark (16/32/64 plus ``size``) from logo.png."""
     path = logo_path()
+    icon = QIcon()
     if path.is_file():
-        pix = QPixmap(str(path))
-        if not pix.isNull():
-            scaled = pix.scaled(
-                size,
-                size,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            return QIcon(scaled)
-    # Minimal fallback if assets missing.
+        src = QPixmap(str(path))
+        if not src.isNull():
+            sides = sorted({*TRAY_SIZES, size})
+            for side in sides:
+                icon.addPixmap(_scaled_square(src, side))
+            return icon
     pix = QPixmap(size, size)
     pix.fill(Qt.GlobalColor.black)
     return QIcon(pix)
@@ -34,14 +44,12 @@ def app_icon() -> QIcon:
     if path.is_file():
         src = QPixmap(str(path))
         if not src.isNull():
-            for side in (16, 24, 32, 48, 64, 128, 256):
-                icon.addPixmap(
-                    src.scaled(
-                        side,
-                        side,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
+            for side in APP_SIZES:
+                icon.addPixmap(_scaled_square(src, side))
             return icon
+    return make_mark_icon(64)
+
+
+def tray_icon() -> QIcon:
+    """Explicit tray mark with 16/32/64 for crisp Retina menu-bar icons."""
     return make_mark_icon(64)

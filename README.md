@@ -1,5 +1,9 @@
 # buusdo
 
+<p align="center">
+  <img src="buusdo/assets/logo.png" alt="buusdo wordmark" width="280" />
+</p>
+
 Cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS).
 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
@@ -9,10 +13,10 @@ Latest preview release: [v0.1.0](https://github.com/otas0/buusdo/releases/tag/v0
 Scope freeze: [docs/MVP.md](docs/MVP.md). GitHub v1 installer (Inno, **unsigned**): [docs/STORE_MVP.md](docs/STORE_MVP.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
-**Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md)):
+**Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
 buusdo preview — BYO ReShade/OptiScaler kits · Windows-first · https://github.com/otas0/buusdo/releases/tag/v0.1.0
 
-**0.1.1:** fixes only (`launch` / `scan` Issues first). Installer track is separate → future `v1.0.0` after smoke.
+**0.1.1:** ship **only after** `launch` / `scan` Issues are filed and fixed (fixes-only). Installer track is separate → future `v1.0.0` after unsigned Inno smoke. Authenticode deferred; do not tag `v1.*` early.
 
 ## End-user install (three steps)
 

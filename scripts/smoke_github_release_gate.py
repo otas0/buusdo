@@ -15,8 +15,12 @@ def main() -> int:
         ROOT / "packaging" / "inno" / "buusdo.iss",
         ROOT / "scripts" / "package_windows_inno.sh",
         ROOT / "scripts" / "smoke_windows_install.ps1",
+        ROOT / "scripts" / "generate_logo_ico.py",
+        ROOT / "scripts" / "pyside6-deploy.spec.json",
         ROOT / ".github" / "RELEASE_TEMPLATE.md",
         ROOT / "buusdo" / "ui" / "about_dialog.py",
+        ROOT / "buusdo" / "assets" / "logo.png",
+        ROOT / "buusdo" / "assets" / "logo.ico",
     ]
     failed = 0
     for path in required:
@@ -46,6 +50,25 @@ def main() -> int:
         failed += 1
     else:
         print("OK  iss unsigned")
+    if "logo.ico" not in iss:
+        print("FAIL iss must reference logo.ico SetupIconFile", file=sys.stderr)
+        failed += 1
+    else:
+        print("OK  iss SetupIconFile logo.ico")
+
+    deploy_spec = (ROOT / "scripts" / "pyside6-deploy.spec.json").read_text(encoding="utf-8")
+    if "logo.ico" not in deploy_spec:
+        print("FAIL pyside6-deploy.spec.json must set icon=logo.ico", file=sys.stderr)
+        failed += 1
+    else:
+        print("OK  deploy icon logo.ico")
+
+    ico_size = (ROOT / "buusdo" / "assets" / "logo.ico").stat().st_size
+    if not (50 < ico_size <= 96_000):
+        print(f"FAIL logo.ico size {ico_size}", file=sys.stderr)
+        failed += 1
+    else:
+        print(f"OK  logo.ico {ico_size} bytes")
 
     if failed:
         print(f"gate FAILED ({failed})", file=sys.stderr)

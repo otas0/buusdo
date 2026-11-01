@@ -27,3 +27,8 @@ def brand_mark_path() -> Path:
 def logo_ico_path() -> Path:
     """Windows .ico derived from logo.png (generated on demand if missing)."""
     return asset_path("logo.ico")
+
+
+def logo_icns_path() -> Path:
+    """macOS .icns derived from logo.png (Mac package track)."""
+    return asset_path("logo.icns")

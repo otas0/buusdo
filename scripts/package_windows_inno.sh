@@ -71,10 +71,13 @@ do
   fi
 done
 
-# Ensure Windows installer icon exists.
+# Hard gate: Windows packaging never ships without logo.ico (Setup + exe icon source).
+"${PY}" "${ROOT}/scripts/generate_logo_ico.py"
 if [[ ! -f "${ROOT}/buusdo/assets/logo.ico" ]]; then
-  "${PY}" "${ROOT}/scripts/generate_logo_ico.py" || true
+  echo "FATAL: buusdo/assets/logo.ico missing — refusing Inno / payload package." >&2
+  exit 1
 fi
+echo "logo.ico OK ($(wc -c < "${ROOT}/buusdo/assets/logo.ico" | tr -d ' ') bytes)"
 
 if [[ -n "${ISCC}" && -f "${OUT}/payload/buusdo.exe" ]]; then
   "${ISCC}" "/DMyAppVersion=${VER}" "${ISS}"
