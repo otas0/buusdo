@@ -1,5 +1,8 @@
 name: release
 
+# GitHub Releases channel — Windows installer primary. No Authenticode.
+# Linux/macOS jobs only produce experimental wheels (not formal installers).
+
 on:
   push:
     tags:
@@ -7,30 +10,21 @@ on:
   workflow_dispatch:
     inputs:
       reason:
-        description: "Manual package run (after Billing fix: one dispatch only)"
+        description: "Manual package run (one dispatch only after Billing fix)"
         required: false
         default: "manual"
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            artifact: buusdo-windows
-          - os: ubuntu-latest
-            artifact: buusdo-linux
-          - os: macos-latest
-            artifact: buusdo-macos
-    runs-on: ${{ matrix.os }}
+  windows-installer:
+    runs-on: windows-latest
     steps:
-      - name: Billing / spending-limit tip
+      - name: Billing tip
         shell: bash
         run: |
           {
-            echo "## Runner preflight"
-            echo "0s empty-step fails ⇒ raise Actions spending limit."
-            echo "After Billing is fixed: **one** workflow_dispatch only."
+            echo "## GitHub release MVP"
+            echo "Unsigned Inno installer. Signing skipped by design (docs/STORE_MVP.md)."
+            echo "After Billing fix: **one** workflow_dispatch only."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -38,13 +32,41 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: uv sync --extra devui
-      - name: MVP self-test
-        run: uv run python scripts/mvp_self_test.py
-      - name: Package wheel/sdist + checksums
+      - name: Structural + MVP gates
+        shell: bash
+        run: |
+          uv run python scripts/smoke_github_release_gate.py
+          uv run python scripts/mvp_self_test.py
+      - name: Wheel package
         shell: bash
         run: bash scripts/package_mvp.sh
+      - name: Inno package (best-effort if ISCC/pyside6-deploy present)
+        shell: bash
+        run: bash scripts/package_windows_inno.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: buusdo-windows-github
+          path: dist/
+          if-no-files-found: warn
+
+  experimental-wheel:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Experimental wheel only
+        shell: bash
+        run: |
+          uv sync --extra devui
+          uv run python scripts/smoke_github_release_gate.py
+          bash scripts/package_mvp.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-experimental-${{ matrix.os }}
           path: dist/
           if-no-files-found: warn

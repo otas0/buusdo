@@ -2,6 +2,8 @@
 
 **Status:** freeze for first public/dev preview. Scope below is intentional.
 
+For the **GitHub v1.0.0 installer** gate (Inno, unsigned), see [STORE_MVP.md](STORE_MVP.md).
+
 ## In scope
 
 - Windows: Steam library scan → ReShade deploy / uninstall with **transactional** restore

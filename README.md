@@ -5,7 +5,8 @@ Cross-platform graphics enhancement **scheduler + config coordinator** (Windows 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
 **MVP preview:** Windows is the supported target. Linux and macOS are **experimental**.
-Scope freeze: [docs/MVP.md](docs/MVP.md). Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
+Scope freeze: [docs/MVP.md](docs/MVP.md). GitHub v1 installer (Inno, **unsigned**): [docs/STORE_MVP.md](docs/STORE_MVP.md).
+Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
 ## End-user install (three steps)
 
@@ -23,7 +24,8 @@ python -m buusdo
 Verify: `shasum -a 256 -c dist/SHA256SUMS` (or `sha256sum -c`).
 
 Developer self-test (no third-party acceptance): `python scripts/mvp_self_test.py`  
-Package: `bash scripts/package_mvp.sh`
+Wheel package: `bash scripts/package_mvp.sh`  
+Windows Inno installer (on a Windows builder, unsigned): `bash scripts/package_windows_inno.sh`
 
 ## Development
 

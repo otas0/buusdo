@@ -144,6 +144,15 @@ def test_issue_template() -> bool:
     return True
 
 
+def test_github_release_gate() -> bool:
+    rc = _run([sys.executable, str(ROOT / "scripts" / "smoke_github_release_gate.py")])
+    if rc != 0:
+        _fail("github release structural gate")
+        return False
+    _ok("github release structural gate")
+    return True
+
+
 def main() -> int:
     print("buusdo MVP self-test")
     checks = [
@@ -154,6 +163,7 @@ def main() -> int:
         test_c3_lint,
         test_offline_poc,
         test_issue_template,
+        test_github_release_gate,
         test_pytest_core,
     ]
     failed = 0
