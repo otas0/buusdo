@@ -5,6 +5,7 @@ Cross-platform graphics enhancement **scheduler + config coordinator** (Windows 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
 **MVP preview:** Windows is the supported target. Linux and macOS are **experimental**.
+Latest preview release: [v0.1.0](https://github.com/otas0/buusdo/releases/tag/v0.1.0) (wheel only; no official installer).
 Scope freeze: [docs/MVP.md](docs/MVP.md). GitHub v1 installer (Inno, **unsigned**): [docs/STORE_MVP.md](docs/STORE_MVP.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
