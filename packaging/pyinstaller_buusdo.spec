@@ -1,13 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller onefile fallback when pyside6-deploy/Nuitka is unavailable.
+# PyInstaller onefile (Windows installer payload). icon=logo.ico.
 # Usage: pyinstaller packaging/pyinstaller_buusdo.spec
 from pathlib import Path
 
-ROOT = Path(SPECPATH).resolve().parent.parent  # noqa: F821 — PyInstaller injects SPECPATH
+# SPECPATH is the directory containing this .spec (PyInstaller 5/6).
+_spec = Path(SPECPATH).resolve()  # noqa: F821
+SPEC_DIR = _spec if _spec.is_dir() else _spec.parent
+ROOT = SPEC_DIR.parent
+ENTRY = ROOT / "buusdo" / "app.py"
 ICO = ROOT / "buusdo" / "assets" / "logo.ico"
+if not ENTRY.is_file():
+    raise SystemExit(f"entry missing: {ENTRY}")
 
 a = Analysis(  # noqa: F821
-    [str(ROOT / "buusdo" / "app.py")],
+    [str(ENTRY)],
     pathex=[str(ROOT)],
     binaries=[],
     datas=[(str(ROOT / "buusdo" / "assets"), "buusdo/assets")],

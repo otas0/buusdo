@@ -1,4 +1,3 @@
-# pysidedeploy.spec — INI (pyside6-deploy uses configparser, not JSON).
 [app]
 title = buusdo
 project_dir =

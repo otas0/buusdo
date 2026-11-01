@@ -2,6 +2,7 @@
 # Usage (elevated not required):
 #   powershell -ExecutionPolicy Bypass -File scripts/smoke_windows_install.ps1
 #   powershell -File scripts/smoke_windows_install.ps1 -SkipLaunch
+# ASCII-only strings (avoid em-dash / smart-quote parse failures on Windows runners).
 param(
   [switch]$SkipLaunch,
   [string]$InstallDir = "$env:LOCALAPPDATA\Programs\buusdo",
@@ -23,7 +24,7 @@ Ok "Inno script present"
 $logoIco = Join-Path $Root "buusdo\assets\logo.ico"
 $logoPng = Join-Path $Root "buusdo\assets\logo.png"
 if (-not (Test-Path $logoPng)) { Fail "missing logo.png" }
-if (-not (Test-Path $logoIco)) { Fail "missing logo.ico — run scripts/generate_logo_ico.py" }
+if (-not (Test-Path $logoIco)) { Fail "missing logo.ico - run scripts/generate_logo_ico.py" }
 Ok "logo.png + logo.ico present (check Setup/exe icon in Explorer after install)"
 
 $store = Join-Path $Root "docs\STORE_MVP.md"
@@ -56,7 +57,7 @@ if (Test-Path $exe) {
     Ok "launch smoke"
   }
 } else {
-  Write-Host "WARN installed exe not found (build installer on Windows first) — structural checks only"
+  Write-Host "WARN installed exe not found (build installer on Windows first) - structural checks only"
 }
 
 # 4) Uninstall residue check when uninstaller exists
@@ -67,7 +68,7 @@ if ($unins) {
   if (Test-Path $exe) { Fail "exe still present after uninstall" }
   Ok "uninstall removed exe"
 } else {
-  Write-Host "WARN no unins*.exe — skip uninstall residue check"
+  Write-Host "WARN no unins*.exe - skip uninstall residue check"
 }
 
 Ok "smoke_windows_install finished"
