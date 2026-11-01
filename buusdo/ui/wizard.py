@@ -50,7 +50,7 @@ class FirstRunWizard(QDialog):
         self.setModal(True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 12)
-        logo = make_logo_label(36, self)
+        logo = make_logo_label(22, self)
         logo.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         hint = QLabel(t("wizard.hint"))
@@ -178,6 +178,17 @@ class FirstRunWizard(QDialog):
             self._opti.setText(path)
             self._refresh_status()
 
+    def _persist_wizard(self, *, skipped: bool) -> bool:
+        try:
+            data = load_settings()
+            data["wizard_completed"] = True
+            data["wizard_skipped_kits"] = skipped
+            save_settings(data)
+            return True
+        except OSError as exc:
+            QMessageBox.critical(self, "buusdo", f"{t('wizard.save_failed')}: {exc}")
+            return False
+
     def _finish_skip(self) -> None:
         reply = QMessageBox.question(
             self,
@@ -188,18 +199,14 @@ class FirstRunWizard(QDialog):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-        data = load_settings()
-        data["wizard_completed"] = True
-        data["wizard_skipped_kits"] = True
-        save_settings(data)
+        if not self._persist_wizard(skipped=True):
+            return
         self.accept()
 
     def _finish_done(self) -> None:
         if not self._has_valid_kit():
             QMessageBox.warning(self, "buusdo", t("wizard.need_kit"))
             return
-        data = load_settings()
-        data["wizard_completed"] = True
-        data["wizard_skipped_kits"] = False
-        save_settings(data)
+        if not self._persist_wizard(skipped=False):
+            return
         self.accept()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
         # Flush wordmark to the top-left corner.
         brand.setContentsMargins(12, 10, 12, 8)
         brand.setSpacing(12)
-        self._logo_label = make_logo_label(32, self)
+        self._logo_label = make_logo_label(22, self)
         brand.addWidget(self._logo_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._subtitle = QLabel(t("app.subtitle"))
         self._subtitle.setObjectName("brandSubtitle")
@@ -398,9 +398,10 @@ class MainWindow(QMainWindow):
         self._refresh_history()
         self._setup_tray()
 
-        if needs_wizard():
-            FirstRunWizard(self).exec()
-            self._refresh_kits_banner()
+        # Defer first-run wizard until after the window is shown. Running a modal
+        # QDialog (and QMessageBox on Skip) during MainWindow.__init__ can abort
+        # the process on macOS.
+        QTimer.singleShot(0, self._maybe_run_first_run_wizard)
 
     def _setup_tray(self) -> None:
         if not QSystemTrayIcon.isSystemTrayAvailable():
@@ -753,6 +754,17 @@ class MainWindow(QMainWindow):
             self._refresh_session_banner()
         except (BuusdoError, UnsafeTargetError) as exc:
             QMessageBox.warning(self, "buusdo", str(exc))
+
+    def _maybe_run_first_run_wizard(self) -> None:
+        if not needs_wizard():
+            self._refresh_kits_banner()
+            return
+        try:
+            FirstRunWizard(self).exec()
+        except Exception as exc:
+            capture_exception(exc, context={"op": "first_run_wizard"})
+            QMessageBox.warning(self, "buusdo", str(exc))
+        self._refresh_kits_banner()
 
     def _refresh_theme_button(self) -> None:
         # Button shows the mode you can switch *to*.
