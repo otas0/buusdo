@@ -27,13 +27,23 @@ _build_pyinstaller_payload() {
   # Reusing the exe skips a full rebuild: PyInstaller's workdir TOCs still invalidate on
   # fresh checkout mtimes + uv-synced .venv paths every run (~65s Analysis/PKG/EXE).
   if [[ "${BUUSDO_REUSE_CACHED_PAYLOAD:-0}" == "1" && -f "${OUT}/payload/buusdo.exe" ]]; then
-    local sz
+    local sz pe_ok=0
     sz="$(wc -c < "${OUT}/payload/buusdo.exe" | tr -d ' ')"
-    if [[ "${sz}" -gt 1000000 ]]; then
-      echo "Reusing cached dist/payload/buusdo.exe (${sz} bytes) — skip PyInstaller."
+    # ~40MB onefile expected; reject tiny/corrupt cache blobs before skip.
+    if [[ "${sz}" -gt 20000000 ]]; then
+      if command -v uv >/dev/null 2>&1; then
+        if uv run python "${ROOT}/scripts/verify_pe_icon.py" "${OUT}/payload/buusdo.exe"; then
+          pe_ok=1
+        fi
+      elif "${PY}" "${ROOT}/scripts/verify_pe_icon.py" "${OUT}/payload/buusdo.exe"; then
+        pe_ok=1
+      fi
+    fi
+    if [[ "${pe_ok}" -eq 1 ]]; then
+      echo "Reusing cached dist/payload/buusdo.exe (${sz} bytes, PE icon OK) — skip PyInstaller."
       return 0
     fi
-    echo "Cached buusdo.exe too small (${sz}); rebuilding."
+    echo "Cached buusdo.exe not reusable (size=${sz}, pe_ok=${pe_ok}); rebuilding."
   fi
   echo "Building onefile via PyInstaller (icon=logo.ico)…"
   if command -v uv >/dev/null 2>&1; then
