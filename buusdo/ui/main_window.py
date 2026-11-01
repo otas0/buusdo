@@ -126,18 +126,18 @@ class MainWindow(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         outer = QVBoxLayout(root)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
 
         brand = QHBoxLayout()
-        brand.setContentsMargins(4, 8, 4, 12)
-        brand.setSpacing(14)
-        self._logo_label = make_logo_label(56, self)
-        brand.addWidget(self._logo_label)
-        brand_text = QVBoxLayout()
-        brand_text.setSpacing(4)
+        # Flush wordmark to the top-left corner.
+        brand.setContentsMargins(12, 10, 12, 8)
+        brand.setSpacing(12)
+        self._logo_label = make_logo_label(32, self)
+        brand.addWidget(self._logo_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._subtitle = QLabel(t("app.subtitle"))
         self._subtitle.setObjectName("brandSubtitle")
-        brand_text.addWidget(self._subtitle)
-        brand.addLayout(brand_text)
+        brand.addWidget(self._subtitle, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         brand.addStretch(1)
         backend_chip = QLabel(f"backend · {self._backend.platform_id()}")
         backend_chip.setObjectName("backendChip")
@@ -769,7 +769,7 @@ class MainWindow(QMainWindow):
         data = load_settings()
         data["ui_theme"] = nxt
         save_settings(data)
-        refresh_logo_label(self._logo_label, 56)
+        refresh_logo_label(self._logo_label)
         self._refresh_theme_button()
 
     def _on_locale_changed(self) -> None:

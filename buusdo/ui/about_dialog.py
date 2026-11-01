@@ -24,9 +24,9 @@ def show_about_dialog(parent=None) -> None:
     layout.setContentsMargins(16, 16, 16, 16)
     layout.setSpacing(10)
 
-    mark = make_logo_label(64, dlg)
-    mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-    layout.addWidget(mark)
+    mark = make_logo_label(36, dlg)
+    mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+    layout.addWidget(mark, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
     layout.addWidget(QLabel(t("about.version", version=__version__)))
     layout.addWidget(QLabel(t("about.channel")))
