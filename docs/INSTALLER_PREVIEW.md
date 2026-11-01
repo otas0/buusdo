@@ -9,7 +9,7 @@
 | Unsigned Inno CI | `.github/workflows/installer.yml` (`workflow_dispatch`) |
 | PE icons | `scripts/verify_pe_icon.py` must see RT_ICON / RT_GROUP_ICON on Setup + `buusdo.exe` |
 | Launch smoke | `scripts/smoke_windows_install.ps1` (CI with launch) |
-| Explorer wordmark | **Manual on Windows** — Setup + `buusdo.exe` show logo, not default Qt |
+| Explorer wordmark | Optional — prefer user `launch` reports over agent VM/ISO smoke |
 | Authenticode | **Off** until Explorer wordmark smoke is OK |
 | Draft release | `v0.1.0-installer-preview` stays **`--draft`** (unpublished) |
 | `v1.*` | **Forbidden** until STORE_MVP installer smoke + human call |
