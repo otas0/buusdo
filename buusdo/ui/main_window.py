@@ -97,6 +97,7 @@ from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
 from buusdo.ui.scan_worker import start_scan
 from buusdo.ui.theme import badge_color
 from buusdo.ui.tray_icon import make_mark_icon
+from buusdo.ui.about_dialog import show_about_dialog
 from buusdo.ui.selection_utils import clear_row_selections
 from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 
@@ -156,6 +157,9 @@ class MainWindow(QMainWindow):
         self._lang.setCurrentIndex(self._lang.findData(get_locale()))
         self._lang.currentIndexChanged.connect(self._on_locale_changed)
         brand.addWidget(self._lang)
+        self._btn_about = QPushButton(t("about.button"))
+        self._btn_about.clicked.connect(self._show_about)
+        brand.addWidget(self._btn_about)
         outer.addLayout(brand)
 
         self._stack = QStackedWidget()
@@ -764,6 +768,7 @@ class MainWindow(QMainWindow):
         data["locale"] = loc
         save_settings(data)
         self._subtitle.setText(t("app.subtitle"))
+        self._btn_about.setText(t("about.button"))
         self._btn_scan.setText(t("action.scan"))
         self._btn_force.setText(t("action.force_scan"))
         self._btn_cancel.setText(t("action.cancel_scan"))
@@ -1056,6 +1061,9 @@ class MainWindow(QMainWindow):
             if idx >= 0:
                 self._vk_preset.setCurrentIndex(idx)
         return opts
+
+    def _show_about(self) -> None:
+        show_about_dialog(self)
 
     def _severity_rank(self, severity: str) -> int:
         order = {"block": 0, "warning": 1, "info": 2, "conflict": 3, "": 4}

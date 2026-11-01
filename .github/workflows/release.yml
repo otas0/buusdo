@@ -1,52 +1,72 @@
 name: release
 
+# GitHub Releases channel — Windows installer primary. No Authenticode.
+# Linux/macOS jobs only produce experimental wheels (not formal installers).
+
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Manual package run (one dispatch only after Billing fix)"
+        required: false
+        default: "manual"
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            artifact: buusdo-windows
-          - os: ubuntu-latest
-            artifact: buusdo-linux
-          - os: macos-latest
-            artifact: buusdo-macos
-    runs-on: ${{ matrix.os }}
+  windows-installer:
+    runs-on: windows-latest
     steps:
+      - name: Billing tip
+        shell: bash
+        run: |
+          {
+            echo "## GitHub release MVP"
+            echo "Unsigned Inno installer. Signing skipped by design (docs/STORE_MVP.md)."
+            echo "After Billing fix: **one** workflow_dispatch only."
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev,ui]"
-      - name: Test
-        run: |
-          python scripts/check_no_platform_branch.py
-          pytest -q
-      - name: Package note
+        run: uv sync --extra devui
+      - name: Structural + MVP gates
         shell: bash
         run: |
-          mkdir -p dist
-          echo "Run scripts/deploy.sh on a signed builder with pyside6-deploy/Nuitka." > dist/README-PACKAGING.txt
-          echo "Then: ./scripts/codesign_hooks.sh <artifact>  (local secrets via scripts/codesign.env; never in CI)." >> dist/README-PACKAGING.txt
-          echo "artifact=${{ matrix.artifact }}" >> dist/README-PACKAGING.txt
-      - name: Checksums
+          uv run python scripts/smoke_github_release_gate.py
+          uv run python scripts/mvp_self_test.py
+      - name: Wheel package
         shell: bash
-        run: |
-          cd dist
-          if command -v sha256sum >/dev/null; then
-            find . -type f ! -name 'SHA256SUMS' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-          else
-            shasum -a 256 $(find . -type f ! -name 'SHA256SUMS' | sort) > SHA256SUMS
-          fi
+        run: bash scripts/package_mvp.sh
+      - name: Inno package (best-effort if ISCC/pyside6-deploy present)
+        shell: bash
+        run: bash scripts/package_windows_inno.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: buusdo-windows-github
           path: dist/
+          if-no-files-found: warn
+
+  experimental-wheel:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Experimental wheel only
+        shell: bash
+        run: |
+          uv sync --extra devui
+          uv run python scripts/smoke_github_release_gate.py
+          bash scripts/package_mvp.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-experimental-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: warn

@@ -48,17 +48,18 @@ class MacOSBackend(EnhancementBackend):
 
     def list_capabilities(self, target: EnhancementTarget) -> list[Capability]:
         layers = discover_compat_layers()
+        exp = t("cap.experimental")
         return [
             Capability(
                 id="metalfx_compat",
-                title=t("cap.metalfx"),
+                title=f"{t('cap.metalfx')} ({exp})",
                 description=t("cap.metalfx.desc"),
                 available=bool(layers) or bool(target.metadata.get("compat_confirmed")),
                 notes=", ".join(l.title for l in layers) or "none",
             ),
             Capability(
                 id="compat_log_verify",
-                title="compat log verify",
+                title=f"compat log verify ({exp})",
                 description=t("cap.metalfx.desc"),
                 available=True,
             ),

@@ -50,6 +50,8 @@ jobs:
         run: uv run python scripts/check_docs_language.py
       - name: Offline dwm-hdr PoC verify (JSON)
         run: uv run python scripts/verify_dwm_hdr_poc_local.py --json
+      - name: MVP self-test (developer gate)
+        run: uv run python scripts/mvp_self_test.py
       - name: Pytest
         run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
 
