@@ -41,7 +41,7 @@ def test_about_i18n() -> None:
 
 
 def test_about_feedback_url_is_issues() -> None:
-    from buusdo.ui.about_dialog import FEEDBACK_URL
+    from buusdo.core.urls import FEEDBACK_URL
 
     assert FEEDBACK_URL == "https://github.com/otas0/buusdo/issues"
 

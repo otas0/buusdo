@@ -8,10 +8,9 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLa
 
 from buusdo import __version__
 from buusdo.core.i18n import t
+from buusdo.core.urls import FEEDBACK_URL, REPO_URL
 from buusdo.ui.logo_widget import make_logo_label
 
-FEEDBACK_URL = "https://github.com/otas0/buusdo/issues"
-REPO_URL = "https://github.com/otas0/buusdo"
 LICENSE_NAME = "See repository LICENSE (MIT)"
 
 
