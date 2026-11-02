@@ -15,7 +15,6 @@ from buusdo.core.backend import (
     InstallResult,
 )
 from buusdo.core.i18n import t
-from buusdo.ui.theme import COLOR_BG, COLOR_WARN, apply_product_theme
 
 
 class _StubBackend(EnhancementBackend):
@@ -70,6 +69,8 @@ def test_weekly_assert_installer_exists() -> None:
 def test_theme_is_light_instrument() -> None:
     pytest.importorskip("PySide6")
     from PySide6.QtWidgets import QApplication
+
+    from buusdo.ui.theme import COLOR_BG, COLOR_WARN, apply_product_theme
 
     app = QApplication.instance() or QApplication([])
     apply_product_theme(app)

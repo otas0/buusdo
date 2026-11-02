@@ -30,9 +30,9 @@ jobs:
         run: |
           {
             echo "## Unsigned Inno installer"
-            echo "No Authenticode until Explorer wordmark smoke on Setup + buusdo.exe."
+            echo "Authenticode prep started — still no signed ship until Explorer wordmark smoke."
             echo "v1.0.0 only after manual smoke. Keep draft unpublished."
-            echo "0.1.1 remains fixes-only after real launch/scan Issues."
+            echo "0.1.1 prep started (fixes-only); do not tag until launch/scan Issues."
             echo "Phase 3 stays on phase3/dwm-hdr (default branch is main)."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4

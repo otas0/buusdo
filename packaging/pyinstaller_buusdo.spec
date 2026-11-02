@@ -16,7 +16,10 @@ a = Analysis(  # noqa: F821
     [str(ENTRY)],
     pathex=[str(ROOT)],
     binaries=[],
-    datas=[(str(ROOT / "buusdo" / "assets"), "buusdo/assets")],
+    datas=[
+        (str(ROOT / "buusdo" / "assets"), "buusdo/assets"),  # includes logo_wordmark.png
+        (str(ROOT / "buusdo" / "locales"), "buusdo/locales"),
+    ],
     hiddenimports=["buusdo"],
     hookspath=[],
     hooksconfig={},

@@ -5,7 +5,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 
-from buusdo.assets import logo_path
+from buusdo.assets import logo_dock_path, logo_icns_path, logo_path
 
 # Tray / menu-bar critical sizes (logical); Qt picks 2× for Retina when present.
 TRAY_SIZES = (16, 32, 64)
@@ -38,8 +38,17 @@ def make_mark_icon(size: int = 64) -> QIcon:
 
 
 def app_icon() -> QIcon:
-    """Window / taskbar / tray icon with several resolutions from logo.png."""
-    path = logo_path()
+    """Window / Dock / taskbar icon.
+
+    Prefer ``logo.icns`` when Qt can load it (macOS Dock keeps squircle alpha).
+    Else squircle-masked ``logo_dock.png``, else ``logo.png``.
+    """
+    icns = logo_icns_path()
+    if icns.is_file():
+        native = QIcon(str(icns))
+        if not native.isNull() and native.availableSizes():
+            return native
+    path = logo_dock_path()
     icon = QIcon()
     if path.is_file():
         src = QPixmap(str(path))

@@ -6,7 +6,7 @@ Do **not** agent-poll Actions or re-fire `workflow_dispatch` while waiting on fe
 
 ## 0.1.1 policy
 
-**Fixes only** — no large features. **Do not tag or publish `0.1.1` until** at least one real `launch` / `scan` Issue is filed **and** fixed (or explicitly closed as works-as-designed). Prefer:
+**Fixes only** — no large features. Prep may begin on `main` / release branches; **do not tag or publish `0.1.1` until** at least one real `launch` / `scan` Issue is filed **and** fixed (or explicitly closed as works-as-designed). Prefer:
 
 1. **`launch`** — cannot start / missing PySide6 / crash on start / **icon missing after install** (Setup / `buusdo.exe` / tray)
 2. **`scan`** — Steam library scan hangs, empty, cancel broken  
@@ -26,7 +26,7 @@ Triage under **`launch`** (startup/shell presence) **before** any feature work:
 
 See [INSTALLER_PREVIEW.md](INSTALLER_PREVIEW.md). Unsigned Inno may be built via `installer.yml`.  
 Draft `v0.1.0-installer-preview` stays **unpublished** until Explorer wordmark smoke.  
-**Authenticode stays off** until that Explorer check. Tag **`v1.0.0` only** after STORE_MVP smoke.  
+**Authenticode prep** may start (local `codesign_hooks` / cert inventory); **signed binaries stay off** until that Explorer check. Tag **`v1.0.0` only** after STORE_MVP smoke.  
 Promote draft → published preview (still not v1) is a **human** decision after Explorer OK.
 
 Out of band for preview:
@@ -35,6 +35,14 @@ Out of band for preview:
 - Phase 3 DWM HDR (**isolated on `phase3/dwm-hdr`**; default branch is `main`)  
 - Calling the preview an “official release” or tagging `v1.*` early  
 - Shipping `0.1.1` without real `launch` / `scan` Issues
+
+## CI notes (language dialog)
+
+`tests/test_language_dialog.py` runs on **`devui` / `devui-macos`** (needs PySide6 + offscreen), not the core `test` matrix.
+
+If Actions jobs die in ~2–4s with empty steps / spending-limit annotations, treat those UI gates as **skipped by billing**, not as a green language-dialog pass. Fix [Billing & plans](https://github.com/otas0/buusdo/settings/billing) before trusting i18n UI CI. Core `test_locale_quality.py` still runs on the non-UI `test` job when runners start.
+
+Locale switching: after each language pick the main window must **full-retranslate** (not only top-bar chrome) so repeated switches do not leave mixed-language leftovers.
 
 ## Share copy
 

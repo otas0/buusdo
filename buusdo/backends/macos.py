@@ -124,6 +124,8 @@ class MacOSBackend(EnhancementBackend):
             success=True,
             message=t("msg.metalfx_written", log=log_note).strip(),
             details={"marker": str(marker), "payload": payload},
+            message_key="msg.metalfx_written",
+            message_params={"log": log_note},
         )
         history.append_event(
             "install:metalfx",
@@ -131,6 +133,8 @@ class MacOSBackend(EnhancementBackend):
             success=True,
             message=result.message,
             details=result.details,
+            message_key=result.message_key,
+            message_params=result.message_params,
         )
         return result
 
@@ -144,13 +148,13 @@ class MacOSBackend(EnhancementBackend):
                 if marker.is_file():
                     with Transaction() as tx:
                         tx.delete(marker)
-                    return InstallResult(success=True, message=t("msg.uninstall_macos"))
-            return InstallResult(success=True, message=t("msg.uninstall_none"))
+                    return InstallResult(success=True, message=t("msg.uninstall_macos"), message_key="msg.uninstall_macos")
+            return InstallResult(success=True, message=t("msg.uninstall_none"), message_key="msg.uninstall_none")
         marker = compat_root / "buusdo_metalfx.json"
         with Transaction() as tx:
             if marker.exists():
                 tx.delete(marker)
-        return InstallResult(success=True, message=t("msg.uninstall_macos"))
+        return InstallResult(success=True, message=t("msg.uninstall_macos"), message_key="msg.uninstall_macos")
 
     def status(self, target: EnhancementTarget) -> dict[str, Any]:
         layers = discover_compat_layers()

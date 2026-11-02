@@ -5,21 +5,23 @@ from __future__ import annotations
 
 import sys
 
-from buusdo.core.i18n import _STRINGS
+from buusdo.core.i18n import catalogs, reload_catalogs
 
 _PREFIXES = ("err.", "cap.", "action.", "display.", "tray.")
 
 
-def _check_prefix(prefix: str) -> list[str]:
-    zh = {k for k in _STRINGS["zh"] if k.startswith(prefix)}
-    en = {k for k in _STRINGS["en"] if k.startswith(prefix)}
+def _check_prefix(prefix: str, strings: dict[str, dict[str, str]]) -> list[str]:
+    if "zh" not in strings or "en" not in strings:
+        return ["locale catalogs missing zh and/or en (call reload_catalogs first)"]
+    zh = {k for k in strings["zh"] if k.startswith(prefix)}
+    en = {k for k in strings["en"] if k.startswith(prefix)}
     errors: list[str] = []
     missing_en = sorted(zh - en)
     missing_zh = sorted(en - zh)
     empty = [
         k
         for k in sorted(zh & en)
-        if not str(_STRINGS["zh"][k]).strip() or not str(_STRINGS["en"][k]).strip()
+        if not str(strings["zh"][k]).strip() or not str(strings["en"][k]).strip()
     ]
     if missing_en:
         errors.append(f"{prefix}* missing in en: {', '.join(missing_en)}")
@@ -35,9 +37,11 @@ def _check_prefix(prefix: str) -> list[str]:
 
 
 def main() -> int:
+    reload_catalogs()
+    strings = catalogs()
     errors: list[str] = []
     for prefix in _PREFIXES:
-        errors.extend(_check_prefix(prefix))
+        errors.extend(_check_prefix(prefix, strings))
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1

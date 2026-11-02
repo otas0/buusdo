@@ -115,6 +115,8 @@ class LinuxBackend(EnhancementBackend):
                     success=True,
                     message=t("msg.goverlay_launched", path=launched["path"]),
                     details=launched,
+                    message_key="msg.goverlay_launched",
+                    message_params={"path": launched["path"]},
                 )
             else:
                 raise BuusdoError(t("err.unknown_mode", mode=mode))
@@ -127,6 +129,8 @@ class LinuxBackend(EnhancementBackend):
             success=result.success,
             message=result.message,
             details=result.details,
+            message_key=result.message_key,
+            message_params=result.message_params or None,
         )
         return result
 
@@ -144,8 +148,20 @@ class LinuxBackend(EnhancementBackend):
                 localconfig = find_localconfig(steam_roots(HostPlatform.LINUX))
                 if localconfig:
                     details["launch_options"] = set_launch_options(tx, localconfig, str(app_id), "")
-        result = InstallResult(success=True, message=t("msg.uninstall_linux"), details=details)
-        history.append_event("uninstall", target=target.name, success=True, message=result.message, details=details)
+        result = InstallResult(
+            success=True,
+            message=t("msg.uninstall_linux"),
+            details=details,
+            message_key="msg.uninstall_linux",
+        )
+        history.append_event(
+            "uninstall",
+            target=target.name,
+            success=True,
+            message=result.message,
+            details=details,
+            message_key=result.message_key,
+        )
         return result
 
     def status(self, target: EnhancementTarget) -> dict[str, Any]:
@@ -269,6 +285,8 @@ class LinuxBackend(EnhancementBackend):
         return InstallResult(
             success=True,
             message=t("msg.reshade_proton", mode=plan.mode, api=plan.api.value),
+            message_key="msg.reshade_proton",
+            message_params={"mode": plan.mode, "api": plan.api.value},
             details=state,
         )
 
@@ -324,5 +342,6 @@ class LinuxBackend(EnhancementBackend):
         return InstallResult(
             success=True,
             message=t("msg.vkbasalt_written"),
+            message_key="msg.vkbasalt_written",
             details=details,
         )

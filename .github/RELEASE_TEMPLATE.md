@@ -7,7 +7,7 @@ GitHub Releases channel. Prefer documenting which asset set this tag ships.
 - **No official installer** (`buusdo-setup-*.exe` not attached)
 - Assets: `buusdo-$VERSION-py3-none-any.whl`, `SHA256SUMS`, `INSTALL.txt` (optional sdist)
 - **Unsigned** by design
-- **Windows** primary; **Linux / macOS experimental** (wheel/source only)
+- **Windows / Linux / macOS** supported (capabilities differ by OS; macOS config-only). Installer: Windows Inno; others wheel/source
 - Kits (**ReShade** / **OptiScaler**) are **self-provided**, not bundled
 - **No** DWM HDR injection (Phase 3)
 - Feedback: https://github.com/otas0/buusdo/issues

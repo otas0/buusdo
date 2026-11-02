@@ -64,12 +64,15 @@ def enable(tx: Transaction, game_dir: Path, *, target_name: str) -> dict:
         tx.write_bytes(active, data)
         tx.delete(disabled)
 
+    from buusdo.core.i18n import t
+
     state_path = game_dir / STATE_FILE
     tx.ensure_dir(state_path.parent)
     state = {
         "target": target_name,
         "enabled": True,
-        "copy": "已启用已有 RTX Remix 路径追踪 mod（未宣称「已开启光线追踪」）。",
+        "copy": t("msg.remix_enabled"),
+        "message_key": "msg.remix_enabled",
     }
     tx.write_text(state_path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
     return state
@@ -87,12 +90,15 @@ def disable(tx: Transaction, game_dir: Path, *, target_name: str) -> dict:
 
         raise BuusdoError(t("err.remix_disable"))
 
+    from buusdo.core.i18n import t
+
     state_path = game_dir / STATE_FILE
     tx.ensure_dir(state_path.parent)
     state = {
         "target": target_name,
         "enabled": False,
-        "copy": "已禁用 RTX Remix 路径追踪 mod 桥接文件。",
+        "copy": t("msg.remix_disabled"),
+        "message_key": "msg.remix_disabled",
     }
     tx.write_text(state_path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
     return state

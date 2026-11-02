@@ -8,10 +8,9 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLa
 
 from buusdo import __version__
 from buusdo.core.i18n import t
+from buusdo.core.urls import FEEDBACK_URL, REPO_URL
 from buusdo.ui.logo_widget import make_logo_label
 
-FEEDBACK_URL = "https://github.com/otas0/buusdo/issues"
-REPO_URL = "https://github.com/otas0/buusdo"
 LICENSE_NAME = "See repository LICENSE (MIT)"
 
 
@@ -31,7 +30,10 @@ def show_about_dialog(parent=None) -> None:
     layout.addWidget(QLabel(t("about.version", version=__version__)))
     layout.addWidget(QLabel(t("about.channel")))
     layout.addWidget(QLabel(t("about.license", license=LICENSE_NAME)))
-    layout.addWidget(QLabel(t("about.support_os")))
+    support = QLabel(t("about.support_os"))
+    support.setWordWrap(True)
+    support.setObjectName("brandSubtitle")
+    layout.addWidget(support)
     note = QLabel(t("about.non_goals"))
     note.setWordWrap(True)
     note.setObjectName("brandSubtitle")
@@ -51,5 +53,7 @@ def show_about_dialog(parent=None) -> None:
     row.addWidget(repo)
     row.addWidget(close)
     layout.addLayout(row)
-    dlg.resize(420, 320)
+    # Narrow windows: long DE/RU platform copy must wrap, not stretch the dialog.
+    dlg.setMinimumWidth(360)
+    dlg.resize(420, 340)
     dlg.exec()

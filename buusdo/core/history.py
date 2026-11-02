@@ -21,7 +21,14 @@ def append_event(
     success: bool,
     message: str = "",
     details: dict[str, Any] | None = None,
+    message_key: str = "",
+    message_params: dict[str, Any] | None = None,
 ) -> None:
+    """Append a history row.
+
+    Prefer ``message_key`` (+ optional ``message_params``) so the UI can
+    ``t()`` at display time. ``message`` remains as a legacy/fallback snapshot.
+    """
     path = _history_path()
     event = {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -31,6 +38,10 @@ def append_event(
         "message": message,
         "details": details or {},
     }
+    if message_key:
+        event["message_key"] = message_key
+        if message_params:
+            event["message_params"] = dict(message_params)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as fh:

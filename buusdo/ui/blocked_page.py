@@ -20,7 +20,7 @@ class BlockedPage(QWidget):
 
         title = QLabel(t("block.title"))
         title.setObjectName("blockTitle")
-        title.setAccessibleName("安全阻断标题")
+        title.setAccessibleName(t("a11y.block_title"))
         title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         font = title.font()
         font.setPointSize(16)
@@ -33,16 +33,16 @@ class BlockedPage(QWidget):
             f"{error.target_name}\n{error.reason}\n\n{t('block.body')}"
         )
         summary.setWordWrap(True)
-        summary.setAccessibleName("阻断说明")
+        summary.setAccessibleName(t("a11y.block_summary"))
         layout.addWidget(summary)
 
         if error.evidence:
-            evidence_label = QLabel("Evidence")
-            evidence_label.setAccessibleName("证据列表标题")
+            evidence_label = QLabel(t("label.evidence"))
+            evidence_label.setAccessibleName(t("a11y.evidence_heading"))
             layout.addWidget(evidence_label)
             evidence_list = QListWidget()
             evidence_list.setObjectName("evidenceList")
-            evidence_list.setAccessibleName("反作弊证据列表")
+            evidence_list.setAccessibleName(t("a11y.evidence_list"))
             for item in error.evidence:
                 evidence_list.addItem(item)
             layout.addWidget(evidence_list)

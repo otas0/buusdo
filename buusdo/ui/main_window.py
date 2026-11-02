@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QAction, QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QStackedWidget,
     QSystemTrayIcon,
@@ -30,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from buusdo.ui.tray_icon import app_icon, tray_icon
+from buusdo.ui.tray_icon import tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
@@ -69,7 +70,7 @@ from buusdo.core.crash_report import (
 from buusdo.core.errors import BuusdoError, UnsafeTargetError
 from buusdo.core.graphics_detect import GraphicsApi
 from buusdo.core.history import list_events
-from buusdo.core.i18n import available_locales, get_locale, set_locale, t
+from buusdo.core.i18n import available_locales, get_locale, locale_display_name, set_locale, t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 from buusdo.core.library_progress import resume_scan_status
 from buusdo.core.platform_detect import steam_roots
@@ -95,12 +96,13 @@ from buusdo.core.transaction import Transaction
 from buusdo.core.vkbasalt_template import list_presets
 from buusdo.ui.blocked_page import BlockedPage
 from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
-from buusdo.ui.scan_worker import start_scan
+from buusdo.ui.scan_worker import assert_gui_thread, start_scan
 from buusdo.ui.theme import ThemeName, apply_theme, badge_color, current_theme
 from buusdo.ui.tray_icon import make_mark_icon
 from buusdo.ui.about_dialog import show_about_dialog
 from buusdo.ui.logo_widget import make_logo_label, refresh_logo_label
 from buusdo.ui.selection_utils import clear_row_selections
+from buusdo.ui.language_dialog import LanguageDialog, needs_locale_pick
 from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 
 
@@ -110,7 +112,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("buusdo")
         self.resize(980, 720)
 
-        self.setWindowIcon(app_icon())
+        # Window/taskbar icon is set in app.py (skipped on macOS so Dock uses
+        # Buusdo.app AppIcon.icns instead of a Qt hard-square override).
 
         self._backend = backend or get_backend()
         self._target: EnhancementTarget | None = None
@@ -118,6 +121,8 @@ class MainWindow(QMainWindow):
         self._filtered: list[EnhancementTarget] = []
         self._scan_thread = None
         self._scan_worker = None
+        self._scan_accepting = False
+        self._scan_generation = 0
 
         settings = load_settings()
         if settings.get("locale") in available_locales():
@@ -143,12 +148,11 @@ class MainWindow(QMainWindow):
         self._theme_btn.clicked.connect(self._toggle_theme)
         self._refresh_theme_button()
         brand.addWidget(self._theme_btn)
-        self._lang = QComboBox()
-        for loc in available_locales():
-            self._lang.addItem(loc, loc)
-        self._lang.setCurrentIndex(self._lang.findData(get_locale()))
-        self._lang.currentIndexChanged.connect(self._on_locale_changed)
-        brand.addWidget(self._lang)
+        self._lang = None  # legacy combo removed — use search popup
+        self._lang_btn = QPushButton(locale_display_name(get_locale()))
+        self._lang_btn.setToolTip(t("lang.button"))
+        self._lang_btn.clicked.connect(self._open_language_dialog)
+        brand.addWidget(self._lang_btn)
         self._btn_about = QPushButton(t("about.button"))
         self._btn_about.clicked.connect(self._show_about)
         brand.addWidget(self._btn_about)
@@ -163,12 +167,12 @@ class MainWindow(QMainWindow):
         home.setSpacing(10)
 
         filter_row = QHBoxLayout()
-        filter_lbl = QLabel("Filter")
-        filter_lbl.setObjectName("sectionLabel")
-        filter_row.addWidget(filter_lbl)
+        self._filter_lbl = QLabel(t("label.filter"))
+        self._filter_lbl.setObjectName("sectionLabel")
+        filter_row.addWidget(self._filter_lbl)
         self._filter = QLineEdit()
-        self._filter.setPlaceholderText("filter games…")
-        self._filter.setAccessibleName("游戏列表过滤")
+        self._filter.setPlaceholderText(t("filter.placeholder"))
+        self._filter.setAccessibleName(t("a11y.game_filter"))
         self._filter.textChanged.connect(self._refresh_game_list)
         filter_row.addWidget(self._filter)
         home.addLayout(filter_row)
@@ -185,11 +189,11 @@ class MainWindow(QMainWindow):
         home.addLayout(kits_row)
         self._refresh_kits_banner()
 
-        games_lbl = QLabel("Games")
-        games_lbl.setObjectName("sectionLabel")
-        home.addWidget(games_lbl)
+        self._games_lbl = QLabel(t("label.games"))
+        self._games_lbl.setObjectName("sectionLabel")
+        home.addWidget(self._games_lbl)
         self._game_list = QListWidget()
-        self._game_list.setAccessibleName("游戏列表")
+        self._game_list.setAccessibleName(t("a11y.game_list"))
         self._game_list.currentRowChanged.connect(self._on_game_selected)
         home.addWidget(self._game_list, stretch=1)
 
@@ -201,10 +205,12 @@ class MainWindow(QMainWindow):
         home.addWidget(self._progress)
 
         pref_row = QHBoxLayout()
-        pref_row.addWidget(QLabel("EXE"))
+        self._exe_lbl = QLabel(t("label.exe"))
+        pref_row.addWidget(self._exe_lbl)
         self._exe_combo = QComboBox()
         pref_row.addWidget(self._exe_combo, stretch=1)
-        pref_row.addWidget(QLabel("API"))
+        self._api_lbl = QLabel(t("label.api"))
+        pref_row.addWidget(self._api_lbl)
         self._api_combo = QComboBox()
         self._api_combo.addItem("auto", "")
         for api in GraphicsApi:
@@ -215,29 +221,21 @@ class MainWindow(QMainWindow):
         home.addLayout(pref_row)
 
         user_row = QHBoxLayout()
-        user_row.addWidget(QLabel("Steam user"))
+        self._steam_user_lbl = QLabel(t("label.steam_user"))
+        user_row.addWidget(self._steam_user_lbl)
         self._steam_user = QComboBox()
         user_row.addWidget(self._steam_user, stretch=1)
         home.addLayout(user_row)
         self._reload_steam_users()
 
         mode_row = QHBoxLayout()
-        mode_row.addWidget(QLabel("Mode"))
+        self._mode_lbl = QLabel(t("label.mode"))
+        mode_row.addWidget(self._mode_lbl)
         self._mode_combo = QComboBox()
-        for mode, label in (
-            ("reshade", "ReShade"),
-            ("optiscaler", "OptiScaler"),
-            ("vkbasalt", "vkBasalt"),
-            ("goverlay", "Goverlay"),
-            ("display_profile", "Display/HDR"),
-            ("preview", "Conflict preview"),
-            ("rtx_remix_enable", "Remix enable"),
-            ("rtx_remix_disable", "Remix disable"),
-            ("dwm_hdr", "DWM HDR prototype"),
-        ):
-            self._mode_combo.addItem(label, mode)
+        self._reload_mode_combo()
         mode_row.addWidget(self._mode_combo)
-        mode_row.addWidget(QLabel("vkBasalt"))
+        self._vk_lbl = QLabel("vkBasalt")
+        mode_row.addWidget(self._vk_lbl)
         self._vk_preset = QComboBox()
         for name in list_presets():
             self._vk_preset.addItem(name, name)
@@ -261,7 +259,8 @@ class MainWindow(QMainWindow):
         home.addLayout(audit_row)
 
         ttl_row = QHBoxLayout()
-        ttl_row.addWidget(QLabel(t("settings.steam_uri_ttl")))
+        self._steam_ttl_lbl = QLabel(t("settings.steam_uri_ttl"))
+        ttl_row.addWidget(self._steam_ttl_lbl)
         self._steam_ttl = QSpinBox()
         self._steam_ttl.setRange(1, 90)
         self._steam_ttl.setSuffix(t("settings.steam_uri_ttl_suffix"))
@@ -297,6 +296,9 @@ class MainWindow(QMainWindow):
 
         self._session_banner = QLabel("")
         self._session_banner.setWordWrap(True)
+        self._session_banner.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
         self._session_banner.setStyleSheet("color: #FF4F00;")
         self._btn_clear_session = QPushButton(t("action.clear_display_session"))
         self._btn_clear_session.clicked.connect(self._clear_display_session)
@@ -310,15 +312,15 @@ class MainWindow(QMainWindow):
         home.addLayout(sess_row)
         self._refresh_session_banner()
 
-        caps_lbl = QLabel("Capabilities")
-        caps_lbl.setObjectName("sectionLabel")
-        home.addWidget(caps_lbl)
+        self._caps_lbl = QLabel(t("label.capabilities"))
+        self._caps_lbl.setObjectName("sectionLabel")
+        home.addWidget(self._caps_lbl)
         self._cap_list = QListWidget()
         home.addWidget(self._cap_list)
 
-        hist_lbl = QLabel("History")
-        hist_lbl.setObjectName("sectionLabel")
-        home.addWidget(hist_lbl)
+        self._hist_lbl = QLabel(t("label.history"))
+        self._hist_lbl.setObjectName("sectionLabel")
+        home.addWidget(self._hist_lbl)
         self._history_list = QListWidget()
         home.addWidget(self._history_list)
 
@@ -336,15 +338,15 @@ class MainWindow(QMainWindow):
         self._btn_preview = QPushButton(t("conflict.title"))
         self._btn_steam = QPushButton(t("proton.open_steam"))
         self._btn_proton_note = QPushButton(t("action.proton_note"))
-        self._btn_kit = QPushButton("ReShade…")
-        self._btn_opti = QPushButton("OptiScaler…")
+        self._btn_kit = QPushButton(t("action.kit_reshade"))
+        self._btn_opti = QPushButton(t("action.kit_optiscaler"))
         self._btn_install = QPushButton(t("action.deploy"))
         self._btn_install.setObjectName("primaryAction")
         self._btn_install.setDefault(True)
         self._btn_uninstall = QPushButton(t("action.uninstall"))
-        self._btn_export = QPushButton("Export")
-        self._btn_import = QPushButton("Import")
-        self._btn_history = QPushButton("History")
+        self._btn_export = QPushButton(t("action.export"))
+        self._btn_import = QPushButton(t("action.import"))
+        self._btn_history = QPushButton(t("action.history"))
         for b in (
             self._btn_scan,
             self._btn_force,
@@ -370,7 +372,7 @@ class MainWindow(QMainWindow):
 
         self._status = QLabel("")
         self._status.setWordWrap(True)
-        self._status.setAccessibleName("状态栏")
+        self._status.setAccessibleName(t("a11y.status"))
         home.addWidget(self._status)
 
         self._stack.addWidget(self._home)
@@ -753,6 +755,22 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "buusdo", str(exc))
 
     def _maybe_run_first_run_wizard(self) -> None:
+        # After install / first launch: language preference before kit setup.
+        settings = load_settings()
+        if needs_locale_pick(settings):
+            try:
+                dlg = LanguageDialog(self, first_run=True)
+                dlg.exec()
+                loc = dlg.selected_locale() or "en"
+                set_locale(loc)
+                settings["locale"] = loc
+                save_settings(settings)
+                self._apply_locale_to_chrome()
+            except Exception as exc:
+                capture_exception(exc, context={"op": "first_run_locale"})
+                set_locale("en")
+                settings["locale"] = "en"
+                save_settings(settings)
         if not needs_wizard():
             self._refresh_kits_banner()
             return
@@ -762,6 +780,91 @@ class MainWindow(QMainWindow):
             capture_exception(exc, context={"op": "first_run_wizard"})
             QMessageBox.warning(self, "buusdo", str(exc))
         self._refresh_kits_banner()
+
+    def _open_language_dialog(self) -> None:
+        if self._scan_accepting:
+            return
+        # Brief disable avoids re-entry while the modal + retranslate runs.
+        self._lang_btn.setEnabled(False)
+        try:
+            dlg = LanguageDialog(self, first_run=False)
+            if dlg.exec() != QDialog.DialogCode.Accepted:
+                return
+            loc = dlg.selected_locale()
+            if not loc or loc == get_locale():
+                self._lang_btn.setText(locale_display_name(get_locale()))
+                return
+            set_locale(loc)
+            data = load_settings()
+            data["locale"] = loc
+            save_settings(data)
+            self._apply_locale_to_chrome()
+        finally:
+            if not self._scan_accepting:
+                self._lang_btn.setEnabled(True)
+
+    def _apply_locale_to_chrome(self) -> None:
+        """Rebind *all* catalog-driven chrome after set_locale (no mixed leftovers)."""
+        prev = self._selection_key(self._target)
+        self._lang_btn.setText(locale_display_name(get_locale()))
+        self._lang_btn.setToolTip(t("lang.button"))
+        self._btn_about.setText(t("about.button"))
+        self._refresh_theme_button()
+        self._btn_scan.setText(t("action.scan"))
+        self._btn_force.setText(t("action.force_scan"))
+        self._btn_cancel.setText(t("action.cancel_scan"))
+        self._btn_install.setText(t("action.deploy"))
+        self._btn_uninstall.setText(t("action.uninstall"))
+        self._btn_preview.setText(t("conflict.title"))
+        self._btn_steam.setText(t("proton.open_steam"))
+        self._btn_proton_note.setText(t("action.proton_note"))
+        self._btn_kit.setText(t("action.kit_reshade"))
+        self._btn_opti.setText(t("action.kit_optiscaler"))
+        self._btn_export.setText(t("action.export"))
+        self._btn_import.setText(t("action.import"))
+        self._btn_history.setText(t("action.history"))
+        self._btn_export_audit.setText(t("action.export_audit"))
+        self._btn_clear_audit.setText(t("action.clear_audit"))
+        self._btn_clear_session.setText(t("action.clear_display_session"))
+        self._btn_rollback_now.setText(t("action.rollback_now"))
+        self._btn_clear_steam_uri.setText(t("settings.steam_uri_clear"))
+        self._btn_steam_try_first.setText(t("settings.steam_uri_try_first"))
+        self._btn_steam_try_first.setToolTip(t("settings.steam_uri_try_first"))
+        self._crash_opt.setText(t("action.crash_opt_in"))
+        self._filter_lbl.setText(t("label.filter"))
+        self._games_lbl.setText(t("label.games"))
+        self._hist_lbl.setText(t("label.history"))
+        self._caps_lbl.setText(t("label.capabilities"))
+        self._exe_lbl.setText(t("label.exe"))
+        self._api_lbl.setText(t("label.api"))
+        self._steam_user_lbl.setText(t("label.steam_user"))
+        self._mode_lbl.setText(t("label.mode"))
+        self._steam_ttl_lbl.setText(t("settings.steam_uri_ttl"))
+        self._steam_ttl.setSuffix(t("settings.steam_uri_ttl_suffix"))
+        self._steam_ttl.setToolTip(
+            t(
+                "settings.steam_uri_ttl_tip",
+                default_days=DEFAULT_STEAM_URI_CACHE_TTL_S // 86400,
+            )
+        )
+        self._filter.setPlaceholderText(t("filter.placeholder"))
+        self._filter.setAccessibleName(t("a11y.game_filter"))
+        self._game_list.setAccessibleName(t("a11y.game_list"))
+        self._status.setAccessibleName(t("a11y.status"))
+        refresh_logo_label(self._logo_label)
+        self._reload_mode_combo()
+        self._reload_steam_users()
+        self._refresh_kits_banner()
+        self._refresh_session_banner()
+        self._refresh_steam_uri_controls()
+        self._refresh_history()
+        # Badges / capability titles are locale-sensitive — rebuild in the active language.
+        self._refresh_game_list()
+        self._restore_selection(prev)
+        if self._target is not None:
+            self._refresh_capabilities()
+        elif self._games:
+            self._status.setText(t("scan.games_count", count=len(self._games)))
 
     def _refresh_theme_button(self) -> None:
         # Button shows the mode you can switch *to*.
@@ -781,54 +884,83 @@ class MainWindow(QMainWindow):
         refresh_logo_label(self._logo_label)
         self._refresh_theme_button()
 
-    def _on_locale_changed(self) -> None:
-        loc = self._lang.currentData()
-        if not loc:
-            return
-        set_locale(loc)
-        data = load_settings()
-        data["locale"] = loc
-        save_settings(data)
-        self._btn_about.setText(t("about.button"))
-        self._refresh_theme_button()
-        self._btn_scan.setText(t("action.scan"))
-        self._btn_force.setText(t("action.force_scan"))
-        self._btn_cancel.setText(t("action.cancel_scan"))
-        self._btn_install.setText(t("action.deploy"))
-        self._btn_uninstall.setText(t("action.uninstall"))
-        self._btn_preview.setText(t("conflict.title"))
-
     def _reload_steam_users(self) -> None:
+        current = self._steam_user.currentData() if self._steam_user.count() else None
         self._steam_user.clear()
-        self._steam_user.addItem("(default)", "")
+        self._steam_user.addItem(t("steam.user_default"), "")
         for profile in list_steam_users(steam_roots()):
             self._steam_user.addItem(profile.label, profile.steam_id3)
+        if current is not None:
+            idx = self._steam_user.findData(current)
+            if idx >= 0:
+                self._steam_user.setCurrentIndex(idx)
+
+    _MODE_KEYS: tuple[tuple[str, str], ...] = (
+        ("reshade", "mode.reshade"),
+        ("optiscaler", "mode.optiscaler"),
+        ("vkbasalt", "mode.vkbasalt"),
+        ("goverlay", "mode.goverlay"),
+        ("display_profile", "mode.display_profile"),
+        ("preview", "mode.preview"),
+        ("rtx_remix_enable", "mode.rtx_remix_enable"),
+        ("rtx_remix_disable", "mode.rtx_remix_disable"),
+        ("dwm_hdr", "mode.dwm_hdr"),
+    )
+
+    def _reload_mode_combo(self) -> None:
+        current = self._mode_combo.currentData() if self._mode_combo.count() else "reshade"
+        self._mode_combo.clear()
+        for mode, key in self._MODE_KEYS:
+            self._mode_combo.addItem(t(key), mode)
+        if current is not None:
+            idx = self._mode_combo.findData(current)
+            if idx >= 0:
+                self._mode_combo.setCurrentIndex(idx)
+
+    @staticmethod
+    def _selection_key(target: EnhancementTarget | None) -> tuple[str, str, str] | None:
+        from buusdo.core.selection import selection_key
+
+        return selection_key(target)
+
+    def _restore_selection(self, key: tuple[str, str, str] | None) -> None:
+        if key is None:
+            return
+        for i, game in enumerate(self._filtered):
+            if self._selection_key(game) == key:
+                self._game_list.setCurrentRow(i)
+                return
+
+    def _set_scan_chrome_enabled(self, enabled: bool) -> None:
+        """Language/theme toggles must not re-enter paint while a scan is live."""
+        self._theme_btn.setEnabled(enabled)
+        if hasattr(self, "_lang_btn"):
+            self._lang_btn.setEnabled(enabled)
+        if hasattr(self, "_lang") and self._lang is not None:
+            self._lang.setEnabled(enabled)
+
+    def _scan_ui_idle(self) -> None:
+        self._scan_accepting = False
+        self._progress.setValue(0)
+        self._progress.setVisible(False)
+        self._btn_scan.setEnabled(True)
+        self._btn_force.setEnabled(True)
+        self._btn_cancel.setEnabled(False)
+        self._set_scan_chrome_enabled(True)
 
     def _scan_games(self, *, force: bool) -> None:
+        # Drop any in-flight scan UI updates before starting another.
+        self._scan_generation += 1
+        self._scan_accepting = True
+        self._set_scan_chrome_enabled(False)
+        self._progress.setRange(0, 100)
+        self._progress.setFormat("%p%")
         self._progress.setVisible(True)
         self._progress.setValue(0)
         self._status.setText(t("scan.progress"))
         self._btn_scan.setEnabled(False)
         self._btn_force.setEnabled(False)
         self._btn_cancel.setEnabled(True)
-
-        def on_progress(stage: str, value: float) -> None:
-            pct = int(max(0, min(100, value * 100)))
-            self._progress.setValue(pct)
-            if isinstance(stage, str) and stage.startswith("resume:"):
-                st = resume_scan_status()
-                scanned = int(st.get("scanned", 0) or 0)
-                total = max(1, int(st.get("total_manifests", 0) or 1))
-                resume_pct = int(100 * scanned / total)
-                self._progress.setValue(max(pct, min(99, resume_pct)))
-                self._status.setText(
-                    t(
-                        "scan.resume",
-                        scanned=scanned,
-                        total=total,
-                        match=st.get("fingerprint_match"),
-                    )
-                )
 
         # Surface pending resume before worker starts
         resume = resume_scan_status()
@@ -845,52 +977,93 @@ class MainWindow(QMainWindow):
                 )
             )
 
-        def _scan_ui_idle() -> None:
-            self._progress.setValue(0)
-            self._progress.setVisible(False)
-            self._btn_scan.setEnabled(True)
-            self._btn_force.setEnabled(True)
-            self._btn_cancel.setEnabled(False)
+        gen = self._scan_generation
+        self._scan_thread, self._scan_worker = start_scan(force=force, receiver=self)
+        # Stash generation on worker for stale-signal ignore (object may outlive gen).
+        self._scan_worker.setProperty("scanGeneration", gen)
 
-        def on_finished(games: list) -> None:
-            try:
-                self._games = list(games or [])
-                self._refresh_game_list()
-                self._reload_steam_users()
-                self._status.setText(f"{len(self._games)} games")
-                self._rebuild_tray_recent()
-            except Exception as exc:  # noqa: BLE001
-                capture_exception(exc, context={"op": "scan_finished"})
-                self._status.setText(str(exc))
-            finally:
-                _scan_ui_idle()
+    @Slot(str, float)
+    def on_scan_progress(self, stage: str, value: float) -> None:
+        assert_gui_thread("on_scan_progress")
+        if not self._scan_accepting:
+            return
+        worker = self._scan_worker
+        if worker is not None:
+            gen = worker.property("scanGeneration")
+            if gen is not None and int(gen) != self._scan_generation:
+                return
+        pct = int(max(0, min(100, value * 100)))
+        self._progress.setValue(pct)
+        if isinstance(stage, str) and stage.startswith("resume:"):
+            st = resume_scan_status()
+            scanned = int(st.get("scanned", 0) or 0)
+            total = max(1, int(st.get("total_manifests", 0) or 1))
+            resume_pct = int(100 * scanned / total)
+            self._progress.setValue(max(pct, min(99, resume_pct)))
+            self._status.setText(
+                t(
+                    "scan.resume",
+                    scanned=scanned,
+                    total=total,
+                    match=st.get("fingerprint_match"),
+                )
+            )
 
-        def on_failed(message: str) -> None:
-            try:
+    @Slot(list)
+    def on_scan_finished(self, games: list) -> None:
+        assert_gui_thread("on_scan_finished")
+        if not self._scan_accepting:
+            return
+        prev = self._selection_key(self._target)
+        try:
+            restored: list[EnhancementTarget] = []
+            for item in games or []:
+                if isinstance(item, EnhancementTarget):
+                    restored.append(item)
+                elif isinstance(item, dict):
+                    restored.append(EnhancementTarget.from_payload(item))
+            self._games = restored
+            self._refresh_game_list()
+            self._restore_selection(prev)
+            self._reload_steam_users()
+            if self._target is None:
+                self._status.setText(t("scan.games_count", count=len(self._games)))
+            self._rebuild_tray_recent()
+        except Exception as exc:  # noqa: BLE001
+            capture_exception(exc, context={"op": "scan_finished", "payload_len": len(games or [])})
+            self._status.setText(str(exc))
+        finally:
+            self._scan_ui_idle()
+
+    @Slot(str)
+    def on_scan_failed(self, message: str) -> None:
+        assert_gui_thread("on_scan_failed")
+        # Cancel already flipped accepting=False and restored buttons; ignore
+        # late non-cancel failures, but always idle-out a live scan.
+        if not self._scan_accepting:
+            return
+        try:
+            if message and message != "cancelled":
                 self._status.setText(message)
-                if message != "cancelled":
-                    capture_exception(RuntimeError(message), context={"op": "scan"})
-            finally:
-                _scan_ui_idle()
-
-        self._scan_thread, self._scan_worker = start_scan(
-            force=force,
-            on_progress=on_progress,
-            on_finished=on_finished,
-            on_failed=on_failed,
-        )
+                capture_exception(RuntimeError(message), context={"op": "scan"})
+        finally:
+            self._scan_ui_idle()
 
     def _cancel_scan(self) -> None:
+        # Stop accepting progress *before* asking the worker to stop — queued
+        # progress events must not call setValue after we hide the bar.
+        self._scan_accepting = False
+        self._scan_generation += 1
         if self._scan_worker is not None:
             self._scan_worker.cancel()
-        # Indeterminate flash then clear so a cancelled resume does not leave a stale %.
-        self._progress.setVisible(True)
-        self._progress.setRange(0, 0)
-        self._progress.repaint()
         self._progress.setRange(0, 100)
         self._progress.setValue(0)
         self._progress.setFormat("%p%")
         self._progress.setVisible(False)
+        self._btn_scan.setEnabled(True)
+        self._btn_force.setEnabled(True)
+        self._btn_cancel.setEnabled(False)
+        self._set_scan_chrome_enabled(True)
         resume = resume_scan_status()
         if resume.get("partial") or resume.get("resume"):
             self._status.setText(
@@ -1026,13 +1199,40 @@ class MainWindow(QMainWindow):
             avail = "Y" if cap.available else "N"
             self._cap_list.addItem(f"[{avail}] {cap.title} — {cap.description}")
 
+    def _format_history_action(self, action: str) -> str:
+        raw = str(action or "")
+        head, _, rest = raw.partition(":")
+        if head == "install":
+            label = t("history.action.install")
+            return f"{label}:{rest}" if rest else label
+        if head == "uninstall":
+            return t("history.action.uninstall")
+        return raw
+
+    def _format_history_message(self, event: dict) -> str:
+        key = str(event.get("message_key") or "")
+        if key:
+            params = event.get("message_params") or {}
+            if isinstance(params, dict):
+                return t(key, **params)
+            return t(key)
+        return str(event.get("message") or "")
+
     def _refresh_history(self) -> None:
         self._history_list.clear()
         for event in list_events(limit=50):
-            ok = "OK" if event.get("success") else "FAIL"
-            self._history_list.addItem(
-                f"{event.get('ts', '')} [{ok}] {event.get('action')} · {event.get('target')}"
+            status = t("history.ok") if event.get("success") else t("history.fail")
+            line = t(
+                "history.line",
+                ts=event.get("ts", ""),
+                status=status,
+                action=self._format_history_action(str(event.get("action") or "")),
+                target=event.get("target") or "",
             )
+            msg = self._format_history_message(event)
+            if msg:
+                line = f"{line} — {msg}"
+            self._history_list.addItem(line)
 
     def _pick_reshade_kit(self) -> bool:
         path = QFileDialog.getExistingDirectory(self, "ReShade")
@@ -1656,11 +1856,15 @@ class MainWindow(QMainWindow):
         self._refresh_history()
 
     def _on_export(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Export", "buusdo-config.zip", "Zip (*.zip)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, t("dialog.export_title"), "buusdo-config.zip", "Zip (*.zip)"
+        )
         if path:
             export_configs(path)
 
     def _on_import(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Import", "", "Zip (*.zip)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, t("dialog.import_title"), "", "Zip (*.zip)"
+        )
         if path:
             import_configs(path)

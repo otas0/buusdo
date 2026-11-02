@@ -10,10 +10,10 @@
 | PE icons | `scripts/verify_pe_icon.py` must see RT_ICON / RT_GROUP_ICON on Setup + `buusdo.exe` |
 | Launch smoke | `scripts/smoke_windows_install.ps1` (CI with launch) |
 | Explorer wordmark | Optional — prefer user `launch` reports over agent VM/ISO smoke |
-| Authenticode | **Off** until Explorer wordmark smoke is OK |
-| Draft release | `v0.1.0-installer-preview` stays **`--draft`** (unpublished) |
+| Authenticode | **Prep started** — see [CODE_SIGNING.md](CODE_SIGNING.md); **do not ship signed** until Explorer wordmark smoke is OK |
+| Draft release | `v0.1.0-installer-preview` stays **`--draft`** (unpublished); rebuild/attach via `installer.yml` |
 | `v1.*` | **Forbidden** until STORE_MVP installer smoke + human call |
-| `0.1.1` | **Hold** until real `launch` / `scan` Issues are filed and fixed |
+| `0.1.1` | **Prep started** (fixes-only branch / changelog) — **do not tag** until at least one real `launch` / `scan` Issue is filed and fixed (or closed WAD) |
 
 ### Gate log (agent)
 
@@ -23,7 +23,7 @@
 - PyInstaller dig (`41298050631` miss vs `41298462774` hit): workdir cache **hit** (~41 MB) but Wheel+Inno still ~80 s. Hit log: `Building because …/assets/__init__.py changed` then `…/PySide6/__init__.py changed` — fresh checkout mtimes + new `.venv` invalidate TOCs, so Analysis/PKG/EXE still ~65 s. Fix: cache `dist/payload/buusdo.exe` too and set `BUUSDO_REUSE_CACHED_PAYLOAD=1` to skip rebuild when the exe is restored.
 - Actions `logo-assets` on `main`: blocked by **spending limit** — raise at https://github.com/settings/billing/summary then re-run `ci` (agent cannot change billing).
 - Phase 3 stays on `phase3/dwm-hdr`. Re-run `uv run python scripts/screenshot_release_checklist.py` before any new tag if UI chrome changes.
-- Explorer still **manual**; draft stays unpublished; Authenticode off; no `v1.*` / no `0.1.1` until launch/scan Issues.
+- Explorer still **manual**; draft stays unpublished; no `v1.*`; Authenticode + `0.1.1` prep in progress (no signed ship / no tag yet).
 - Local UTM/ISO Explorer smoke **skipped** (user reports via `launch`). Payload reuse confirmed on run `41304170487`: `Reusing cached … skip PyInstaller`.
 
 ## Attach artifacts to draft

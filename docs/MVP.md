@@ -1,4 +1,4 @@
-# MVP freeze (Windows-first)
+# MVP freeze (Windows / Linux / macOS)
 
 **Status:** freeze for first public/dev preview. Scope below is intentional.
 
@@ -6,7 +6,9 @@ For the **GitHub v1.0.0 installer** gate (Inno, unsigned), see [STORE_MVP.md](ST
 
 ## In scope
 
-- Windows: Steam library scan → ReShade deploy / uninstall with **transactional** restore
+- **Windows:** Steam library scan → ReShade deploy / uninstall with **transactional** restore
+- **Linux:** vkBasalt / Goverlay scheduling; Proton prefix ReShade deploy where applicable
+- **macOS:** MetalFX compatibility-layer config only (C5 — no injection)
 - Anti-cheat hard block (C1) — no continue-anyway
 - Honest copy (C4) — no “ray tracing enabled”, no DLSS claims on macOS
 - Developer self-test (local), not third-party acceptance sign-off
@@ -17,7 +19,7 @@ For the **GitHub v1.0.0 installer** gate (Inno, unsigned), see [STORE_MVP.md](ST
 
 - Phase 3 DWM HDR live injection (`phase3/dwm-hdr` stays isolated)
 - Dual-monitor CCD live fixture overwrite (ILLUSTRATIVE until a Windows host records)
-- Feature parity Linux / macOS (ship as **experimental**)
+- Feature **parity** across OS (capabilities differ by platform — that is intentional)
 - Codesign / notarization / SmartScreen reputation (document UNSIGNED; sign later)
 - Agent polling of GitHub Actions; after Billing fix → **one** `workflow_dispatch` only
 
@@ -38,6 +40,6 @@ bash scripts/package_mvp.sh
 
 | Platform | MVP label |
 |----------|-----------|
-| Windows  | **supported** (primary) |
-| Linux    | experimental |
-| macOS    | experimental (config-only, C5) |
+| Windows  | **supported** (fullest surface: ReShade / OptiScaler / display) |
+| Linux    | **supported** (vkBasalt / Goverlay / Proton path) |
+| macOS    | **supported** (config-only MetalFX compat; C5) |

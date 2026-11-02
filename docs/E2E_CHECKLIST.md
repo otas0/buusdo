@@ -22,18 +22,18 @@ Automated gate: `python scripts/mvp_self_test.py`.
 - [ ] Display/HDR prefs save to per-game JSON
 - [ ] DWM HDR capability shows unavailable (Phase 3 — expected)
 
-## Linux (experimental)
+## Linux
 
 - [ ] vkBasalt mode writes selected user’s `localconfig.vdf`
 - [ ] Goverlay launches when installed; capability unavailable when missing
 
-## Linux Proton (experimental)
+## Linux Proton
 
 - [ ] Proton games show `[Proton]` badge
 - [ ] ReShade writes under `steamapps/common/<game>`, not `pfx/drive_c`
 - [ ] Vulkan layer mode writes launch-option hints
 
-## macOS (experimental)
+## macOS (config-only, C5)
 
 - [ ] Discover GPTK / CrossOver / Bridgeplay config directories
 - [ ] MetalFX config writes succeed; copy never claims DLSS trademarks
