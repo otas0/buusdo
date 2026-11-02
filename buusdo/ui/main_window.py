@@ -852,6 +852,7 @@ class MainWindow(QMainWindow):
         self._status.setAccessibleName(t("a11y.status"))
         refresh_logo_label(self._logo_label)
         self._reload_mode_combo()
+        self._reload_steam_users()
         self._refresh_kits_banner()
         self._refresh_session_banner()
         self._refresh_steam_uri_controls()

@@ -135,6 +135,8 @@ class WindowsBackend(EnhancementBackend):
             success=result.success,
             message=result.message,
             details=result.details,
+            message_key=result.message_key,
+            message_params=result.message_params or None,
         )
         push_recent(
             {
@@ -160,9 +162,15 @@ class WindowsBackend(EnhancementBackend):
             success=True,
             message=t("msg.uninstall_win"),
             details=details,
+            message_key="msg.uninstall_win",
         )
         history.append_event(
-            "uninstall", target=target.name, success=True, message=result.message, details=details
+            "uninstall",
+            target=target.name,
+            success=True,
+            message=result.message,
+            details=details,
+            message_key=result.message_key,
         )
         return result
 
@@ -223,7 +231,13 @@ class WindowsBackend(EnhancementBackend):
         msg = t("msg.reshade_deployed", mode=plan.mode, api=plan.api.value, proxy=proxy)
         if warnings:
             msg += " | " + "; ".join(warnings)
-        return InstallResult(success=True, message=msg, details=state)
+        return InstallResult(
+            success=True,
+            message=msg,
+            details=state,
+            message_key="msg.reshade_deployed",
+            message_params={"mode": plan.mode, "api": plan.api.value, "proxy": proxy},
+        )
 
     def _install_optiscaler(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
         kit_path = options.get("optiscaler_kit") or get_optiscaler_kit_path()
@@ -247,6 +261,7 @@ class WindowsBackend(EnhancementBackend):
             success=True,
             message=t("msg.optiscaler_deployed"),
             details={**state, "conflicts": [i.message for i in conflicts.issues]},
+            message_key="msg.optiscaler_deployed",
         )
 
     def _remix_toggle(self, target: EnhancementTarget, *, enable: bool) -> InstallResult:
@@ -290,6 +305,7 @@ class WindowsBackend(EnhancementBackend):
             success=True,
             message=t("msg.display_applied"),
             details=applied,
+            message_key="msg.display_applied",
         )
 
     def _install_dwm_hdr_prototype(self, target: EnhancementTarget) -> InstallResult:
@@ -299,6 +315,7 @@ class WindowsBackend(EnhancementBackend):
             success=True,
             message=state.get("copy") or t("msg.dwm_recorded"),
             details=state,
+            message_key="" if state.get("copy") else "msg.dwm_recorded",
         )
 
     def _preview(self, target: EnhancementTarget, options: dict[str, Any]) -> InstallResult:
@@ -322,10 +339,12 @@ class WindowsBackend(EnhancementBackend):
             details = preview_reshade_deploy(
                 target, Path(r_kit), api=self._resolve_api(options, target)
             )
+        blocked = bool(details.get("blocked"))
         return InstallResult(
-            success=not details.get("blocked"),
-            message=t("msg.preview_blocked") if details.get("blocked") else t("msg.preview_ok"),
+            success=not blocked,
+            message=t("msg.preview_blocked") if blocked else t("msg.preview_ok"),
             details=details,
+            message_key="msg.preview_blocked" if blocked else "msg.preview_ok",
         )
 
     def _resolve_api(self, options: dict[str, Any], target: EnhancementTarget) -> GraphicsApi | None:

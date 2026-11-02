@@ -55,6 +55,9 @@ class InstallResult:
     success: bool
     message: str
     details: dict[str, Any] = field(default_factory=dict)
+    # Prefer these for history so the UI can t() after locale switches.
+    message_key: str = ""
+    message_params: dict[str, Any] = field(default_factory=dict)
 
 
 class EnhancementBackend(ABC):
