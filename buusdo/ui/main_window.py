@@ -919,13 +919,9 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _selection_key(target: EnhancementTarget | None) -> tuple[str, str, str] | None:
-        if target is None:
-            return None
-        return (
-            str(target.metadata.get("app_id") or ""),
-            str(target.install_path),
-            target.name,
-        )
+        from buusdo.core.selection import selection_key
+
+        return selection_key(target)
 
     def _restore_selection(self, key: tuple[str, str, str] | None) -> None:
         if key is None:

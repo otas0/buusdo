@@ -74,8 +74,7 @@ def test_apply_locale_updates_secondary_chrome(qapp, monkeypatch: pytest.MonkeyP
 
 
 def test_force_scan_restores_selection() -> None:
-    pytest.importorskip("PySide6")
-    from buusdo.ui.main_window import MainWindow
+    from buusdo.core.selection import selection_key
 
     games = [
         EnhancementTarget(
@@ -86,8 +85,8 @@ def test_force_scan_restores_selection() -> None:
         )
         for i in range(4)
     ]
-    key = MainWindow._selection_key(games[2])
+    key = selection_key(games[2])
     assert key == ("102", "/games/2", "G2")
     restored = [EnhancementTarget.from_payload(g.to_payload()) for g in games]
-    match = next(i for i, g in enumerate(restored) if MainWindow._selection_key(g) == key)
+    match = next(i for i, g in enumerate(restored) if selection_key(g) == key)
     assert match == 2
