@@ -16,6 +16,16 @@ on:
         type: boolean
         required: false
         default: true
+      explorer_wordmark_ok:
+        description: "Human confirmed Explorer wordmark on Setup + buusdo.exe (required for Authenticode)"
+        type: boolean
+        required: false
+        default: false
+      sign_authenticode:
+        description: "Sign throwaway copies with repo secrets (never default; needs wordmark-OK + secrets)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -34,7 +44,27 @@ jobs:
             echo "v1.0.0 only after manual smoke. Keep draft unpublished."
             echo "0.1.1 prep started (fixes-only); do not tag until launch/scan Issues."
             echo "Phase 3 stays on phase3/dwm-hdr (default branch is main)."
+            echo "Authenticode CI: sign_authenticode=${{ inputs.sign_authenticode }} explorer_wordmark_ok=${{ inputs.explorer_wordmark_ok }} (default both false)."
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Authenticode gate (fail closed)
+        if: ${{ inputs.sign_authenticode }}
+        shell: bash
+        env:
+          WORDMARK_OK: ${{ inputs.explorer_wordmark_ok }}
+          HAS_PFX: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+          HAS_PFX_PASS: ${{ secrets.WINDOWS_CERT_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${WORDMARK_OK}" != "true" ]]; then
+            echo "::error::Refusing Authenticode: set explorer_wordmark_ok=true after manual Explorer smoke."
+            exit 1
+          fi
+          if [[ "${HAS_PFX}" != "true" || "${HAS_PFX_PASS}" != "true" ]]; then
+            echo "::error::Refusing Authenticode: missing WINDOWS_CERT_PFX / WINDOWS_CERT_PASSWORD secrets."
+            exit 1
+          fi
+          echo "Authenticode gate passed (wordmark-OK + secrets present)."
+          echo "NOTE: this job still builds unsigned Setup by default; signing replaces draft only when a later step is added and explicitly reviewed."
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
@@ -116,3 +146,19 @@ jobs:
         run: |
           chmod +x scripts/attach_installer_to_draft.sh
           bash scripts/attach_installer_to_draft.sh v0.1.0-installer-preview
+      - name: Re-verify PE icon on attached draft Setup
+        if: ${{ success() && inputs.attach_draft }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/draft-verify
+          gh release download v0.1.0-installer-preview -D dist/draft-verify -p 'buusdo-setup-*.exe'
+          SETUP="$(ls dist/draft-verify/buusdo-setup-*.exe | head -1)"
+          uv run python scripts/verify_pe_icon.py "${SETUP}"
+          {
+            echo "## Draft PE re-verify"
+            echo "- Downloaded attached draft Setup and ran \`verify_pe_icon.py\` (pass)."
+            echo "- Explorer wordmark remains a **manual** gate before Authenticode."
+          } >> "$GITHUB_STEP_SUMMARY"
