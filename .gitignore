@@ -39,3 +39,6 @@ scripts/codesign.env
 
 # Local config dumps
 *.local.json
+
+# Local promo WIP (poster/QR) — keep untracked until an explicit ship review
+docs/promo/
