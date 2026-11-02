@@ -199,7 +199,8 @@ Installer (Windows, if ${SETUP_NAME} attached):
   Run ${SETUP_NAME} (SmartScreen may warn — expected, unsigned).
   Then pick your own ReShade/OptiScaler kit folders in the UI.
 
-Windows-first. Linux/macOS experimental. No DWM HDR. Kits not bundled.
+Windows installer build (unsigned). Wheel/macOS zip/Linux tarball ship on the GitHub Release.
+Capabilities differ by OS (macOS config-only). No DWM HDR. Kits not bundled.
 Feedback: https://github.com/otas0/buusdo/issues
 EOF
 
