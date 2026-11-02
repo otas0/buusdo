@@ -26,34 +26,59 @@ signtool verify /pa dist\buusdo.exe
 
 4. Publish `SHA256SUMS` alongside the binary (CI release workflow already generates checksums for `dist/`).
 
-## macOS (Hardened Runtime + Notarization)
+## macOS (Developer ID + Notarization + Staple)
 
-1. Sign the `.app` with Developer ID Application:
+**Blocker (2026-11-02):** this builder has **0** codesigning identities
+(`security find-identity -v -p codesigning`). Signing cannot run until a
+**Developer ID Application** certificate is installed from an Apple Developer
+Program account, plus a `notarytool` keychain profile.
+
+### One-shot (preferred)
 
 ```bash
-codesign --deep --force --options runtime \
-  --sign "Developer ID Application: <Team>" \
-  dist/buusdo.app
+cp scripts/codesign.env.example scripts/codesign.env
+# Edit CODESIGN_IDENTITY + NOTARY_PROFILE to real values (gitignored)
+
+# Store notary credentials once (app-specific password or API key):
+xcrun notarytool store-credentials "buusdo-notary" \
+  --apple-id "you@example.com" --team-id "TEAMID" --password "app-specific-password"
+
+chmod +x scripts/sign_and_notarize_macos.sh
+bash scripts/sign_and_notarize_macos.sh
+# → dist/buusdo-macos-$VERSION.zip (signed, notarized, stapled)
 ```
 
-2. Staple after notarization:
+### Manual steps
+
+1. Sign the `.app` with Developer ID Application (hardened runtime + timestamp):
 
 ```bash
-xcrun notarytool submit dist/buusdo.zip --keychain-profile "AC_PROFILE" --wait
-xcrun stapler staple dist/buusdo.app
-spctl --assess --type execute dist/buusdo.app
+codesign --deep --force --options runtime --timestamp \
+  --sign "Developer ID Application: <Name> (TEAMID)" \
+  dist/macos/Buusdo.app
 ```
 
-## Local hook (preferred)
+2. Notarize + staple:
 
 ```bash
-# Create gitignored scripts/codesign.env with CODESIGN_IDENTITY / NOTARY_PROFILE / SIGNTOOL
-cp scripts/codesign.env.example scripts/codesign.env   # if present
+ditto -c -k --keepParent dist/macos/Buusdo.app dist/buusdo-notarize.zip
+xcrun notarytool submit dist/buusdo-notarize.zip --keychain-profile "buusdo-notary" --wait
+xcrun stapler staple dist/macos/Buusdo.app
+spctl --assess --type execute dist/macos/Buusdo.app
+```
+
+3. Replace the GitHub Release macOS zip + refresh `SHA256SUMS` (release stays published).
+
+## Local hook (Windows / thin macOS)
+
+```bash
+cp scripts/codesign.env.example scripts/codesign.env
 chmod +x scripts/codesign_hooks.sh
-./scripts/codesign_hooks.sh dist/buusdo.app   # or .exe on Windows
+./scripts/codesign_hooks.sh dist/macos/Buusdo.app   # or .exe on Windows
 ```
 
-Release packaging may call the same hook after `scripts/deploy.sh` when local secrets exist. CI never receives private keys from the repo.
+Prefer `scripts/sign_and_notarize_macos.sh` for the full Apple Gatekeeper path.
+CI never receives private keys from the repo.
 
 ## CI gate (Authenticode)
 
