@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from buusdo.ui.tray_icon import app_icon, tray_icon
+from buusdo.ui.tray_icon import tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
@@ -112,7 +112,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("buusdo")
         self.resize(980, 720)
 
-        self.setWindowIcon(app_icon())
+        # Window/taskbar icon is set in app.py (skipped on macOS so Dock uses
+        # Buusdo.app AppIcon.icns instead of a Qt hard-square override).
 
         self._backend = backend or get_backend()
         self._target: EnhancementTarget | None = None

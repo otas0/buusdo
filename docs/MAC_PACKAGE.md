@@ -6,9 +6,15 @@ package track (Nuitka / `pyside6-deploy` on Darwin).
 
 ## Icon asset
 
-- Source wordmark: `buusdo/assets/logo.png`
-- Committed Dock/Finder icon: `buusdo/assets/logo.icns`
-- Regenerate on macOS: `python scripts/generate_logo_icns.py` (`sips` + `iconutil`)
+- Source wordmark: `buusdo/assets/logo.png` (opaque square; UI / Windows ICO source)
+- Dock/Finder mark: `buusdo/assets/logo.icns` (squircle alpha via `generate_logo_icns.py`)
+- Optional PNG twin: `buusdo/assets/logo_dock.png` (same mask; not used for Dock override)
+- Regenerate on macOS: `python scripts/generate_logo_icns.py` (mask + `iconutil`)
+
+**Dock shape:** do **not** call Qt `setWindowIcon` on macOS — it replaces the
+tile with a hard square and skips the system squircle. Launch via
+`dist/Buusdo.app` (`bash scripts/make_buusdo_app.sh` then `open dist/Buusdo.app`)
+so Dock uses `CFBundleIconFile` / `AppIcon.icns`.
 
 `scripts/deploy.sh` prefers `logo.icns` on Darwin when calling `pyside6-deploy`
 (`--macos-app-icon`).

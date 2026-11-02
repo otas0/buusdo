@@ -39,8 +39,12 @@ def main(argv: list[str] | None = None) -> int:
     mode: ThemeName = "dark" if settings.get("ui_theme") == "dark" else "light"
     apply_theme(app, mode)
 
-    icon = app_icon()
-    app.setWindowIcon(icon)
+    # On macOS, Qt setWindowIcon replaces the Dock tile with a hard square
+    # (system squircle mask is skipped). Launch via Buusdo.app so Dock uses
+    # CFBundleIconFile / AppIcon.icns instead.
+    if sys.platform != "darwin":
+        app.setWindowIcon(app_icon())
+
     try:
         backend = get_backend()
     except BuusdoError as exc:

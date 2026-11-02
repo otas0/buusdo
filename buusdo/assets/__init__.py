@@ -20,6 +20,14 @@ def logo_path() -> Path:
     return logo
 
 
+def logo_dock_path() -> Path:
+    """Dock / window icon with macOS squircle alpha. Prefer logo_dock.png."""
+    dock = asset_path("logo_dock.png")
+    if dock.is_file():
+        return dock
+    return logo_path()
+
+
 def logo_wordmark_path() -> Path:
     """Horizontal UI wordmark. Prefer logo_wordmark.png; fall back to logo.png."""
     wordmark = asset_path("logo_wordmark.png")
