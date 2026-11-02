@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Trace buusdo/assets/logo.png → tight logo.svg (themeable fills).
+"""Trace wordmark → tight logo.svg (themeable fills).
 
-Crops empty margin, upscales with nearest-neighbor, then VTracer.
+Prefers logo_wordmark.png (run generate_logo_wordmark.py first); else crops logo.png.
 Requires: pillow, vtracer.
 """
 
@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PNG = ROOT / "buusdo" / "assets" / "logo.png"
+WORDMARK = ROOT / "buusdo" / "assets" / "logo_wordmark.png"
 SVG = ROOT / "buusdo" / "assets" / "logo.svg"
 
 
@@ -35,16 +36,17 @@ def _crop_content(png: Path) -> Path:
             ys.append(y)
     if not xs:
         raise SystemExit(f"FATAL: no ink in {png}")
-    pad = 10
+    pad_l, pad_t, pad_r, pad_b = 10, 10, 28, 10
     box = (
-        max(0, min(xs) - pad),
-        max(0, min(ys) - pad),
-        min(im.width, max(xs) + 1 + pad),
-        min(im.height, max(ys) + 1 + pad),
+        max(0, min(xs) - pad_l),
+        max(0, min(ys) - pad_t),
+        min(im.width, max(xs) + 1 + pad_r),
+        min(im.height, max(ys) + 1 + pad_b),
     )
     crop = im.crop(box)
-    # Integer upscale keeps geometric edges crisp for tracing.
-    crop = crop.resize((crop.width * 4, crop.height * 4), Image.Resampling.NEAREST)
+    # Wordmark sources are already upscaled — keep total scale modest for SVG size.
+    scale = 2 if crop.width >= 600 else 3
+    crop = crop.resize((crop.width * scale, crop.height * scale), Image.Resampling.NEAREST)
     bg = Image.new("RGB", crop.size, (255, 255, 255))
     bg.paste(crop, mask=crop.split()[-1])
     out = Path(tempfile.gettempdir()) / "buusdo-logo-trace.png"
@@ -53,15 +55,14 @@ def _crop_content(png: Path) -> Path:
 
 
 def _remap_fills(text: str) -> str:
+    # Drop full-bleed background rects (any light fill spanning the canvas).
     text = re.sub(
-        r'<path d="M0 0 C[\d.]+ 0[^"]+" fill="#FEFEFE"[^/]*/>\s*',
+        r'<path d="M0,?0[^"]{0,120}" fill="#(?:F[EeFf][EeFf][EeFf][EeFf]|EDEDED)"[^/]*/>\s*',
         "",
         text,
-        count=1,
     )
-    # Drop any full-bleed near-white rects.
     text = re.sub(
-        r'<path d="M0 0[^"]{0,80}" fill="#F[EeFf][EeFf][EeFf][EeFf]"[^/]*/>\s*',
+        r'<path d="M0,?0 L\d+,0 L\d+,\d+ L0,\d+ Z\s*" fill="#EDEDED"[^/]*/>\s*',
         "",
         text,
     )
@@ -69,13 +70,13 @@ def _remap_fills(text: str) -> str:
         text = text.replace(f'fill="{c}"', 'fill="#111111"')
     for c in ("#F0F0F0", "#E7E7E7", "#F4F4F4", "#FEFEFE", "#FFFFFF", "#FAFAFA"):
         text = text.replace(f'fill="{c}"', 'fill="#EDEDED"')
-    for c in ("#545454", "#555555", "#666666", "#777777", "#888888"):
+    for c in ("#545454", "#555555", "#666666", "#777777", "#888888", "#535353"):
         text = text.replace(f'fill="{c}"', 'fill="#6B6B6B"')
     return text
 
 
 def _tighten_viewbox(svg_path: Path) -> None:
-    """Set viewBox to content using a high-res raster probe."""
+    """Set viewBox to ink content (ignore paper), using the SVG's own viewBox."""
     from PySide6.QtCore import QByteArray
     from PySide6.QtGui import QImage, QPainter
     from PySide6.QtSvg import QSvgRenderer
@@ -83,60 +84,68 @@ def _tighten_viewbox(svg_path: Path) -> None:
 
     app = QApplication.instance() or QApplication([])
     raw = svg_path.read_text(encoding="utf-8")
-    # Temporary square box for probing.
     if "viewBox" not in raw:
-        raw = raw.replace("<svg ", '<svg viewBox="0 0 500 500" ', 1)
+        raw = raw.replace("<svg ", '<svg viewBox="0 0 1400 400" ', 1)
+        svg_path.write_text(raw, encoding="utf-8")
     r = QSvgRenderer(QByteArray(raw.encode()))
     if not r.isValid():
         return
     vb = r.viewBoxF()
-    w0 = max(1.0, vb.width())
-    h0 = max(1.0, vb.height())
-    img = QImage(1600, 1600, QImage.Format.Format_ARGB32)
+    W = max(1, int(vb.width()) or r.defaultSize().width() or 1)
+    H = max(1, int(vb.height()) or r.defaultSize().height() or 1)
+    scale = 2
+    img = QImage(W * scale, H * scale, QImage.Format.Format_ARGB32)
     img.fill(0)
     p = QPainter(img)
     r.render(p)
     p.end()
-    minx, miny, maxx, maxy = 1600, 1600, 0, 0
-    for y in range(1600):
-        row = False
-        for x in range(1600):
-            if img.pixelColor(x, y).alpha() > 12:
-                minx = min(minx, x)
-                maxx = max(maxx, x)
-                miny = min(miny, y)
-                maxy = max(maxy, y)
-                row = True
-        if not row and miny < maxy and y > maxy + 20:
-            break
+    minx, miny, maxx, maxy = W * scale, H * scale, -1, -1
+    for y in range(H * scale):
+        for x in range(W * scale):
+            c = img.pixelColor(x, y)
+            if c.alpha() < 12:
+                continue
+            if c.red() > 230 and c.green() > 230 and c.blue() > 230:
+                continue
+            minx = min(minx, x)
+            maxx = max(maxx, x)
+            miny = min(miny, y)
+            maxy = max(maxy, y)
     if maxx <= minx:
         return
-    # Map pixel → viewBox units
-    x = vb.x() + (minx / 1600.0) * w0
-    y = vb.y() + (miny / 1600.0) * h0
-    w = ((maxx - minx) / 1600.0) * w0
-    h = ((maxy - miny) / 1600.0) * h0
-    pad = max(w, h) * 0.04
-    x = max(vb.x(), x - pad)
-    y = max(vb.y(), y - pad)
-    w = min(vb.x() + w0 - x, w + 2 * pad)
-    h = min(vb.y() + h0 - y, h + 2 * pad)
+    sx = vb.width() / (W * scale)
+    sy = vb.height() / (H * scale)
+    pad = 8.0
+    x = vb.x() + minx * sx - pad
+    y = vb.y() + miny * sy - pad
+    w = (maxx - minx) * sx + 2 * pad
+    h = (maxy - miny) * sy + 2 * pad
     vb_attr = f'viewBox="{x:.2f} {y:.2f} {w:.2f} {h:.2f}"'
     text = svg_path.read_text(encoding="utf-8")
-    if re.search(r'viewBox="[^"]*"', text):
-        text = re.sub(r'viewBox="[^"]*"', vb_attr, text, count=1)
-    else:
-        text = text.replace("<svg ", f"<svg {vb_attr} ", 1)
-    # Prefer CSS size from viewBox aspect; drop fixed 500 square hints.
+    text = re.sub(r'viewBox="[^"]*"', vb_attr, text, count=1)
     text = re.sub(r'\swidth="[^"]*"', "", text, count=1)
     text = re.sub(r'\sheight="[^"]*"', "", text, count=1)
     svg_path.write_text(text, encoding="utf-8")
-    _ = app  # keep alive for probe
+    _ = app
 
 
 def main() -> int:
-    if not PNG.is_file():
-        print(f"FATAL: missing {PNG}", file=sys.stderr)
+    # Refresh wordmark raster first when possible.
+    try:
+        import importlib.util
+
+        wm_path = ROOT / "scripts" / "generate_logo_wordmark.py"
+        spec = importlib.util.spec_from_file_location("generate_logo_wordmark", wm_path)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            mod.main()
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARN wordmark export skipped: {exc}", file=sys.stderr)
+
+    src_png = WORDMARK if WORDMARK.is_file() else PNG
+    if not src_png.is_file():
+        print(f"FATAL: missing {src_png}", file=sys.stderr)
         return 1
     try:
         import vtracer
@@ -144,13 +153,13 @@ def main() -> int:
         print("FATAL: uv pip install vtracer pillow", file=sys.stderr)
         return 1
 
-    src = _crop_content(PNG)
+    src = _crop_content(src_png)
     vtracer.convert_image_to_svg_py(
         str(src),
         str(SVG),
         colormode="color",
         hierarchical="stacked",
-        mode="polygon",  # sharper for geometric wordmark
+        mode="polygon",
         filter_speckle=2,
         color_precision=8,
         layer_difference=8,
@@ -165,13 +174,12 @@ def main() -> int:
         "<!-- buusdo wordmark (cropped+traced); theme tokens #111/#EDEDED/#6B6B6B — Generator: visioncortex VTracer",
     )
     if "viewBox" not in text:
-        # cropped source size unknown — leave square until tighten
-        text = text.replace("<svg ", '<svg viewBox="0 0 1000 1000" ', 1)
+        text = text.replace("<svg ", '<svg viewBox="0 0 2000 600" ', 1)
     SVG.write_text(text, encoding="utf-8")
     _tighten_viewbox(SVG)
-    print(f"OK  {SVG} ({SVG.stat().st_size} bytes)")
+    print(f"OK  {SVG} ({SVG.stat().st_size} bytes) from {src_png.name}")
     head = SVG.read_text(encoding="utf-8").split(">", 1)[0] + ">"
-    print(head[:200])
+    print(head[:220])
     return 0
 
 

@@ -10,7 +10,7 @@ def asset_path(name: str) -> Path:
 
 
 def logo_path() -> Path:
-    """Primary raster logo (wordmark). Prefer logo.png; brand_mark.png is legacy fallback only."""
+    """App / tray / PE icon source (square mark). Prefer logo.png."""
     logo = asset_path("logo.png")
     if logo.is_file():
         return logo
@@ -20,8 +20,16 @@ def logo_path() -> Path:
     return logo
 
 
+def logo_wordmark_path() -> Path:
+    """Horizontal UI wordmark. Prefer logo_wordmark.png; fall back to logo.png."""
+    wordmark = asset_path("logo_wordmark.png")
+    if wordmark.is_file():
+        return wordmark
+    return logo_path()
+
+
 def logo_svg_path() -> Path:
-    """Vector wordmark for UI chrome (themeable fills). Generated from logo.png."""
+    """Vector wordmark for UI chrome (themeable fills). Generated from wordmark crop."""
     return asset_path("logo.svg")
 
 

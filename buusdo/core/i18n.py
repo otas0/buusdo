@@ -1,361 +1,82 @@
-"""Minimal i18n with C4-honest copy keys. Capability titles use cap.* keys from backends."""
+"""Locale catalogs for UI copy (C4-honest). One active language at a time.
+
+Catalogs live in ``buusdo/locales/*.json``. Missing keys fall back to **English
+only** — never to another language — so the UI stays monolingual.
+"""
 
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
-_LOCALE = "zh"
+# (code, native display name, search haystack)
+_LOCALE_META: list[tuple[str, str, str]] = [
+    ("en", "English", "english en"),
+    ("zh", "简体中文", "chinese simplified zh hans 简体"),
+    ("zh-Hant", "繁體中文", "chinese traditional zh hant 繁体 繁體 繁體中文"),
+    ("ja", "日本語", "japanese ja にほんご 日本語"),
+    ("ko", "한국어", "korean ko 한국"),
+    ("pt-BR", "Português (Brasil)", "portuguese brazil brasil pt-br"),
+    ("pt", "Português", "portuguese portugal pt"),
+    ("es", "Español", "spanish castellano es"),
+    ("de", "Deutsch", "german deutsch de"),
+    ("fr", "Français", "french francais fr"),
+    ("it", "Italiano", "italian italiano it"),
+    ("ru", "Русский", "russian русский ru"),
+]
 
-_STRINGS: dict[str, dict[str, str]] = {
-    "zh": {
-        "app.subtitle": "图形增强调度器 · 配置协调器",
-        "about.button": "关于",
-        "theme.to_dark": "深色",
-        "theme.to_light": "浅色",
-        "about.title": "关于 buusdo",
-        "about.version": "版本 {version}",
-        "about.channel": "发布渠道：GitHub Releases（未代码签名）",
-        "about.license": "许可证：{license}",
-        "about.support_os": "正式支持：Windows；Linux / macOS 为实验性",
-        "about.non_goals": "不含：Microsoft Store、Authenticode、DWM HDR、捆绑 ReShade/OptiScaler。",
-        "about.feedback": "反馈 Issue",
-        "about.repo": "仓库",
-        "about.close": "关闭",
-        "action.scan": "扫描 Steam 库",
-        "action.force_scan": "强制全量刷新",
-        "action.cancel_scan": "取消扫描",
-        "action.deploy": "部署增强",
-        "action.uninstall": "卸载",
-        "action.confirm_uninstall": "确认卸载「{name}」的增强？",
-        "action.open_kit_folder": "打开工具包目录",
-        "action.reselect_kit": "重新选择",
-        "action.proton_note": "写入 Proton 启动备注",
-        "action.crash_opt_in": "崩溃上报（脱敏）",
-        "action.crash_opt_confirm": "启用崩溃上报后，脱敏报告可上传至你配置的端点。确认开启？",
-        "action.crash_opt_preview": "脱敏样例预览",
-        "action.clear_display_session": "清理显示会话",
-        "display.session_warn": "残留显示会话将在约 {minutes} 分钟后过期（{displays} 屏 / {targets} CCD），可清理或等待自动失效。",
-        "linux.deploy_title": "Linux / vkBasalt 部署",
-        "linux.preset": "预设",
-        "linux.sharpness": "锐度",
-        "linux.write_steam": "写入 Steam 启动项",
-        "err.reshade_kit": "未配置 ReShade 工具包路径。",
-        "err.optiscaler_kit": "未配置 OptiScaler 工具包路径。",
-        "err.goverlay_missing": "未找到 Goverlay，请先安装 goverlay。",
-        "err.localconfig": "未找到 Steam localconfig.vdf；若有多用户请先选择 steam_id3。",
-        "err.remix_missing": "未检测到已有的 RTX Remix mod。buusdo 只管理现成 mod，不重建场景。",
-        "err.remix_disable": "未检测到可禁用的 RTX Remix mod。",
-        "err.dwm_phase3": "DWM SDR→HDR 模块为 Phase 3，当前不可用（接口已预留）。",
-        "err.app_not_in_localconfig": "localconfig.vdf 中未找到 app {app_id}；请先在 Steam 中至少启动过该游戏。",
-        "err.reshade_kit_missing": "ReShade 工具包不存在：{path}",
-        "err.reshade_kit_dlls": "ReShade 工具包缺少 ReShade64.dll / ReShade32.dll：{path}",
-        "err.reshade_no_dll": "工具包中没有可用的 ReShade DLL",
-        "err.optiscaler_kit_missing": "OptiScaler 工具包不存在：{path}",
-        "err.optiscaler_kit_dlls": "OptiScaler 工具包缺少预期 DLL（{markers}）：{path}",
-        "err.localconfig_missing": "未找到 localconfig.vdf：{path}",
-        "err.localconfig_invalid": "无效的 localconfig.vdf：{error}",
-        "err.unknown_mode": "未知安装模式：{mode}",
-        "err.unknown_api": "未知图形 API：{api}",
-        "err.unsupported_platform": "不支持的主机平台：{host}",
-        "err.display_enum": "EnumDisplaySettingsW 捕获显示模式失败",
-        "err.display_resolution": "无效分辨率：{resolution}",
-        "err.display_change": "ChangeDisplaySettings 失败",
-        "err.vulkan_registry": "Vulkan 注册表写入失败：{error}",
-        "err.dwm_needs_dir": "dwm_hdr 原型需要 game_dir",
-        "scan.resume": "续扫：已扫 {scanned}/{total}，指纹匹配={match}",
-        "action.copy_json": "复制 JSON",
-        "action.export_json": "导出 JSON",
-        "action.rollback_now": "立即回滚显示",
-        "linux.config_path": "vkBasalt 配置文件",
-        "linux.browse_config": "浏览…",
-        "wizard.need_kit": "请至少选择一个完整的工具包，或点「跳过」。",
-        "wizard.save_failed": "无法保存设置",
-        "wizard.skip_confirm": "稍后再配置工具包？可随时在设置中补全。",
-        "display.rollback_failed": "显示回滚失败：{devices}",
-        "display.rollback_ok": "显示已回滚",
-        "display.retry_one": "重试选中显示器",
-        "display.retry_hdr": "HDR 单靶重试",
-        "display.retry_hdr_need_id": "缺少 adapter/targetId，无法重试 HDR。",
-        "display.fail_table": "回滚失败的显示器",
-        "conflict.schema_badge": "导出 schema v{version}",
-        "scan.cancel_resume": "已取消 — 可续扫（{scanned}/{total}）",
-        "action.export_audit": "导出崩溃审计",
-        "action.clear_audit": "清空崩溃审计",
-        "tray.uninstalled": "（已卸载）",
-        "tray.clear_uninstalled": "清除卸载标记（已重装）",
-        "tray.clear_uninstalled_confirm": "确认清除「{name}」的卸载灰显标记？",
-        "settings.kits_banner": "你曾跳过工具包配置 — 请完成 ReShade / OptiScaler 路径设置。",
-        "settings.complete_kits": "完成工具包配置",
-        "settings.complete_kits_reshade": "补全 ReShade…",
-        "settings.complete_kits_optiscaler": "补全 OptiScaler…",
-        "settings.kits_path_empty": "尚未选择路径",
-        "settings.kits_one_side": "仅一侧工具包可用 — 请补全另一侧路径。",
-        "settings.steam_uri_ttl": "Steam URI 缓存 TTL",
-        "settings.steam_uri_ttl_suffix": " 天",
-        "settings.steam_uri_ttl_tip": "探测成功后的直达缓存有效期（默认 {default_days} 天）。",
-        "settings.steam_uri_ttl_saved": "已保存 Steam URI TTL：{days} 天",
-        "settings.steam_uri_clear": "立即清缓存",
-        "settings.steam_uri_cleared": "已清除 Steam URI 探测缓存",
-        "settings.steam_uri_clear_empty": "没有可清除的 Steam URI 缓存",
-        "settings.steam_uri_cache_on": "缓存中：{template}",
-        "settings.steam_uri_cache_off": "无直达缓存 — 下次探测将重试全部 URI",
-        "settings.steam_uri_probe_no_game": "未选中带 app_id 的游戏 — 仅清除缓存，无 URI 预览",
-        "settings.steam_uri_probe_preview": "将按序探测：\n{uris}",
-        "settings.steam_uri_try_first": "试开第一个",
-        "settings.steam_uri_try_next": "试开下一个",
-        "settings.steam_uri_try_next_count": "试开下一个（剩 {remaining}）",
-        "settings.steam_uri_try_next_tip": "下一个候选 [{index}/{total}]：{uri}",
-        "settings.steam_uri_try_next_shortcut": "Ctrl+N 试开下一个（按钮可用时）",
-        "settings.steam_uri_try_first_ok": "已尝试打开 [{index}/{total}]：{uri}",
-        "settings.steam_uri_try_first_fail": "无法打开 [{index}/{total}]：{uri}",
-        "settings.steam_uri_try_exhausted": "全部 {total} 个 URI 候选均未打开",
-        "display.retry_hdr_shortcut": "回车 / Ctrl+Return 重试选中；Esc 取消选中",
-        "action.clear_selection": "取消选中",
-        "ui.clear_selection_tip": "Esc 取消表格选中",
-        "settings.kit_side_saved": "已保存 {side} 路径",
-        "settings.kit_side_cancelled": "未选择路径",
-        "settings.kit_both_ready": "两侧工具包均已就绪",
-        "settings.kit_still_missing": "已保存 {side} — 仍缺另一侧",
-        "display.session_targets_left": "会话剩余：{targets} CCD / {displays} 屏（点选下方可 HDR 重试）",
-        "display.session_targets_cleared": "会话已清空（无剩余 CCD targets）",
-        "display.session_targets_list": "剩余 CCD targets",
-        "display.retry_hdr_selected": "重试选中 CCD",
-        "display.rollback_partial": "部分显示器已回滚（{ok} 成功 / {fail} 失败）",
-        "action.export_audit_failed": "无法写入崩溃审计：{error}",
-        "action.export_audit_retry": "另选路径",
-        "block.title": "已阻断 — 检测到不安全目标",
-        "block.body": "存在反作弊或无法确认安全时一律拒绝，不可继续。（本页无「继续」按钮。）",
-        "badge.deployed": "[已部署]",
-        "badge.none": "[未部署]",
-        "cap.reshade": "ReShade 后处理调度",
-        "cap.reshade.desc": "部署 ReShade（D3D / OpenGL 代理 DLL，或 Vulkan 显式层）。",
-        "cap.optiscaler": "神经画质增强（OptiScaler 附加组件）",
-        "cap.optiscaler.desc": "与 ReShade 底座解耦；调度本地神经超分组件。与路径追踪是不同能力。",
-        "cap.remix": "RTX Remix mod 管理",
-        "cap.remix.desc": "仅管理已有的 RTX Remix 路径追踪 mod，不重建场景。",
-        "cap.vkbasalt": "Vulkan 后处理调度（vkBasalt / vkSumi）",
-        "cap.vkbasalt.desc": "通过环境变量与 Steam launch options 调度已有 Vulkan 后处理层。",
-        "cap.goverlay": "Goverlay 一键唤起",
-        "cap.goverlay.desc": "检测桌面入口并启动 Goverlay（若已安装）。",
-        "cap.experimental": "实验性",
-        "cap.metalfx": "MetalFX 兼容层配置",
-        "cap.metalfx.desc": "在兼容层中配置 MetalFX。禁止使用第三方超分商标表述。",
-        "cap.display": "按游戏显示/HDR 配置",
-        "cap.display.desc": "保存并协调每游戏显示偏好（分辨率/刷新率/HDR 偏好）。",
-        "cap.dwm_hdr": "DWM SDR→HDR 色彩兜底",
-        "cap.dwm_hdr.desc": "可选模块；Phase 3 才实现。",
-        "copy.no_rt_claim": "不得表述为「已开启光线追踪」",
-        "copy.approx": "近似",
-        "wizard.title": "欢迎使用 buusdo",
-        "wizard.hint": "请选择本地 ReShade / OptiScaler 工具包目录（本应用不附带二进制）。",
-        "wizard.kit_ok": "工具包看起来完整",
-        "wizard.kit_bad": "缺少必要 DLL",
-        "conflict.title": "部署前冲突预览",
-        "conflict.col.severity": "级别",
-        "conflict.col.action": "动作",
-        "conflict.col.path": "路径",
-        "conflict.col.detail": "详情",
-        "proton.missing_prefix": "未找到 Proton compatdata 前缀；请先用 Proton 启动一次该游戏。",
-        "proton.incomplete_prefix": "Proton 前缀不完整（缺少 drive_c）；请先用 Proton 启动一次该游戏。",
-        "proton.ok": "Proton 前缀正常",
-        "proton.open_steam": "在 Steam 中打开",
-        "proton.note_written": "已写入 Steam 启动备注：请先用 Proton 启动一次。",
-        "proton.note_text": "请先用 Proton 启动一次 — buusdo",
-        "scan.progress": "正在扫描游戏库…",
-        "msg.uninstall_win": "已卸载 ReShade / OptiScaler / Vulkan 层写回。",
-        "msg.uninstall_linux": "已移除 Linux 增强部署。",
-        "msg.uninstall_macos": "MetalFX 兼容层配置已移除。",
-        "msg.uninstall_none": "没有可移除的内容。",
-        "msg.reshade_deployed": "已部署 ReShade（模式 {mode}，API {api}{proxy}）。",
-        "msg.optiscaler_deployed": "已调度神经画质增强组件（OptiScaler）；与路径追踪无关。",
-        "msg.display_applied": "已保存并尝试应用显示/HDR 偏好（Win32/CCD）；游戏退出后将尝试回滚。",
-        "msg.dwm_recorded": "DWM HDR 原型意图已记录",
-        "msg.preview_ok": "冲突预览已生成",
-        "msg.preview_blocked": "预览发现阻断冲突",
-        "msg.metalfx_written": "MetalFX 兼容层配置已写入。{log}",
-        "msg.goverlay_launched": "已启动 Goverlay：{path}",
-        "msg.reshade_proton": "已在 Proton 游戏目录部署 ReShade（{mode}，API {api}）。",
-        "msg.vkbasalt_written": "已写入 vkBasalt 调度配置（近似后处理），并尝试写回 Steam 启动项。",
-        "lang.name": "中文",
-    },
-    "en": {
-        "app.subtitle": "Graphics enhancement scheduler · config coordinator",
-        "about.button": "About",
-        "theme.to_dark": "Dark",
-        "theme.to_light": "Light",
-        "about.title": "About buusdo",
-        "about.version": "Version {version}",
-        "about.channel": "Channel: GitHub Releases (unsigned)",
-        "about.license": "License: {license}",
-        "about.support_os": "Supported: Windows; Linux / macOS experimental",
-        "about.non_goals": "Not included: Microsoft Store, Authenticode, DWM HDR, bundled ReShade/OptiScaler.",
-        "about.feedback": "Feedback",
-        "about.repo": "Repository",
-        "about.close": "Close",
-        "action.scan": "Scan Steam library",
-        "action.force_scan": "Force full refresh",
-        "action.cancel_scan": "Cancel scan",
-        "action.deploy": "Deploy",
-        "action.uninstall": "Uninstall",
-        "action.confirm_uninstall": "Uninstall enhancements for “{name}”?",
-        "action.open_kit_folder": "Open kit folder",
-        "action.reselect_kit": "Choose again",
-        "action.proton_note": "Write Proton launch note",
-        "action.crash_opt_in": "Crash reports (redacted)",
-        "action.crash_opt_confirm": "Crash reports (redacted) may upload to your endpoint when enabled. Continue?",
-        "action.crash_opt_preview": "Redaction sample preview",
-        "action.clear_display_session": "Clear display session",
-        "display.session_warn": "A residual display session expires in ~{minutes} min ({displays} displays / {targets} CCD) — clear it or let it self-heal.",
-        "linux.deploy_title": "Linux / vkBasalt deploy",
-        "linux.preset": "Preset",
-        "linux.sharpness": "Sharpness",
-        "linux.write_steam": "Write Steam launch options",
-        "err.reshade_kit": "ReShade kit path is not configured.",
-        "err.optiscaler_kit": "OptiScaler kit path is not configured.",
-        "err.goverlay_missing": "Goverlay not found; install goverlay first.",
-        "err.localconfig": "Steam localconfig.vdf not found; pick steam_id3 if you have multiple users.",
-        "err.remix_missing": "No existing RTX Remix mod detected. buusdo only manages existing mods.",
-        "err.remix_disable": "No RTX Remix mod available to disable.",
-        "err.dwm_phase3": "DWM SDR→HDR is Phase 3 and unavailable (API reserved).",
-        "err.app_not_in_localconfig": "App {app_id} missing in localconfig.vdf; launch it once in Steam first.",
-        "err.reshade_kit_missing": "ReShade kit not found: {path}",
-        "err.reshade_kit_dlls": "ReShade kit missing ReShade64.dll / ReShade32.dll under {path}",
-        "err.reshade_no_dll": "No usable ReShade DLL in kit",
-        "err.optiscaler_kit_missing": "OptiScaler kit not found: {path}",
-        "err.optiscaler_kit_dlls": "OptiScaler kit missing expected DLLs under {path} (looked for: {markers})",
-        "err.localconfig_missing": "localconfig.vdf not found: {path}",
-        "err.localconfig_invalid": "Invalid localconfig.vdf: {error}",
-        "err.unknown_mode": "Unknown install mode: {mode}",
-        "err.unknown_api": "Unknown graphics API: {api}",
-        "err.unsupported_platform": "Unsupported host platform: {host}",
-        "err.display_enum": "EnumDisplaySettingsW failed while capturing mode",
-        "err.display_resolution": "Invalid resolution: {resolution}",
-        "err.display_change": "ChangeDisplaySettings failed",
-        "err.vulkan_registry": "Vulkan registry write failed: {error}",
-        "err.dwm_needs_dir": "dwm_hdr.prototype requires game_dir",
-        "scan.resume": "Resume scan: {scanned}/{total} scanned, fingerprint_match={match}",
-        "action.copy_json": "Copy JSON",
-        "action.export_json": "Export JSON",
-        "action.rollback_now": "Rollback display now",
-        "linux.config_path": "vkBasalt config file",
-        "linux.browse_config": "Browse…",
-        "wizard.need_kit": "Pick at least one complete kit, or press Skip.",
-        "wizard.save_failed": "Could not save settings",
-        "wizard.skip_confirm": "Configure kits later? You can finish setup anytime.",
-        "display.rollback_failed": "Display rollback failed: {devices}",
-        "display.rollback_ok": "Display settings restored",
-        "display.retry_one": "Retry selected display",
-        "display.retry_hdr": "Retry HDR target",
-        "display.retry_hdr_need_id": "Missing adapter/targetId; cannot retry HDR.",
-        "display.fail_table": "Displays that failed rollback",
-        "conflict.schema_badge": "Export schema v{version}",
-        "scan.cancel_resume": "Cancelled — resume available ({scanned}/{total})",
-        "action.export_audit": "Export crash audit",
-        "action.clear_audit": "Clear crash audit",
-        "tray.uninstalled": "(uninstalled)",
-        "tray.clear_uninstalled": "Clear uninstall mark (reinstalled)",
-        "tray.clear_uninstalled_confirm": "Clear uninstall grey-out for “{name}”?",
-        "settings.kits_banner": "Kit setup was skipped — finish ReShade / OptiScaler paths.",
-        "settings.complete_kits": "Complete kit setup",
-        "settings.complete_kits_reshade": "Finish ReShade…",
-        "settings.complete_kits_optiscaler": "Finish OptiScaler…",
-        "settings.kits_path_empty": "path not set",
-        "settings.kits_one_side": "Only one kit is ready — finish the other path.",
-        "settings.steam_uri_ttl": "Steam URI cache TTL",
-        "settings.steam_uri_ttl_suffix": " days",
-        "settings.steam_uri_ttl_tip": "How long a successful probe stays preferred (default {default_days} days).",
-        "settings.steam_uri_ttl_saved": "Saved Steam URI TTL: {days} days",
-        "settings.steam_uri_clear": "Clear cache now",
-        "settings.steam_uri_cleared": "Steam URI probe cache cleared",
-        "settings.steam_uri_clear_empty": "No Steam URI cache to clear",
-        "settings.steam_uri_cache_on": "Cached: {template}",
-        "settings.steam_uri_cache_off": "No preferred cache — next probe retries all URIs",
-        "settings.steam_uri_probe_no_game": "No game with app_id selected — cache cleared, no URI preview",
-        "settings.steam_uri_probe_preview": "Would probe in order:\n{uris}",
-        "settings.steam_uri_try_first": "Try open first",
-        "settings.steam_uri_try_next": "Try next",
-        "settings.steam_uri_try_next_count": "Try next ({remaining} left)",
-        "settings.steam_uri_try_next_tip": "Next candidate [{index}/{total}]: {uri}",
-        "settings.steam_uri_try_next_shortcut": "Ctrl+N tries next (when the button is enabled)",
-        "settings.steam_uri_try_first_ok": "Tried opening [{index}/{total}]: {uri}",
-        "settings.steam_uri_try_first_fail": "Could not open [{index}/{total}]: {uri}",
-        "settings.steam_uri_try_exhausted": "All {total} URI candidates failed to open",
-        "display.retry_hdr_shortcut": "Return / Ctrl+Return retries selection; Esc clears it",
-        "action.clear_selection": "Clear selection",
-        "ui.clear_selection_tip": "Esc clears the table selection",
-        "settings.kit_side_saved": "Saved {side} path",
-        "settings.kit_side_cancelled": "No path selected",
-        "settings.kit_both_ready": "Both kits are ready",
-        "settings.kit_still_missing": "Saved {side} — other side still missing",
-        "display.session_targets_left": "Session left: {targets} CCD / {displays} displays (select below to retry HDR)",
-        "display.session_targets_cleared": "Session cleared (no CCD targets left)",
-        "display.session_targets_list": "Remaining CCD targets",
-        "display.retry_hdr_selected": "Retry selected CCD",
-        "display.rollback_partial": "Partial display rollback ({ok} ok / {fail} failed)",
-        "action.export_audit_failed": "Could not write crash audit: {error}",
-        "action.export_audit_retry": "Choose another path",
-        "block.title": "Blocked — unsafe target detected",
-        "block.body": "Anti-cheat or unverified safety always refuses. No continue-anyway control.",
-        "badge.deployed": "[Deployed]",
-        "badge.none": "[Not deployed]",
-        "cap.reshade": "ReShade post-process scheduling",
-        "cap.reshade.desc": "Deploy ReShade (D3D/OpenGL proxy DLL or Vulkan explicit layer).",
-        "cap.optiscaler": "Neural upscaling (OptiScaler addon)",
-        "cap.optiscaler.desc": "Decoupled from ReShade; schedules local neural upscalers. Distinct from path tracing.",
-        "cap.remix": "RTX Remix mod management",
-        "cap.remix.desc": "Manage existing RTX Remix path-tracing mods only; no scene rebuild.",
-        "cap.vkbasalt": "Vulkan post-process scheduling (vkBasalt / vkSumi)",
-        "cap.vkbasalt.desc": "Schedule existing Vulkan post-process layers via env / Steam launch options.",
-        "cap.goverlay": "Launch Goverlay",
-        "cap.goverlay.desc": "Detect desktop entry and launch Goverlay when installed.",
-        "cap.experimental": "experimental",
-        "cap.metalfx": "MetalFX compatibility-layer config",
-        "cap.metalfx.desc": "Configure MetalFX in a compat layer. Never third-party upscaler trademarks.",
-        "cap.display": "Per-game display / HDR profile",
-        "cap.display.desc": "Save and coordinate per-game display preferences.",
-        "cap.dwm_hdr": "DWM SDR→HDR color fallback",
-        "cap.dwm_hdr.desc": "Optional module; Phase 3 only.",
-        "copy.no_rt_claim": "Must not claim \"ray tracing enabled\"",
-        "copy.approx": "approximate",
-        "wizard.title": "Welcome to buusdo",
-        "wizard.hint": "Choose local ReShade / OptiScaler kit folders (binaries are not bundled).",
-        "wizard.kit_ok": "Kit looks complete",
-        "wizard.kit_bad": "Required DLL missing",
-        "conflict.title": "Pre-deploy conflict preview",
-        "conflict.col.severity": "Severity",
-        "conflict.col.action": "Action",
-        "conflict.col.path": "Path",
-        "conflict.col.detail": "Detail",
-        "proton.missing_prefix": "Proton compatdata prefix missing; launch once under Proton first.",
-        "proton.incomplete_prefix": "Proton prefix incomplete (no drive_c); launch once under Proton first.",
-        "proton.ok": "Proton prefix healthy",
-        "proton.open_steam": "Open in Steam",
-        "proton.note_written": "Wrote Steam launch note: launch once under Proton first.",
-        "proton.note_text": "Launch once under Proton first — buusdo",
-        "scan.progress": "Scanning game library…",
-        "msg.uninstall_win": "Uninstalled ReShade / OptiScaler / Vulkan layer writeback.",
-        "msg.uninstall_linux": "Removed Linux enhancement deployment.",
-        "msg.uninstall_macos": "MetalFX compat config removed.",
-        "msg.uninstall_none": "Nothing to remove.",
-        "msg.reshade_deployed": "Deployed ReShade (mode {mode}, API {api}{proxy}).",
-        "msg.optiscaler_deployed": "Scheduled neural upscaling (OptiScaler); unrelated to path tracing.",
-        "msg.display_applied": "Saved and applied display/HDR prefs (Win32/CCD); will try rollback on exit.",
-        "msg.dwm_recorded": "DWM HDR prototype intent recorded",
-        "msg.preview_ok": "Conflict preview ready",
-        "msg.preview_blocked": "Preview found blocking conflicts",
-        "msg.metalfx_written": "MetalFX compat config written.{log}",
-        "msg.goverlay_launched": "Launched Goverlay: {path}",
-        "msg.reshade_proton": "Deployed ReShade into Proton game dir ({mode}, API {api}).",
-        "msg.vkbasalt_written": "Wrote vkBasalt schedule config (approximate) and Steam launch options.",
-        "lang.name": "English",
-    },
-}
+_LOCALE = "en"
+_STRINGS: dict[str, dict[str, str]] = {}
+
+
+def _locales_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "locales"
+
+
+@lru_cache(maxsize=1)
+def _load_all() -> dict[str, dict[str, str]]:
+    root = _locales_dir()
+    out: dict[str, dict[str, str]] = {}
+    if not root.is_dir():
+        return out
+    for path in sorted(root.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(data, dict) and data:
+            out[path.stem] = {str(k): str(v) for k, v in data.items()}
+    return out
+
+
+def reload_catalogs() -> None:
+    """Clear cache and refresh in-memory tables (tests / hot reload)."""
+    global _STRINGS
+    _load_all.cache_clear()
+    _STRINGS = dict(_load_all())
+
+
+def catalogs() -> dict[str, dict[str, str]]:
+    """Return loaded locale → strings (loads on first use)."""
+    _ensure_loaded()
+    return _STRINGS
+
+
+def _ensure_loaded() -> None:
+    global _STRINGS
+    if not _STRINGS:
+        _STRINGS = dict(_load_all())
 
 
 def set_locale(locale: str) -> None:
     global _LOCALE
-    if locale not in _STRINGS:
+    _ensure_loaded()
+    if locale not in _STRINGS and locale not in {c for c, _, _ in _LOCALE_META}:
         raise ValueError(f"Unsupported locale: {locale}")
+    if locale not in _STRINGS:
+        raise ValueError(f"Locale catalog missing: {locale}")
     _LOCALE = locale
 
 
@@ -364,8 +85,10 @@ def get_locale() -> str:
 
 
 def t(key: str, **kwargs: Any) -> str:
-    table = _STRINGS.get(_LOCALE) or _STRINGS["zh"]
-    text = table.get(key) or _STRINGS["zh"].get(key) or key
+    _ensure_loaded()
+    table = _STRINGS.get(_LOCALE) or {}
+    # Monolingual fallback: English only (never bleed zh into other locales).
+    text = table.get(key) or (_STRINGS.get("en") or {}).get(key) or key
     if kwargs:
         try:
             return text.format(**kwargs)
@@ -375,4 +98,31 @@ def t(key: str, **kwargs: Any) -> str:
 
 
 def available_locales() -> list[str]:
-    return sorted(_STRINGS.keys())
+    _ensure_loaded()
+    meta_codes = [c for c, _, _ in _LOCALE_META if c in _STRINGS]
+    extras = sorted(c for c in _STRINGS if c not in meta_codes)
+    return meta_codes + extras
+
+
+def locale_display_name(code: str) -> str:
+    for c, name, _ in _LOCALE_META:
+        if c == code:
+            return name
+    _ensure_loaded()
+    return (_STRINGS.get(code) or {}).get("lang.name") or code
+
+
+def locale_search_blob(code: str) -> str:
+    for c, name, hay in _LOCALE_META:
+        if c == code:
+            return f"{c} {name} {hay}".lower()
+    return f"{code} {locale_display_name(code)}".lower()
+
+
+def filter_locales(query: str) -> list[str]:
+    """Return available locale codes matching *query* (empty → all)."""
+    codes = available_locales()
+    q = (query or "").strip().lower()
+    if not q:
+        return codes
+    return [c for c in codes if q in locale_search_blob(c)]

@@ -1,7 +1,8 @@
-# macOS package track (experimental)
+# macOS package track (config-only)
 
-Linux/macOS stay **experimental**. This note is the Dock/Finder icon checklist for when
-a Mac `.app` package track starts (Nuitka / `pyside6-deploy` on Darwin).
+macOS is a **supported** platform with a config-only enhancement path (C5 — no
+injection). This note is the Dock/Finder icon checklist for the Mac `.app`
+package track (Nuitka / `pyside6-deploy` on Darwin).
 
 ## Icon asset
 
@@ -23,5 +24,5 @@ a Mac `.app` package track starts (Nuitka / `pyside6-deploy` on Darwin).
 ## Non-goals (still)
 
 - Not an official macOS installer for preview / `v0.1.x`
-- No notarization / Gatekeeper blessing required for this experimental track
+- No notarization / Gatekeeper blessing required for this config-only package track
 - Do not block Windows Inno / `v1.0.0` on Mac packaging

@@ -7,12 +7,24 @@ from pathlib import Path
 
 import pytest
 
-from buusdo.assets import logo_ico_path, logo_path
+from buusdo.assets import logo_ico_path, logo_path, logo_wordmark_path
 
 
 def test_logo_png_exists() -> None:
     assert logo_path().name == "logo.png"
     assert logo_path().is_file()
+
+
+def test_logo_wordmark_horizontal() -> None:
+    wm = logo_wordmark_path()
+    assert wm.name == "logo_wordmark.png"
+    assert wm.is_file()
+    pytest.importorskip("PySide6")
+    from PySide6.QtGui import QImage
+
+    img = QImage(str(wm))
+    assert not img.isNull()
+    assert img.width() > img.height() * 2
 
 
 def test_logo_ico_exists_and_capped() -> None:

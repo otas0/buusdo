@@ -9,8 +9,9 @@ from buusdo.core.i18n import t
 
 def test_mvp_doc_freeze() -> None:
     text = Path("docs/MVP.md").read_text(encoding="utf-8")
-    assert "Windows" in text
-    assert "experimental" in text.lower() or "Out of scope" in text
+    assert "Windows" in text and "Linux" in text and "macOS" in text
+    assert "Out of scope" in text
+    assert "Windows-first" not in text
     assert "workflow_dispatch" in text
     assert "mvp_self_test" in text
 
@@ -39,4 +40,5 @@ def test_readme_end_user_install() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     assert "End-user install" in readme
     assert "mvp_self_test" in readme
-    assert "experimental" in readme.lower()
+    assert "Windows" in readme and "Linux" in readme and "macOS" in readme
+    assert "Windows-first" not in readme

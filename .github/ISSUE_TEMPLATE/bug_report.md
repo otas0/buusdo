@@ -25,7 +25,7 @@ assignees: ""
 - OptiScaler kit path set? (yes/no)
 
 **MVP notes**
-- Windows is the supported preview target; Linux/macOS are experimental.
+- Supported preview targets: Windows, Linux, and macOS (capabilities differ; macOS is config-only).
 - DWM HDR injection is Phase 3 and should stay unavailable.
 - Startup / missing app icon after install → add label `launch`.
 - Library scan problems → add label `scan`.

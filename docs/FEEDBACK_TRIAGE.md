@@ -36,6 +36,14 @@ Out of band for preview:
 - Calling the preview an “official release” or tagging `v1.*` early  
 - Shipping `0.1.1` without real `launch` / `scan` Issues
 
+## CI notes (language dialog)
+
+`tests/test_language_dialog.py` runs on **`devui` / `devui-macos`** (needs PySide6 + offscreen), not the core `test` matrix.
+
+If Actions jobs die in ~2–4s with empty steps / spending-limit annotations, treat those UI gates as **skipped by billing**, not as a green language-dialog pass. Fix [Billing & plans](https://github.com/otas0/buusdo/settings/billing) before trusting i18n UI CI. Core `test_locale_quality.py` still runs on the non-UI `test` job when runners start.
+
+Locale switching: after each language pick the main window must **full-retranslate** (not only top-bar chrome) so repeated switches do not leave mixed-language leftovers.
+
 ## Share copy
 
 See [SHARE_BLURB.md](SHARE_BLURB.md) (wordmark `logo.png`, not `brand_mark.png`).

@@ -63,7 +63,7 @@ class FirstRunWizard(QDialog):
         self._opti_status = QLabel("")
 
         row1 = QHBoxLayout()
-        self._pick_reshade_btn = QPushButton("ReShade…")
+        self._pick_reshade_btn = QPushButton(t("action.kit_reshade"))
         self._pick_reshade_btn.clicked.connect(self._pick_reshade)
         self._reselect_reshade = QPushButton(t("action.reselect_kit"))
         self._reselect_reshade.clicked.connect(self._pick_reshade)
@@ -77,7 +77,7 @@ class FirstRunWizard(QDialog):
         layout.addWidget(self._reshade_status)
 
         row2 = QHBoxLayout()
-        self._pick_opti_btn = QPushButton("OptiScaler…")
+        self._pick_opti_btn = QPushButton(t("action.kit_optiscaler"))
         self._pick_opti_btn.clicked.connect(self._pick_opti)
         self._reselect_opti = QPushButton(t("action.reselect_kit"))
         self._reselect_opti.clicked.connect(self._pick_opti)
@@ -91,8 +91,8 @@ class FirstRunWizard(QDialog):
         layout.addWidget(self._opti_status)
 
         actions = QHBoxLayout()
-        self._skip = QPushButton("Skip / 跳过")
-        self._done = QPushButton("Done / 完成")
+        self._skip = QPushButton(t("wizard.skip"))
+        self._done = QPushButton(t("wizard.done"))
         self._skip.clicked.connect(self._finish_skip)
         self._done.clicked.connect(self._finish_done)
         actions.addWidget(self._skip)
@@ -165,14 +165,14 @@ class FirstRunWizard(QDialog):
         self._done.setEnabled(self._has_valid_kit())
 
     def _pick_reshade(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "ReShade kit")
+        path = QFileDialog.getExistingDirectory(self, t("wizard.pick_reshade"))
         if path:
             set_reshade_kit_path(path)
             self._reshade.setText(path)
             self._refresh_status()
 
     def _pick_opti(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "OptiScaler kit")
+        path = QFileDialog.getExistingDirectory(self, t("wizard.pick_optiscaler"))
         if path:
             set_optiscaler_kit_path(path)
             self._opti.setText(path)

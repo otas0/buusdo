@@ -9,7 +9,7 @@ from buusdo.core.crash_report import (
     clear_crash_opt_in_audit,
     export_crash_opt_in_audit,
 )
-from buusdo.core.i18n import _STRINGS, set_locale, t
+from buusdo.core.i18n import catalogs, reload_catalogs, set_locale, t
 from buusdo.core.macos_compat import merge_bridgeplay_metalfx
 from buusdo.core.recent_games import is_greyed, list_recent, mark_uninstalled, push_recent
 from buusdo.core.steam_uris import cache_properties_uri, cached_properties_template, game_properties_uri_candidates
@@ -18,8 +18,10 @@ from buusdo.core.backend import EnhancementTarget
 
 
 def test_err_keys_complete_zh_en() -> None:
-    zh = _STRINGS["zh"]
-    en = _STRINGS["en"]
+    reload_catalogs()
+    tables = catalogs()
+    zh = tables["zh"]
+    en = tables["en"]
     err_zh = {k for k in zh if k.startswith("err.")}
     err_en = {k for k in en if k.startswith("err.")}
     assert err_zh == err_en

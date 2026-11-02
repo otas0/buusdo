@@ -19,6 +19,25 @@ class EnhancementTarget:
     executable: Path | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    def to_payload(self) -> dict[str, Any]:
+        """Plain JSON-friendly dict for QueuedConnection / cross-thread signals."""
+        return {
+            "name": self.name,
+            "install_path": str(self.install_path),
+            "executable": str(self.executable) if self.executable is not None else None,
+            "metadata": dict(self.metadata or {}),
+        }
+
+    @staticmethod
+    def from_payload(data: dict[str, Any]) -> EnhancementTarget:
+        exe = data.get("executable")
+        return EnhancementTarget(
+            name=str(data.get("name") or ""),
+            install_path=Path(str(data.get("install_path") or ".")),
+            executable=Path(str(exe)) if exe else None,
+            metadata=dict(data.get("metadata") or {}),
+        )
+
 
 @dataclass(frozen=True)
 class Capability:

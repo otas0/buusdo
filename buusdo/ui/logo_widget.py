@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QGuiApplication, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy
 
-from buusdo.assets import logo_path, logo_svg_path
+from buusdo.assets import logo_svg_path, logo_wordmark_path
 from buusdo.ui import theme as theme_mod
 
 try:
@@ -18,17 +18,22 @@ except ImportError:  # pragma: no cover
     _HAS_SVG = False
 
 
+def _is_paper(c) -> bool:
+    """True only for near-pure white / empty — keep soft AA fringe as ink."""
+    if c.alpha() < 8:
+        return True
+    # Strict: light gray AA (e.g. 248) is logo fringe, not paper.
+    return c.red() >= 252 and c.green() >= 252 and c.blue() >= 252
+
+
 def _content_bbox(img: QImage) -> tuple[int, int, int, int] | None:
-    """Return (x, y, w, h) of non-near-white opaque pixels."""
+    """Return (x, y, w, h) of non-paper opaque pixels."""
     w, h = img.width(), img.height()
     minx, miny, maxx, maxy = w, h, -1, -1
     for y in range(h):
         for x in range(w):
             c = img.pixelColor(x, y)
-            if c.alpha() < 20:
-                continue
-            # Treat near-white as background
-            if c.red() > 245 and c.green() > 245 and c.blue() > 245:
+            if _is_paper(c):
                 continue
             minx = min(minx, x)
             miny = min(miny, y)
@@ -36,16 +41,17 @@ def _content_bbox(img: QImage) -> tuple[int, int, int, int] | None:
             maxy = max(maxy, y)
     if maxx < minx:
         return None
-    pad = 2
-    x0 = max(0, minx - pad)
-    y0 = max(0, miny - pad)
-    x1 = min(w - 1, maxx + pad)
-    y1 = min(h - 1, maxy + pad)
+    # Generous right pad — final "o" AA was still kissing the crop edge.
+    pad_l, pad_t, pad_r, pad_b = 6, 6, 28, 6
+    x0 = max(0, minx - pad_l)
+    y0 = max(0, miny - pad_t)
+    x1 = min(w - 1, maxx + pad_r)
+    y1 = min(h - 1, maxy + pad_b)
     return x0, y0, x1 - x0 + 1, y1 - y0 + 1
 
 
 def _recolor_ink(img: QImage, ink: str) -> QImage:
-    """Map dark ink pixels to theme ink; keep transparency (drop white bg)."""
+    """Map ink (+ AA fringe) to theme ink; drop paper; preserve edge coverage."""
     from PySide6.QtGui import QColor
 
     out = QImage(img.size(), QImage.Format.Format_ARGB32_Premultiplied)
@@ -54,33 +60,36 @@ def _recolor_ink(img: QImage, ink: str) -> QImage:
     for y in range(img.height()):
         for x in range(img.width()):
             c = img.pixelColor(x, y)
-            if c.alpha() < 20:
+            if _is_paper(c):
                 continue
-            if c.red() > 245 and c.green() > 245 and c.blue() > 245:
+            lum = (c.red() + c.green() + c.blue()) / 3.0
+            # Coverage from luminance: black→1, near-paper fringe→small alpha.
+            coverage = max(0.0, min(1.0, (252.0 - lum) / 252.0))
+            if coverage < 0.02:
                 continue
-            # Mid grays (logo accent parallelogram) → muted blend toward ink
-            lum = (c.red() + c.green() + c.blue()) / 3
-            if lum > 40:
-                # Keep as slightly lighter ink (accent)
-                a = QColor(target)
-                a.setAlpha(180)
-                out.setPixelColor(x, y, a)
+            a = QColor(target)
+            # Accent parallelograms (mid gray) stay slightly softer.
+            if 40 < lum < 160:
+                a.setAlpha(int(180 * coverage))
             else:
-                out.setPixelColor(x, y, target)
+                a.setAlpha(int(255 * coverage))
+            out.setPixelColor(x, y, a)
     return out
 
 
 def _pixmap_from_png(height: int, *, ink: str) -> QPixmap:
-    path = logo_path()
+    path = logo_wordmark_path()
     if not path.is_file():
         return QPixmap()
     src = QImage(str(path))
     if src.isNull():
         return QPixmap()
-    bbox = _content_bbox(src)
-    if bbox:
-        x, y, w, h = bbox
-        src = src.copy(x, y, w, h)
+    # Wordmark is already a tight horizontal crop; only re-bbox square fallbacks.
+    if src.width() <= src.height() * 2:
+        bbox = _content_bbox(src)
+        if bbox:
+            x, y, w, h = bbox
+            src = src.copy(x, y, w, h)
     src = _recolor_ink(src, ink)
 
     dpr = 1.0
@@ -96,7 +105,20 @@ def _pixmap_from_png(height: int, *, ink: str) -> QPixmap:
         Qt.AspectRatioMode.KeepAspectRatio,
         Qt.TransformationMode.SmoothTransformation,
     )
-    pix = QPixmap.fromImage(scaled)
+    # Small transparent pad so the final "o" never kisses the pixmap edge.
+    pad_r = max(3, int(round(pixel_h * 0.12)))
+    pad_y = max(1, int(round(pixel_h * 0.06)))
+    pad_l = max(1, int(round(pixel_h * 0.04)))
+    padded = QImage(
+        scaled.width() + pad_l + pad_r,
+        scaled.height() + 2 * pad_y,
+        QImage.Format.Format_ARGB32_Premultiplied,
+    )
+    padded.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(padded)
+    painter.drawImage(pad_l, pad_y, scaled)
+    painter.end()
+    pix = QPixmap.fromImage(padded)
     pix.setDevicePixelRatio(dpr)
     return pix
 
@@ -163,8 +185,10 @@ def make_logo_label(height: int = 22, parent=None) -> QLabel:
     pix = logo_pixmap(height)
     if not pix.isNull():
         label.setPixmap(pix)
-        label.setFixedHeight(height + 2)
-        label.setFixedWidth(int(pix.width() / max(1.0, pix.devicePixelRatio())) + 2)
+        label.setFixedHeight(height + 4)
+        # ceil width so Retina rounding never clips the right edge
+        logical_w = int((pix.width() + pix.devicePixelRatio() - 0.001) / max(1.0, pix.devicePixelRatio()))
+        label.setFixedWidth(logical_w + 6)
     label.setProperty("logoHeight", height)
     return label
 
@@ -176,5 +200,6 @@ def refresh_logo_label(label: QLabel, height: int | None = None) -> None:
     if pix.isNull():
         return
     label.setPixmap(pix)
-    label.setFixedHeight(h + 2)
-    label.setFixedWidth(int(pix.width() / max(1.0, pix.devicePixelRatio())) + 2)
+    label.setFixedHeight(h + 4)
+    logical_w = int((pix.width() + pix.devicePixelRatio() - 0.001) / max(1.0, pix.devicePixelRatio()))
+    label.setFixedWidth(logical_w + 6)

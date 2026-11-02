@@ -24,7 +24,7 @@ plugins =
 [nuitka]
 macos.permissions =
 mode = onefile
-extra_args = --quiet --noinclude-qt-translations --include-package=buusdo
+extra_args = --quiet --noinclude-qt-translations --include-package=buusdo --include-package-data=buusdo --include-data-dir=buusdo/locales=buusdo/locales --include-data-dir=buusdo/assets=buusdo/assets
 
 [buildozer]
 mode = debug

@@ -67,8 +67,18 @@ jobs:
         run: uv run python scripts/verify_dwm_hdr_poc_local.py --json
       - name: MVP self-test (developer gate)
         run: uv run python scripts/mvp_self_test.py
-      - name: Logo assets (png + ico + logo_path)
+      - name: Logo assets (png + wordmark + svg + ico)
         run: uv run python scripts/check_logo_assets.py
+      - name: Scan worker thread safety (QueuedConnection / QObject slots)
+        run: uv run pytest -q tests/test_scan_worker_thread.py --tb=line
+      - name: Dark-theme wordmark contrast
+        run: uv run pytest -q tests/test_logo_dark_contrast.py --tb=line
+      - name: Locale catalogs (monolingual key parity)
+        run: uv run pytest -q tests/test_i18n_locales.py --tb=line
+      - name: Locale quality (pt/pt-BR, DE/RU budget, cap.experimental)
+        run: uv run pytest -q tests/test_locale_quality.py --tb=line
+      - name: Package datas (locales + logo_wordmark)
+        run: uv run python scripts/check_package_datas.py
       - name: Pytest
         run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
 
@@ -96,6 +106,10 @@ jobs:
         run: |
           export QT_QPA_PLATFORM=offscreen
           xvfb-run -a uv run pytest -q tests/test_ui_blocked_smoke.py
+      - name: Language dialog a11y / keyboard + retranslate
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          xvfb-run -a uv run pytest -q tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line
 
   devui-macos:
     runs-on: macos-latest
@@ -133,7 +147,7 @@ jobs:
                   if p.is_dir():
                       print(p.relative_to(root))
           PY
-          uv run pytest -q tests/test_ui_blocked_smoke.py 2>&1 | tee qt-diag/devui-macos.log
+          uv run pytest -q tests/test_ui_blocked_smoke.py tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line 2>&1 | tee qt-diag/devui-macos.log
           # Compress Qt plugin listing + smoke log for the dedicated failure artifact.
           tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt devui-macos.log 2>/dev/null || true
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
