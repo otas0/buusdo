@@ -17,6 +17,8 @@ def qapp():
 
     app = QApplication.instance() or QApplication([])
     yield app
+    # Drain deleteLater queue so Qt does not abort on interpreter teardown.
+    app.processEvents()
 
 
 def test_language_dialog_accessible_names(qapp) -> None:

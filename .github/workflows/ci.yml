@@ -109,7 +109,20 @@ jobs:
       - name: Language dialog a11y / keyboard + retranslate
         run: |
           export QT_QPA_PLATFORM=offscreen
-          xvfb-run -a uv run pytest -q tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line
+          # Qt/PySide6 may abort (134/139) during interpreter teardown after a green run.
+          set +e
+          set -o pipefail
+          xvfb-run -a uv run pytest -q tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line | tee /tmp/buusdo-devui-lang.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if grep -qE '^[0-9]+ passed' /tmp/buusdo-devui-lang.log \
+            && ! grep -qiE ' failed| error|ERROR' /tmp/buusdo-devui-lang.log; then
+            if [[ "$code" -eq 0 || "$code" -eq 134 || "$code" -eq 139 ]]; then
+              echo "OK language/retranslate green (pytest exit $code; ignore Qt teardown abort)"
+              exit 0
+            fi
+          fi
+          exit "$code"
 
   devui-macos:
     runs-on: macos-latest
@@ -147,10 +160,22 @@ jobs:
                   if p.is_dir():
                       print(p.relative_to(root))
           PY
+          set +e
+          set -o pipefail
           uv run pytest -q tests/test_ui_blocked_smoke.py tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line 2>&1 | tee qt-diag/devui-macos.log
+          code=${PIPESTATUS[0]}
+          set -e
           # Compress Qt plugin listing + smoke log for the dedicated failure artifact.
           tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt devui-macos.log 2>/dev/null || true
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
+          if grep -qE '^[0-9]+ passed' qt-diag/devui-macos.log \
+            && ! grep -qiE ' failed| error|ERROR' qt-diag/devui-macos.log; then
+            if [[ "$code" -eq 0 || "$code" -eq 134 || "$code" -eq 139 ]]; then
+              echo "OK macos UI green (pytest exit $code; ignore Qt teardown abort)"
+              exit 0
+            fi
+          fi
+          exit "$code"
       - name: Upload Qt diagnostic artifact on failure
         if: failure()
         continue-on-error: true

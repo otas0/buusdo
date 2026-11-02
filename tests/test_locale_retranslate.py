@@ -45,6 +45,7 @@ def qapp():
 
     app = QApplication.instance() or QApplication([])
     yield app
+    app.processEvents()
 
 
 def test_apply_locale_updates_secondary_chrome(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -58,19 +59,23 @@ def test_apply_locale_updates_secondary_chrome(qapp, monkeypatch: pytest.MonkeyP
     )
 
     win = MainWindow(backend=_StubBackend())
-    for code in ("ja", "pt-BR", "zh-Hant", "de", "ja"):
-        set_locale(code)
-        win._apply_locale_to_chrome()
-        assert win._btn_scan.text() == t("action.scan")
-        assert win._btn_steam.text() == t("proton.open_steam")
-        assert win._caps_lbl.text() == t("label.capabilities")
-        assert win._steam_user_lbl.text() == t("label.steam_user")
-        assert win._crash_opt.text() == t("action.crash_opt_in")
-        assert win._btn_clear_session.text() == t("action.clear_display_session")
-        if code != "en":
-            assert win._btn_scan.text() != "Scan Steam library"
-            assert win._caps_lbl.text() != "Capabilities"
-    win.close()
+    try:
+        for code in ("ja", "pt-BR", "zh-Hant", "de", "ja"):
+            set_locale(code)
+            win._apply_locale_to_chrome()
+            assert win._btn_scan.text() == t("action.scan")
+            assert win._btn_steam.text() == t("proton.open_steam")
+            assert win._caps_lbl.text() == t("label.capabilities")
+            assert win._steam_user_lbl.text() == t("label.steam_user")
+            assert win._crash_opt.text() == t("action.crash_opt_in")
+            assert win._btn_clear_session.text() == t("action.clear_display_session")
+            if code != "en":
+                assert win._btn_scan.text() != "Scan Steam library"
+                assert win._caps_lbl.text() != "Capabilities"
+    finally:
+        win.close()
+        win.deleteLater()
+        qapp.processEvents()
 
 
 def test_force_scan_restores_selection() -> None:
