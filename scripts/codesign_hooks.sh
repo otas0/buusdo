@@ -19,11 +19,20 @@ fi
 case "$(uname -s)" in
   Darwin)
     : "${CODESIGN_IDENTITY:?Set CODESIGN_IDENTITY in scripts/codesign.env}"
-    codesign --deep --force --options runtime --sign "${CODESIGN_IDENTITY}" "${ARTIFACT}"
+    xattr -cr "${ARTIFACT}" || true
+    codesign --deep --force --options runtime --timestamp \
+      --sign "${CODESIGN_IDENTITY}" "${ARTIFACT}"
+    codesign --verify --deep --strict --verbose=2 "${ARTIFACT}"
     if [[ -n "${NOTARY_PROFILE:-}" ]]; then
-      ditto -c -k --keepParent "${ARTIFACT}" "${DIST}/buusdo-notarize.zip"
-      xcrun notarytool submit "${DIST}/buusdo-notarize.zip" --keychain-profile "${NOTARY_PROFILE}" --wait
+      NOTARY_ZIP="${DIST}/buusdo-notarize.zip"
+      rm -f "${NOTARY_ZIP}"
+      ditto -c -k --keepParent "${ARTIFACT}" "${NOTARY_ZIP}"
+      xcrun notarytool submit "${NOTARY_ZIP}" --keychain-profile "${NOTARY_PROFILE}" --wait
       xcrun stapler staple "${ARTIFACT}"
+      xcrun stapler validate "${ARTIFACT}" || true
+      rm -f "${NOTARY_ZIP}"
+    else
+      echo "NOTE: NOTARY_PROFILE unset — signed only, not notarized." >&2
     fi
     ;;
   MINGW*|MSYS*|CYGWIN*|Windows_NT)
