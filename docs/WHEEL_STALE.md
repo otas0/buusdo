@@ -14,4 +14,6 @@ python scripts/check_pyinstaller_datas.py dist/fresh/buusdo-*.whl
 No PyInstaller onedir was present at last check — when one exists, run the same
 script on that directory.
 
-Installer draft / Authenticode / `0.1.1` remain on hold. Do not retag preview.
+Preview release may be published (unsigned) after Explorer wordmark OK.
+Authenticode / `0.1.1` remain on hold until cert dry-run + real `launch`/`scan` Issues.
+Do not retag as `v1.*`.
