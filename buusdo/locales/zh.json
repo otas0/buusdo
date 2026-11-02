@@ -216,5 +216,7 @@
   "history.fail": "失败",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "安装",
-  "history.action.uninstall": "卸载"
+  "history.action.uninstall": "卸载",
+  "msg.remix_enabled": "已启用已有 RTX Remix 路径追踪 mod（未宣称「已开启光线追踪」）。",
+  "msg.remix_disabled": "已禁用 RTX Remix 路径追踪 mod 桥接文件。"
 }

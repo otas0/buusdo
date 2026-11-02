@@ -216,5 +216,7 @@
   "history.fail": "ÉCHEC",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "installation",
-  "history.action.uninstall": "désinstallation"
+  "history.action.uninstall": "désinstallation",
+  "msg.remix_enabled": "Mod RTX Remix de path tracing existant activé (ne prétend pas « ray tracing activé »).",
+  "msg.remix_disabled": "Fichier pont du mod RTX Remix de path tracing désactivé."
 }

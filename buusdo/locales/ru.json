@@ -216,5 +216,7 @@
   "history.fail": "СБОЙ",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "установка",
-  "history.action.uninstall": "удаление"
+  "history.action.uninstall": "удаление",
+  "msg.remix_enabled": "Включён существующий мод RTX Remix трассировки путей (не утверждается «трассировка лучей включена»).",
+  "msg.remix_disabled": "Отключён файл моста мода RTX Remix трассировки путей."
 }

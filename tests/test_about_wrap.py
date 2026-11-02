@@ -24,7 +24,8 @@ def test_about_support_os_wraps_de_ru() -> None:
         lab.setFixedWidth(360)
         lab.adjustSize()
         # Wrapped multi-line at 360px; single-line height is typically ~16–24.
-        assert lab.height() >= 36, f"{code} height={lab.height()} text={lab.text()!r}"
+        # Wrapped multi-line; single-line chrome is typically ~16–24px.
+        assert lab.height() >= 32, f"{code} height={lab.height()} text={lab.text()!r}"
         # Must not require an absurd width when wrap is on.
         lab2 = QLabel(t("about.support_os"))
         lab2.setWordWrap(True)

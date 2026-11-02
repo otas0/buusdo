@@ -29,3 +29,14 @@ def test_history_status_labels_localize() -> None:
     assert t("history.fail") == "失敗"
     set_locale("de")
     assert t("mode.preview") == "Konfliktvorschau"
+
+
+def test_remix_message_keys() -> None:
+    reload_catalogs()
+    set_locale("en")
+    text = t("msg.remix_enabled").lower()
+    assert "path tracing" in text or "path-tracing" in text
+    assert "does not claim" in text  # C4: mention only inside a negation
+    set_locale("zh")
+    assert "路径追踪" in t("msg.remix_enabled")
+    assert "未宣称" in t("msg.remix_enabled")

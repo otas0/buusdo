@@ -216,5 +216,7 @@
   "history.fail": "실패",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "설치",
-  "history.action.uninstall": "제거"
+  "history.action.uninstall": "제거",
+  "msg.remix_enabled": "기존 RTX Remix 패스 트레이싱 모드를 사용했습니다(「레이 트레이싱 사용」이라고 주장하지 않음).",
+  "msg.remix_disabled": "RTX Remix 패스 트레이싱 모드 브리지 파일을 사용하지 않도록 설정했습니다."
 }

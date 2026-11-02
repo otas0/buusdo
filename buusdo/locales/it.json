@@ -216,5 +216,7 @@
   "history.fail": "ERRORE",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "installazione",
-  "history.action.uninstall": "disinstallazione"
+  "history.action.uninstall": "disinstallazione",
+  "msg.remix_enabled": "Abilitato un mod RTX Remix di path tracing esistente (non afferma \"ray tracing abilitato\").",
+  "msg.remix_disabled": "Disabilitato il file bridge del mod RTX Remix di path tracing."
 }

@@ -1,5 +1,18 @@
 # Code signing
 
+**Status (2026-11):** prep track **started**. Unsigned Inno draft remains the default
+ship path. Do **not** attach signed Setup/`buusdo.exe` to the draft release until
+Explorer wordmark smoke on Setup + `buusdo.exe` is confirmed.
+
+Checklist before first signed artifact:
+
+1. [ ] Code-signing cert available (EV preferred for SmartScreen)
+2. [ ] `scripts/codesign.env` present locally (gitignored) — see `codesign.env.example` if present
+3. [ ] Unsigned draft Setup from `installer.yml` still attaches as `--draft`
+4. [ ] Explorer wordmark OK on Setup + `buusdo.exe`
+5. [ ] `signtool` / `codesign_hooks.sh` dry-run on a throwaway copy
+6. [ ] Only then replace draft assets with signed ones (still unpublished until human promote)
+
 ## Windows (Authenticode)
 
 1. Obtain a code-signing certificate (EV recommended for SmartScreen).

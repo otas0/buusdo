@@ -216,5 +216,7 @@
   "history.fail": "失敗",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "インストール",
-  "history.action.uninstall": "アンインストール"
+  "history.action.uninstall": "アンインストール",
+  "msg.remix_enabled": "既存の RTX Remix パストレーシング mod を有効化しました（「レイトレーシング有効」とは主張しません）。",
+  "msg.remix_disabled": "RTX Remix パストレーシング mod のブリッジファイルを無効化しました。"
 }

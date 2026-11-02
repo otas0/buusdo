@@ -6,7 +6,7 @@ Do **not** agent-poll Actions or re-fire `workflow_dispatch` while waiting on fe
 
 ## 0.1.1 policy
 
-**Fixes only** — no large features. **Do not tag or publish `0.1.1` until** at least one real `launch` / `scan` Issue is filed **and** fixed (or explicitly closed as works-as-designed). Prefer:
+**Fixes only** — no large features. Prep may begin on `main` / release branches; **do not tag or publish `0.1.1` until** at least one real `launch` / `scan` Issue is filed **and** fixed (or explicitly closed as works-as-designed). Prefer:
 
 1. **`launch`** — cannot start / missing PySide6 / crash on start / **icon missing after install** (Setup / `buusdo.exe` / tray)
 2. **`scan`** — Steam library scan hangs, empty, cancel broken  
@@ -26,7 +26,7 @@ Triage under **`launch`** (startup/shell presence) **before** any feature work:
 
 See [INSTALLER_PREVIEW.md](INSTALLER_PREVIEW.md). Unsigned Inno may be built via `installer.yml`.  
 Draft `v0.1.0-installer-preview` stays **unpublished** until Explorer wordmark smoke.  
-**Authenticode stays off** until that Explorer check. Tag **`v1.0.0` only** after STORE_MVP smoke.  
+**Authenticode prep** may start (local `codesign_hooks` / cert inventory); **signed binaries stay off** until that Explorer check. Tag **`v1.0.0` only** after STORE_MVP smoke.  
 Promote draft → published preview (still not v1) is a **human** decision after Explorer OK.
 
 Out of band for preview:

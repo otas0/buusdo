@@ -275,7 +275,13 @@ class WindowsBackend(EnhancementBackend):
                 if enable
                 else rtx_remix.disable(tx, target.install_path, target_name=target.name)
             )
-        return InstallResult(success=True, message=state["copy"], details=state)
+        key = str(state.get("message_key") or "")
+        return InstallResult(
+            success=True,
+            message=str(state.get("copy") or ""),
+            details=state,
+            message_key=key,
+        )
 
     def _apply_display_profile(
         self, target: EnhancementTarget, options: dict[str, Any]

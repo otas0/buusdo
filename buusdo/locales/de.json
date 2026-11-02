@@ -216,5 +216,7 @@
   "history.fail": "FEHLER",
   "history.line": "{ts} [{status}] {action} · {target}",
   "history.action.install": "Installation",
-  "history.action.uninstall": "Deinstallation"
+  "history.action.uninstall": "Deinstallation",
+  "msg.remix_enabled": "Vorhandenen RTX-Remix-Path-Tracing-Mod aktiviert (behauptet nicht „Raytracing aktiviert“).",
+  "msg.remix_disabled": "Bridge-Datei des RTX-Remix-Path-Tracing-Mods deaktiviert."
 }

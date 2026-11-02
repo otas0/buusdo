@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Minimal macOS .app wrapper so Dock / Computer Use can resolve Buusdo.
-# Dev-only — not a notarized installer. Does not change draft / Authenticode holds.
+# Dev-only — not a notarized installer.
+#
+# After git pull / uv sync: re-run this script so Contents/MacOS/Buusdo points at
+# the current checkout .venv (stale wrappers keep launching old trees).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${ROOT}/dist/Buusdo.app"
@@ -13,6 +16,8 @@ if [[ ! -x "${PY}" ]]; then
   echo "Missing ${PY} — run: uv sync --extra ui" >&2
   exit 1
 fi
+
+echo "NOTE: rebuild after pull — this refreshes ${APP} → ${PY}"
 
 rm -rf "${APP}"
 mkdir -p "${MACOS}" "${RES}"
@@ -59,4 +64,4 @@ PLIST
 
 echo "OK  ${APP}"
 echo "Launch: open ${APP}"
-echo "Hold: not an installer preview / no tag / Authenticode still off."
+echo "Tip: after every git pull, re-run: bash scripts/make_buusdo_app.sh"
