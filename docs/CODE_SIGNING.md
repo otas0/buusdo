@@ -55,6 +55,36 @@ chmod +x scripts/codesign_hooks.sh
 
 Release packaging may call the same hook after `scripts/deploy.sh` when local secrets exist. CI never receives private keys from the repo.
 
+## CI gate (Authenticode)
+
+`installer.yml` stays **unsigned by default**. Optional `workflow_dispatch` inputs:
+
+| Input | Default | Role |
+|-------|---------|------|
+| `attach_draft` | `true` | Attach Setup + SHA256SUMS to draft preview (unpublished) |
+| `explorer_wordmark_ok` | `false` | Human confirmed Explorer wordmark on Setup + `buusdo.exe` |
+| `sign_authenticode` | `false` | Request Authenticode path (fail-closed) |
+
+When `sign_authenticode=true`, the job **exits 1** unless both:
+
+1. `explorer_wordmark_ok=true`, and
+2. repo secrets `WINDOWS_CERT_PFX` + `WINDOWS_CERT_PASSWORD` are set.
+
+Do **not** replace draft assets with signed binaries until that gate passes and a human reviews the throwaway dry-run. Keep the draft unpublished.
+
+Local dry-run (no draft replace):
+
+```bash
+cp scripts/codesign.env.example scripts/codesign.env   # fill real values; gitignored
+# On Windows signing host, copy Setup/exe aside then:
+./scripts/codesign_hooks.sh /path/to/throwaway/buusdo.exe
+```
+
+Without `scripts/codesign.env` / cert, the hook must fail closed — that is expected.
+
+After every successful `attach_draft`, `installer.yml` downloads the attached draft Setup and
+re-runs `scripts/verify_pe_icon.py` (PE resource presence only — **not** Explorer wordmark).
+
 ## Notes
 
 - buusdo does not require SIP disable on macOS (C5).
