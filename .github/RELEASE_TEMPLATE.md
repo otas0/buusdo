@@ -1,25 +1,30 @@
 # buusdo $VERSION
 
-GitHub Releases channel. Prefer documenting which asset set this tag ships.
+**Full release** (not preview). **Unsigned** — SmartScreen / Gatekeeper warnings are expected.
 
-## Preview tags (e.g. v0.1.0) — wheel only
+## Assets
 
-- **No official installer** (`buusdo-setup-*.exe` not attached)
-- Assets: `buusdo-$VERSION-py3-none-any.whl`, `SHA256SUMS`, `INSTALL.txt` (optional sdist)
-- **Unsigned** by design
-- **Windows / Linux / macOS** supported (capabilities differ by OS; macOS config-only). Installer: Windows Inno; others wheel/source
-- Kits (**ReShade** / **OptiScaler**) are **self-provided**, not bundled
-- **No** DWM HDR injection (Phase 3)
-- Feedback: https://github.com/otas0/buusdo/issues
+| Platform | Asset | Notes |
+|----------|-------|-------|
+| Windows | `buusdo-setup-$VERSION.exe` | Inno installer (unsigned) |
+| macOS | `buusdo-macos-$VERSION.zip` | `Buusdo.app` (unsigned) |
+| Linux | `buusdo-linux-$VERSION.tar.gz` + `install_linux.sh` | Onedir and/or wheel helper |
+| All | `buusdo-$VERSION-py3-none-any.whl` | Universal pip install |
 
-## Future installer tags (e.g. v1.0.0+) — after Windows Inno smoke
+## Install
 
-- `buusdo-setup-$VERSION.exe` — Inno Setup, **unsigned** (SmartScreen may warn)
-- `SHA256SUMS`, `INSTALL.txt`
-- Still no Linux/macOS official installers
-- Still kits self-provided; still no DWM HDR
+- **Windows:** run Setup (SmartScreen may warn).
+- **macOS:** unzip → open `Buusdo.app` (Gatekeeper may warn; right-click → Open).
+- **Linux:** `bash install_linux.sh` next to the wheel, or extract the onedir tarball.
+- **Any OS (wheel):** `pip install buusdo-$VERSION-py3-none-any.whl "PySide6-Essentials==6.12.0"` then `python -m buusdo`.
 
-> **SmartScreen** (installer builds only): “Windows protected your PC” is expected for unsigned GitHub builds.
+## Honesty
+
+- Capabilities differ by OS; **macOS is config-only** (no injection).
+- Kits (**ReShade** / **OptiScaler**) are **BYO**, not bundled.
+- No Authenticode / notarization in this build.
+- No DWM HDR (Phase 3).
+- Never claims “ray tracing enabled”.
 
 ## Verify
 
@@ -27,16 +32,4 @@ GitHub Releases channel. Prefer documenting which asset set this tag ships.
 shasum -a 256 -c SHA256SUMS
 ```
 
-## Visual checklist (attach or link)
-
-Frozen screenshots from `scripts/screenshot_release_checklist.py` live under
-`docs/fixtures/release_visual_checklist/` (`main_window.png`, `about_dialog.png`,
-`tray_icon_sizes.png`). **Re-run before the next tag** if UI chrome changed;
-`scripts/check_release_visual_checklist.py` / CI `logo-assets` job enforce presence.
-
-## Not in any current GitHub release
-
-- Authenticode / Microsoft Store (signing deferred until after unsigned Inno smoke)
-- Bundled third-party enhancement binaries
-- Ray tracing “enabled” claims
-- Premature `v1.*` tags (installer smoke must pass first)
+Feedback: https://github.com/otas0/buusdo/issues

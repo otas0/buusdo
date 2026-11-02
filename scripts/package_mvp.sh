@@ -70,7 +70,7 @@ buusdo preview — install
 Then pick your own ReShade/OptiScaler kit folders in the UI (not bundled).
 
 Windows-first. Linux/macOS experimental. No official installer in wheel-only tags.
-No DWM HDR (Phase 3). Not v1 / not an official release.
+No DWM HDR (Phase 3). Unsigned builds — SmartScreen/Gatekeeper may warn.
 
 Verify: shasum -a 256 -c SHA256SUMS
 EOF

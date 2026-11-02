@@ -1,7 +1,8 @@
 name: release
 
-# GitHub Releases channel — Windows installer primary. No Authenticode.
-# Linux/macOS jobs only produce experimental wheels (not formal installers).
+# Unsigned multi-platform GitHub Release for tags v*.
+# Windows: Inno Setup. macOS: .app zip. Linux: onedir tarball + install helper.
+# Wheel is the universal fallback. No Authenticode / notarization.
 
 on:
   push:
@@ -10,65 +11,153 @@ on:
   workflow_dispatch:
     inputs:
       reason:
-        description: "Manual package run (one dispatch only after Billing fix)"
+        description: "Manual package run"
         required: false
         default: "manual"
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   windows-installer:
     runs-on: windows-latest
     steps:
-      - name: Billing tip
-        shell: bash
-        run: |
-          {
-            echo "## GitHub release MVP"
-            echo "Unsigned Inno installer. Signing skipped by design (docs/STORE_MVP.md)."
-            echo "After Billing fix: **one** workflow_dispatch only."
-          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
       - name: Install
         run: uv sync --extra devui
-      - name: Structural + MVP gates
+      - name: Gates
         shell: bash
         run: |
           uv run python scripts/smoke_github_release_gate.py
           uv run python scripts/mvp_self_test.py
-          test -f buusdo/assets/logo.png && test -f buusdo/assets/logo.ico
-          uv run python -c "from buusdo.assets import logo_path; assert logo_path().name=='logo.png'"
-      - name: Wheel package
+          uv run python scripts/check_logo_assets.py
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Wheel + Inno
         shell: bash
-        run: bash scripts/package_mvp.sh
-      - name: Inno package (best-effort if ISCC/pyside6-deploy present)
-        shell: bash
-        run: bash scripts/package_windows_inno.sh
+        env:
+          BUUSDO_PAYLOAD_BACKEND: pyinstaller
+        run: |
+          bash scripts/package_mvp.sh
+          bash scripts/package_windows_inno.sh
+          uv run python scripts/verify_pe_icon.py --search-dist
       - uses: actions/upload-artifact@v4
         with:
-          name: buusdo-windows-github
-          path: dist/
-          if-no-files-found: warn
+          name: buusdo-windows
+          path: |
+            dist/buusdo-setup-*.exe
+            dist/buusdo-*-py3-none-any.whl
+            dist/INSTALL.txt
+            dist/SHA256SUMS
+          if-no-files-found: error
 
-  experimental-wheel:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  macos-app:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - name: Experimental wheel only
-        shell: bash
+      - name: Build macOS .app zip
         run: |
-          uv sync --extra devui
-          uv run python scripts/smoke_github_release_gate.py
-          bash scripts/package_mvp.sh
+          chmod +x scripts/package_macos_bundle.sh
+          bash scripts/package_macos_bundle.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: buusdo-experimental-${{ matrix.os }}
-          path: dist/
-          if-no-files-found: warn
+          name: buusdo-macos
+          path: dist/buusdo-macos-*.zip
+          if-no-files-found: error
+
+  linux-onedir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: System deps for Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libxcb-cursor0
+      - name: Build Linux onedir + install helper
+        run: |
+          chmod +x scripts/package_linux_onedir.sh scripts/install_linux.sh
+          bash scripts/package_linux_onedir.sh
+          cp scripts/install_linux.sh dist/install_linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-linux
+          path: |
+            dist/buusdo-linux-*.tar.gz
+            dist/install_linux.sh
+          if-no-files-found: error
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows-installer, macos-app, linux-onedir]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Assemble dist/
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -type f \( -name '*.exe' -o -name '*.whl' -o -name '*.zip' -o -name '*.tar.gz' -o -name 'INSTALL.txt' -o -name 'install_linux.sh' -o -name 'SHA256SUMS' \) -exec cp -f {} dist/ \;
+          # Prefer a single SHA256SUMS covering all release binaries
+          (
+            cd dist
+            : > SHA256SUMS
+            for f in buusdo-setup-*.exe buusdo-*-py3-none-any.whl buusdo-macos-*.zip buusdo-linux-*.tar.gz INSTALL.txt install_linux.sh; do
+              for g in $f; do
+                [[ -f "$g" ]] && shasum -a 256 "$g" >> SHA256SUMS
+              done
+            done
+            ls -la
+            cat SHA256SUMS
+          )
+          TAG="${GITHUB_REF_NAME}"
+          VER="${TAG#v}"
+          sed "s/\$VERSION/${VER}/g" .github/RELEASE_TEMPLATE.md > dist/RELEASE_NOTES.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          shopt -s nullglob
+          ASSETS=(
+            dist/buusdo-setup-*.exe
+            dist/buusdo-*-py3-none-any.whl
+            dist/buusdo-macos-*.zip
+            dist/buusdo-linux-*.tar.gz
+            dist/install_linux.sh
+            dist/INSTALL.txt
+            dist/SHA256SUMS
+          )
+          if [[ ${#ASSETS[@]} -lt 5 ]]; then
+            echo "FATAL: expected multi-platform assets, got: ${ASSETS[*]:-none}" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ASSETS[@]}" --clobber
+            gh release edit "${TAG}" --draft=false --latest --title "buusdo ${TAG#v}" --notes-file dist/RELEASE_NOTES.md
+          else
+            gh release create "${TAG}" "${ASSETS[@]}" \
+              --latest \
+              --title "buusdo ${TAG#v}" \
+              --notes-file dist/RELEASE_NOTES.md
+          fi
+          gh release view "${TAG}" --json isDraft,url,assets --jq '{draft:.isDraft,url,assets:[.assets[].name]}'
