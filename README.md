@@ -9,14 +9,22 @@ Cross-platform graphics enhancement **scheduler + config coordinator** (Windows 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
 **Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
-Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — **unsigned** full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
+Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
 Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mac Dock notes: [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
 buusdo 1.0.0 — BYO ReShade/OptiScaler kits · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.0.0
 
-Authenticode / notarization deferred (SmartScreen / Gatekeeper may warn).
+### Unsigned vs notarized (macOS / Windows)
+
+| Build | What you see | Status for v1.0.0 |
+|-------|----------------|-------------------|
+| **Unsigned** | Windows SmartScreen / macOS Gatekeeper (“Not Opened” / Move to Trash) | **Current** — expected |
+| **Notarized + stapled** (macOS Developer ID) | Fresh download opens without that Gatekeeper block | **Not yet** — needs Developer ID cert + `notarytool` on a signing Mac |
+| **Authenticode** (Windows EV/OV) | Fewer SmartScreen warnings | **Not yet** — separate Windows cert; never put `.p12`/passwords in git or CI |
+
+macOS first open while unsigned: Finder → right-click `Buusdo.app` → **Open**. After notarization ships, that step should not be required for clean downloads.
 
 ## End-user install (three steps)
 
