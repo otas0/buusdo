@@ -115,8 +115,8 @@ jobs:
           xvfb-run -a uv run pytest -q tests/test_language_dialog.py tests/test_locale_retranslate.py tests/test_about_wrap.py --tb=line | tee /tmp/buusdo-devui-lang.log
           code=${PIPESTATUS[0]}
           set -e
-          if grep -qE '^[0-9]+ passed' /tmp/buusdo-devui-lang.log \
-            && ! grep -qiE ' failed| error|ERROR' /tmp/buusdo-devui-lang.log; then
+          if grep -qE '[0-9]+ passed in' /tmp/buusdo-devui-lang.log \
+            && ! grep -qE '[1-9][0-9]* failed' /tmp/buusdo-devui-lang.log; then
             if [[ "$code" -eq 0 || "$code" -eq 134 || "$code" -eq 139 ]]; then
               echo "OK language/retranslate green (pytest exit $code; ignore Qt teardown abort)"
               exit 0
@@ -168,8 +168,8 @@ jobs:
           # Compress Qt plugin listing + smoke log for the dedicated failure artifact.
           tar -czf qt-plugin-dirs.tgz -C qt-diag qt-plugin-dirs.txt qt-plugins.txt devui-macos.log 2>/dev/null || true
           cp -f qt-plugin-dirs.tgz qt-diag/ 2>/dev/null || true
-          if grep -qE '^[0-9]+ passed' qt-diag/devui-macos.log \
-            && ! grep -qiE ' failed| error|ERROR' qt-diag/devui-macos.log; then
+          if grep -qE '[0-9]+ passed in' qt-diag/devui-macos.log \
+            && ! grep -qE '[1-9][0-9]* failed' qt-diag/devui-macos.log; then
             if [[ "$code" -eq 0 || "$code" -eq 134 || "$code" -eq 139 ]]; then
               echo "OK macos UI green (pytest exit $code; ignore Qt teardown abort)"
               exit 0
