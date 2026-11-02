@@ -6,6 +6,8 @@ labels: bug
 assignees: ""
 ---
 
+> **Labels:** post-install / missing icon / won't start → `launch`; Steam library scan failures → `scan`.
+
 **Platform**
 - OS / version:
 - buusdo version / commit / wheel filename:
