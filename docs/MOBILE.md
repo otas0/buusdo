@@ -76,3 +76,11 @@ Ship into **1.1.0** only when:
 - Cloud sync of game configs
 - Controlling console GPUs from the phone
 - Replacing the desktop app
+- LAN **HTTPS** / TLS pinning (post-1.1.0 hardening; v1 ships HTTP + Bearer token on LAN)
+
+## Holds (do not do in companion PRs)
+
+- Bump `__version__` / `pyproject.toml` / SHARE_BLURB before the cut-week
+  release PR / published `v1.1.0`
+- Merge `phase3/dwm-hdr` into the 1.1.0 tag
+- Require Developer ID notarization or Windows Authenticode for 1.1.0
