@@ -14,11 +14,12 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
    capabilities rows (`buusdo.core.hardware_notes`). Already on `main`.
 2. **Unsigned vs notarized docs** — honest Gatekeeper / signing checklist
    ([CODE_SIGNING.md](CODE_SIGNING.md)). Already on `main`.
-3. **Mobile companion foundation** — [MOBILE.md](MOBILE.md),
-   `buusdo/companion/` protocol + honesty guards, `mobile/` client scaffold.
-4. Desktop host stub that serves allowlisted companion ops only (no remote
-   install/inject API).
-5. Release notes that say clearly: phone/tablet = companion, not injection host.
+3. **Mobile companion** — [MOBILE.md](MOBILE.md), `buusdo/companion/` protocol +
+   LAN transport + pairing UI, Flutter client under `mobile/flutter/`.
+4. Desktop Companion dialog (user-started LAN URL + code); tokens via
+   `Transaction` under `user_config_dir`.
+5. About rows for companion non-goals + links to MOBILE.md / HARDWARE_NOTES.md.
+6. Release notes that say clearly: phone/tablet = companion, not injection host.
 
 ## Explicitly deferred (not blockers)
 
@@ -32,10 +33,14 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
 
 - [ ] `pytest` green on CI for companion + hardware honesty tests
 - [ ] Desktop companion host: `status` works; install endpoints absent
-- [ ] At least one phone **or** tablet simulator build speaks protocol v1
-      (user-reported — no agent VM theater)
-- [ ] README / SHARE_BLURB point at 1.1.0 only after tag exists
+- [ ] User Issue (`companion`): one real phone **or** tablet simulator
+      pair+status (no agent VM theater)
+- [ ] Bump `__version__` / `pyproject.toml` to `1.1.0` **only** in the cut-week
+      release PR (not earlier)
+- [ ] README / SHARE_BLURB point at 1.1.0 **only after** the tag is published
 - [ ] Draft unpublished until a human decides to publish
+- [ ] `phase3/dwm-hdr` not merged into the 1.1.0 tag
+- [ ] Developer ID / Authenticode still deferred (not a blocker)
 
 ## Versioning
 

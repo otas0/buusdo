@@ -28,13 +28,16 @@ Response:
 
 ## Allowed ops
 
-| op | paired? | purpose |
-|----|---------|---------|
-| `ping` | no | liveness |
-| `status` | no | read-only host snapshot |
-| `history_summary` | no | short history text |
-| `capabilities` | no | honest capability rows |
-| `request_scan` | **yes** | ask desktop to queue a library scan |
+HTTP `/v1/rpc` always requires a paired Bearer token. Protocol-level
+`request_scan` also checks `CompanionHost.paired`.
+
+| op | purpose |
+|----|---------|
+| `ping` | liveness |
+| `status` | read-only host snapshot |
+| `history_summary` | short history text |
+| `capabilities` | honest capability rows |
+| `request_scan` | ask desktop to queue a library scan |
 
 ## Forbidden (server rejects)
 
@@ -43,5 +46,15 @@ Response:
 
 ## Transport (1.1.0)
 
-LAN only after desktop pairing. Exact HTTP paths / TLS pinning land with the
-desktop host UI wiring — clients must not invent a cloud relay.
+LAN HTTP only — **no cloud relay**. Desktop starts the host when the user clicks
+**Start pairing** in the Companion dialog.
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/v1/health` | none | liveness |
+| POST | `/v1/pair` | body `{ "code": "######", "label": "…" }` | exchange pairing code → device token |
+| POST | `/v1/rpc` | `Authorization: Bearer <token>` | companion protocol envelope |
+
+Default listen port: **8765**. Base URL shown in the desktop dialog
+(`http://<lan-ip>:8765`). Tokens are stored under the desktop
+`user_config_dir/companion_devices.json` via `Transaction` (C2).

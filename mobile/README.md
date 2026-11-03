@@ -20,7 +20,7 @@ Native SwiftUI / Jetpack Compose clients are optional later; they must speak
 mobile/
   README.md          ← this file
   PROTOCOL.md        ← client-facing op cheat sheet
-  flutter/           ← app scaffold (created when Flutter SDK is available)
+  flutter/           ← buusdo_companion (status + scan; tablet two-pane)
 ```
 
 ## Honesty (do not regress)

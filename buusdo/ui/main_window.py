@@ -99,7 +99,10 @@ from buusdo.ui.linux_deploy_dialog import LinuxDeployDialog
 from buusdo.ui.scan_worker import assert_gui_thread, start_scan
 from buusdo.ui.theme import ThemeName, apply_theme, badge_color, current_theme
 from buusdo.ui.tray_icon import make_mark_icon
+from buusdo.companion.pairing import PairingDesk
+from buusdo.companion.transport import CompanionTransport
 from buusdo.ui.about_dialog import show_about_dialog
+from buusdo.ui.companion_dialog import make_desktop_companion_host, show_companion_dialog
 from buusdo.ui.logo_widget import make_logo_label, refresh_logo_label
 from buusdo.ui.selection_utils import clear_row_selections
 from buusdo.ui.language_dialog import LanguageDialog, needs_locale_pick
@@ -123,6 +126,14 @@ class MainWindow(QMainWindow):
         self._scan_worker = None
         self._scan_accepting = False
         self._scan_generation = 0
+        self._companion_pairing = PairingDesk()
+        self._companion_host = make_desktop_companion_host(
+            request_scan=self._companion_request_scan,
+        )
+        self._companion_transport = CompanionTransport(
+            host=self._companion_host,
+            pairing=self._companion_pairing,
+        )
 
         settings = load_settings()
         if settings.get("locale") in available_locales():
@@ -153,6 +164,9 @@ class MainWindow(QMainWindow):
         self._lang_btn.setToolTip(t("lang.button"))
         self._lang_btn.clicked.connect(self._open_language_dialog)
         brand.addWidget(self._lang_btn)
+        self._btn_companion = QPushButton(t("companion.button"))
+        self._btn_companion.clicked.connect(self._show_companion)
+        brand.addWidget(self._btn_companion)
         self._btn_about = QPushButton(t("about.button"))
         self._btn_about.clicked.connect(self._show_about)
         brand.addWidget(self._btn_about)
@@ -810,6 +824,7 @@ class MainWindow(QMainWindow):
         self._lang_btn.setText(locale_display_name(get_locale()))
         self._lang_btn.setToolTip(t("lang.button"))
         self._btn_about.setText(t("about.button"))
+        self._btn_companion.setText(t("companion.button"))
         self._refresh_theme_button()
         self._btn_scan.setText(t("action.scan"))
         self._btn_force.setText(t("action.force_scan"))
@@ -1298,6 +1313,28 @@ class MainWindow(QMainWindow):
 
     def _show_about(self) -> None:
         show_about_dialog(self)
+
+    def _show_companion(self) -> None:
+        show_companion_dialog(
+            self,
+            host=self._companion_host,
+            transport=self._companion_transport,
+            pairing=self._companion_pairing,
+        )
+
+    def _companion_request_scan(self) -> str:
+        """Allowlisted companion op: queue the same desktop library scan."""
+        if self._scan_accepting:
+            return "scan already running"
+        self._scan_games(force=False)
+        return "scan queued"
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        try:
+            self._companion_transport.stop()
+        except Exception:
+            pass
+        super().closeEvent(event)
 
     def _severity_rank(self, severity: str) -> int:
         order = {"block": 0, "warning": 1, "info": 2, "conflict": 3, "": 4}
