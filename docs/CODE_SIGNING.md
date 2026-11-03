@@ -6,12 +6,16 @@ Explorer wordmark smoke on Setup + `buusdo.exe` is confirmed.
 
 Checklist before first signed artifact:
 
-1. [ ] Code-signing cert available (EV preferred for SmartScreen)
-2. [ ] `scripts/codesign.env` present locally (gitignored) — see `codesign.env.example` if present
-3. [ ] Unsigned draft Setup from `installer.yml` still attaches as `--draft`
-4. [x] Explorer wordmark OK on Setup + `buusdo.exe` (human, 2026-11-02)
-5. [ ] `signtool` / `codesign_hooks.sh` dry-run on a throwaway copy
-6. [ ] Only then replace draft assets with signed ones (still unpublished until human promote)
+1. [ ] **macOS:** Developer ID Application identity installed (`security find-identity -v -p codesigning`)
+2. [ ] **macOS:** `notarytool store-credentials` profile + gitignored `scripts/codesign.env`
+3. [ ] **Windows:** Authenticode cert (EV preferred for SmartScreen; OV also OK) — **separate** from Apple
+4. [ ] `scripts/codesign.env` present locally (gitignored) — see `codesign.env.example`
+5. [x] Explorer wordmark OK on Setup + `buusdo.exe` (human, 2026-11-02)
+6. [ ] `bash scripts/sign_and_notarize_macos.sh` (or hooks) dry-run on a throwaway `.app`
+7. [ ] Replace v1.0.0 macOS zip + refresh `SHA256SUMS` only after staple succeeds
+8. [ ] Windows: `signtool` dry-run on throwaway Setup/`buusdo.exe` (never commit `.p12` / passwords; CI gets no private keys)
+
+**Do not** check macOS items green until identities exist on the signing machine.
 
 ## Windows (Authenticode)
 
@@ -110,8 +114,22 @@ Without `scripts/codesign.env` / cert, the hook must fail closed — that is exp
 After every successful `attach_draft`, `installer.yml` downloads the attached draft Setup and
 re-runs `scripts/verify_pe_icon.py` (PE resource presence only — **not** Explorer wordmark).
 
+## Notarization failures (PyInstaller entitlements)
+
+If `notarytool submit … --wait` fails:
+
+```bash
+# Use the submission id from the failed submit output:
+xcrun notarytool log <submission-id> --keychain-profile "buusdo-notary"
+```
+
+Common PyInstaller / Qt hardened-runtime issues show up there (missing entitlements,
+unsigned helpers, invalid bundles). Fix entitlements / re-sign nested binaries, then
+re-run `scripts/sign_and_notarize_macos.sh`. Do **not** disable SIP (C5).
+
 ## Notes
 
 - buusdo does not require SIP disable on macOS (C5).
-- Never embed private keys in the repo; use CI secrets / local keychain profiles.
+- Never embed private keys in the repo; **CI must not receive** `.p12` / Apple passwords from git.
 - `scripts/codesign.env`, `*.p12`, and `*.pfx` are gitignored.
+- Windows Authenticode needs a separate EV/OV cert — Apple Developer ID does not cover Setup.exe.
