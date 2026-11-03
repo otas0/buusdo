@@ -218,5 +218,18 @@
   "history.action.install": "インストール",
   "history.action.uninstall": "アンインストール",
   "msg.remix_enabled": "既存の RTX Remix パストレーシング mod を有効化しました（「レイトレーシング有効」とは主張しません）。",
-  "msg.remix_disabled": "RTX Remix パストレーシング mod のブリッジファイルを無効化しました。"
+  "msg.remix_disabled": "RTX Remix パストレーシング mod のブリッジファイルを無効化しました。",
+  "hw.section": "ハードウェアの現実（トリックではない）",
+  "hw.adapters": "検出アダプタ: {summary}",
+  "hw.not_a_boost": "ホストの事実であり、buusdo が無料 FPS を切り替えられる機能ではありません。docs/HARDWARE_NOTES.md を参照。",
+  "hw.unified_memory.title": "ユニファイドメモリ",
+  "hw.unified_memory.body": "Apple Silicon / 一部 APU では CPU と GPU が設計上メモリを共有します。buusdo のトリックではありません。",
+  "hw.extra_gpu.title": "遊休 iGPU / 2 枚目 GPU",
+  "hw.extra_gpu.body": "OS/ドライバ/ゲームが許せば、追加ディスプレイ・エンコード・デバイス指定に役立つ場合あり。汎用ブーストではありません。",
+  "hw.resizable_bar.title": "Resizable BAR / SAM",
+  "hw.resizable_bar.body": "ボード/BIOS/ドライバ/ゲームが揃うと VRAM アクセスが効率化される場合があります。システム RAM を VRAM にはしません。",
+  "hw.vram_spill.title": "VRAM のシステム RAM への溢れ",
+  "hw.vram_spill.body": "VRAM 不足時のドライバページングは多くの場合より遅くカクつきます。最適化ではなくフォールバックです。",
+  "hw.soft_raster.title": "CPU ソフトラスタ（例: llvmpipe）",
+  "hw.soft_raster.body": "ディスクリート GPU なしでも描画できますが通常は大幅に遅いです。最終手段のフォールバックのみ。"
 }

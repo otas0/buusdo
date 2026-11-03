@@ -11,7 +11,7 @@ It reuses each platform’s existing enhancement stack. It does not implement re
 **Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
 Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
 Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mac Dock notes: [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
-Full constraints: [docs/PROJECT.md](docs/PROJECT.md).
+Full constraints: [docs/PROJECT.md](docs/PROJECT.md). Hardware honesty (no “RAM as GPU”): [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
 buusdo 1.0.0 — BYO ReShade/OptiScaler kits · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.0.0

@@ -218,5 +218,18 @@
   "history.action.install": "安裝",
   "history.action.uninstall": "解除安裝",
   "msg.remix_enabled": "已啟用既有 RTX Remix 路徑追蹤 mod（未宣稱「已開啟光線追蹤」）。",
-  "msg.remix_disabled": "已停用 RTX Remix 路徑追蹤 mod 橋接檔。"
+  "msg.remix_disabled": "已停用 RTX Remix 路徑追蹤 mod 橋接檔。",
+  "hw.section": "硬體現實（不是技巧）",
+  "hw.adapters": "偵測到的配接器：{summary}",
+  "hw.not_a_boost": "這些是本機事實，不是 buusdo 能一鍵打開的免費幀率開關。詳見 docs/HARDWARE_NOTES.md。",
+  "hw.unified_memory.title": "統一記憶體",
+  "hw.unified_memory.body": "在 Apple Silicon / 部分 APU 上，CPU 與 GPU 本就共享記憶體，這是硬體設計，不是 buusdo 的技巧。",
+  "hw.extra_gpu.title": "閒置核顯 / 第二塊 GPU",
+  "hw.extra_gpu.body": "在系統/驅動/遊戲支援時，可能有助於多螢幕、編碼或依遊戲選裝置——不是通用加速。",
+  "hw.resizable_bar.title": "Resizable BAR / SAM",
+  "hw.resizable_bar.body": "主機板/BIOS/驅動/遊戲配合時，可讓 CPU 更有效存取顯示記憶體——並不能把系統記憶體變成顯存。",
+  "hw.vram_spill.title": "顯存換頁到系統記憶體",
+  "hw.vram_spill.body": "顯存不足時驅動換頁通常更卡，屬於兜底而非優化手段。",
+  "hw.soft_raster.title": "CPU 軟渲染（如 llvmpipe）",
+  "hw.soft_raster.body": "無獨顯也能出畫，但通常慢很多——僅作最後兜底，不是升級路徑。"
 }

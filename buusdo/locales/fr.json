@@ -218,5 +218,18 @@
   "history.action.install": "installation",
   "history.action.uninstall": "désinstallation",
   "msg.remix_enabled": "Mod RTX Remix de path tracing existant activé (ne prétend pas « ray tracing activé »).",
-  "msg.remix_disabled": "Fichier pont du mod RTX Remix de path tracing désactivé."
+  "msg.remix_disabled": "Fichier pont du mod RTX Remix de path tracing désactivé.",
+  "hw.section": "Hardware realities (not tricks)",
+  "hw.adapters": "Detected adapters: {summary}",
+  "hw.not_a_boost": "These are host facts — not toggles buusdo can flip for free FPS. See docs/HARDWARE_NOTES.md.",
+  "hw.unified_memory.title": "Unified memory",
+  "hw.unified_memory.body": "On Apple Silicon / some APUs, CPU and GPU already share RAM by hardware design — not a buusdo trick.",
+  "hw.extra_gpu.title": "Idle iGPU / second GPU",
+  "hw.extra_gpu.body": "May help extra displays, encode, or per-game device pick when OS/driver/game allow — not a universal boost.",
+  "hw.resizable_bar.title": "Resizable BAR / SAM",
+  "hw.resizable_bar.body": "Can help the CPU address VRAM more efficiently when board/BIOS/driver/game cooperate — does not turn system RAM into VRAM.",
+  "hw.vram_spill.title": "VRAM spill to system RAM",
+  "hw.vram_spill.body": "Driver paging when VRAM is full is usually slower/stuttery — a fallback, not an optimization.",
+  "hw.soft_raster.title": "CPU soft raster (e.g. llvmpipe)",
+  "hw.soft_raster.body": "Can draw without a discrete GPU but is typically much slower — last-resort fallback only."
 }

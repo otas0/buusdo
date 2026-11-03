@@ -69,6 +69,8 @@ is not a goal.
 - Path tracing (RTX Remix mods) and neural upscaling must stay distinct
 - Post-process approximations must be marked as approximations
 - On macOS never claim “DLSS”; only “MetalFX compat-layer config”
+- Never market “RAM as GPU,” free FPS from idle hardware, or VRAM spill as an upgrade —
+  see [HARDWARE_NOTES.md](HARDWARE_NOTES.md)
 
 ### C5. macOS backend forbids injection
 - No code that uses `DYLD_INSERT_LIBRARIES`, `task_for_pid`, `mach_inject`, or

@@ -395,6 +395,7 @@ class MainWindow(QMainWindow):
         if kit:
             self._status.setText(f"ReShade: {kit}")
         self._refresh_history()
+        self._refresh_capabilities()
         self._setup_tray()
 
         # Defer first-run wizard until after the window is shown. Running a modal
@@ -861,9 +862,8 @@ class MainWindow(QMainWindow):
         # Badges / capability titles are locale-sensitive — rebuild in the active language.
         self._refresh_game_list()
         self._restore_selection(prev)
-        if self._target is not None:
-            self._refresh_capabilities()
-        elif self._games:
+        self._refresh_capabilities()
+        if self._target is None and self._games:
             self._status.setText(t("scan.games_count", count=len(self._games)))
 
     def _refresh_theme_button(self) -> None:
@@ -1161,8 +1161,8 @@ class MainWindow(QMainWindow):
     def _on_game_selected(self, row: int) -> None:
         if row < 0 or row >= len(self._filtered):
             self._target = None
-            self._cap_list.clear()
             self._exe_combo.clear()
+            self._refresh_capabilities()
             return
         self._target = self._filtered[row]
         self._steam_uri_try_index = 0
@@ -1193,11 +1193,15 @@ class MainWindow(QMainWindow):
 
     def _refresh_capabilities(self) -> None:
         self._cap_list.clear()
-        if not self._target:
-            return
-        for cap in self._backend.list_capabilities(self._target):
-            avail = "Y" if cap.available else "N"
-            self._cap_list.addItem(f"[{avail}] {cap.title} — {cap.description}")
+        if self._target:
+            for cap in self._backend.list_capabilities(self._target):
+                avail = "Y" if cap.available else "N"
+                self._cap_list.addItem(f"[{avail}] {cap.title} — {cap.description}")
+        # Host honesty rows (C4) — informational only, never marketed as boosts.
+        from buusdo.core.hardware_notes import honesty_capabilities
+
+        for cap in honesty_capabilities(t=t):
+            self._cap_list.addItem(f"[i] {cap.title} — {cap.description}")
 
     def _format_history_action(self, action: str) -> str:
         raw = str(action or "")

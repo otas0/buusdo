@@ -218,5 +218,18 @@
   "history.action.install": "安装",
   "history.action.uninstall": "卸载",
   "msg.remix_enabled": "已启用已有 RTX Remix 路径追踪 mod（未宣称「已开启光线追踪」）。",
-  "msg.remix_disabled": "已禁用 RTX Remix 路径追踪 mod 桥接文件。"
+  "msg.remix_disabled": "已禁用 RTX Remix 路径追踪 mod 桥接文件。",
+  "hw.section": "硬件现实（不是技巧）",
+  "hw.adapters": "检测到的适配器：{summary}",
+  "hw.not_a_boost": "这些是本机事实，不是 buusdo 能一键打开的免费帧率开关。详见 docs/HARDWARE_NOTES.md。",
+  "hw.unified_memory.title": "统一内存",
+  "hw.unified_memory.body": "在 Apple Silicon / 部分 APU 上，CPU 与 GPU 本就共享内存，这是硬件设计，不是 buusdo 的技巧。",
+  "hw.extra_gpu.title": "闲置核显 / 第二块 GPU",
+  "hw.extra_gpu.body": "在系统/驱动/游戏支持时，可能有助于多显示器、编码或按游戏选设备——不是通用加速。",
+  "hw.resizable_bar.title": "Resizable BAR / SAM",
+  "hw.resizable_bar.body": "主板/BIOS/驱动/游戏配合时，可让 CPU 更高效访问显存——并不能把系统内存变成显存。",
+  "hw.vram_spill.title": "显存换页到系统内存",
+  "hw.vram_spill.body": "显存不足时驱动换页通常更卡，属于兜底而非优化手段。",
+  "hw.soft_raster.title": "CPU 软渲染（如 llvmpipe）",
+  "hw.soft_raster.body": "无独显也能出画，但通常慢很多——仅作最后兜底，不是升级路径。"
 }
