@@ -7,7 +7,9 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from buusdo import __version__
+from buusdo.core.hardware_notes import HARDWARE_NOTES
 from buusdo.core.i18n import t
+from buusdo.core.platform_detect import host_adapter_summary
 from buusdo.core.urls import FEEDBACK_URL, REPO_URL
 from buusdo.ui.logo_widget import make_logo_label
 
@@ -39,6 +41,26 @@ def show_about_dialog(parent=None) -> None:
     note.setObjectName("brandSubtitle")
     layout.addWidget(note)
 
+    hw_hdr = QLabel(t("hw.section"))
+    hw_hdr.setObjectName("sectionLabel")
+    layout.addWidget(hw_hdr)
+    adapters = host_adapter_summary()
+    if adapters:
+        adapt = QLabel(t("hw.adapters", summary=adapters))
+        adapt.setWordWrap(True)
+        adapt.setObjectName("brandSubtitle")
+        adapt.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(adapt)
+    for hn in HARDWARE_NOTES:
+        line = QLabel(f"• {t(hn.title_key)} — {t(hn.body_key)}")
+        line.setWordWrap(True)
+        line.setObjectName("brandSubtitle")
+        layout.addWidget(line)
+    hw_foot = QLabel(t("hw.not_a_boost"))
+    hw_foot.setWordWrap(True)
+    hw_foot.setObjectName("brandSubtitle")
+    layout.addWidget(hw_foot)
+
     row = QHBoxLayout()
     feedback = QPushButton(t("about.feedback"))
     feedback.setObjectName("accentAction")
@@ -55,5 +77,5 @@ def show_about_dialog(parent=None) -> None:
     layout.addLayout(row)
     # Narrow windows: long DE/RU platform copy must wrap, not stretch the dialog.
     dlg.setMinimumWidth(360)
-    dlg.resize(420, 340)
+    dlg.resize(460, 520)
     dlg.exec()

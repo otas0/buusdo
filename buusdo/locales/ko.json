@@ -218,5 +218,18 @@
   "history.action.install": "설치",
   "history.action.uninstall": "제거",
   "msg.remix_enabled": "기존 RTX Remix 패스 트레이싱 모드를 사용했습니다(「레이 트레이싱 사용」이라고 주장하지 않음).",
-  "msg.remix_disabled": "RTX Remix 패스 트레이싱 모드 브리지 파일을 사용하지 않도록 설정했습니다."
+  "msg.remix_disabled": "RTX Remix 패스 트레이싱 모드 브리지 파일을 사용하지 않도록 설정했습니다.",
+  "hw.section": "하드웨어 현실(트릭 아님)",
+  "hw.adapters": "감지된 어댑터: {summary}",
+  "hw.not_a_boost": "호스트 사실일 뿐이며 buusdo가 무료 FPS를 켜는 토글이 아닙니다. docs/HARDWARE_NOTES.md 참고.",
+  "hw.unified_memory.title": "통합 메모리",
+  "hw.unified_memory.body": "Apple Silicon / 일부 APU에서는 CPU와 GPU가 설계상 RAM을 공유합니다. buusdo 트릭이 아닙니다.",
+  "hw.extra_gpu.title": "유휴 iGPU / 두 번째 GPU",
+  "hw.extra_gpu.body": "OS/드라이버/게임이 허용하면 추가 디스플레이·인코딩·장치 선택에 도움이 될 수 있습니다. 범용 가속이 아닙니다.",
+  "hw.resizable_bar.title": "Resizable BAR / SAM",
+  "hw.resizable_bar.body": "보드/BIOS/드라이버/게임이 맞으면 CPU가 VRAM에 더 효율적으로 접근할 수 있습니다. 시스템 RAM을 VRAM으로 바꾸지 않습니다.",
+  "hw.vram_spill.title": "VRAM의 시스템 RAM 스필",
+  "hw.vram_spill.body": "VRAM이 부족할 때 드라이버 페이징은 대개 더 느리고 끊깁니다. 최적화가 아니라 폴백입니다.",
+  "hw.soft_raster.title": "CPU 소프트 래스터(예: llvmpipe)",
+  "hw.soft_raster.body": "외장 GPU 없이도 그릴 수 있지만 보통 훨씬 느립니다. 최후 폴백만."
 }
