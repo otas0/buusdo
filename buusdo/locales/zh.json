@@ -231,5 +231,18 @@
   "hw.vram_spill.title": "显存换页到系统内存",
   "hw.vram_spill.body": "显存不足时驱动换页通常更卡，属于兜底而非优化手段。",
   "hw.soft_raster.title": "CPU 软渲染（如 llvmpipe）",
-  "hw.soft_raster.body": "无独显也能出画，但通常慢很多——仅作最后兜底，不是升级路径。"
+  "hw.soft_raster.body": "无独显也能出画，但通常慢很多——仅作最后兜底，不是升级路径。",
+  "mobile.not_a_feature": "不是 Companion 功能 — 安装由桌面端后端负责；C1 仍然适用。",
+  "mobile.cap.status.title": "桌面状态",
+  "mobile.cap.status.body": "只读查看桌面在线状态、最近游戏与简短历史。",
+  "mobile.cap.status.notes": "不会安装或注入任何内容。",
+  "mobile.cap.scan.title": "请求库扫描",
+  "mobile.cap.scan.body": "请求已配对的桌面端排队进行 Steam 库扫描。",
+  "mobile.cap.scan.notes": "扫描在桌面端执行；手机只发起请求。",
+  "mobile.no_remote_inject.title": "远程注入 / 安装",
+  "mobile.no_remote_inject.body": "手机不能部署 ReShade 或向 PC 游戏注入。变更操作保留在桌面端。",
+  "mobile.no_phone_gpu.title": "手机 GPU 当作 PC 加速器",
+  "mobile.no_phone_gpu.body": "手机或平板芯片不会变成 PC 画面的远程 GPU。",
+  "mobile.no_bypass_anticheat.title": "从移动端绕过反作弊",
+  "mobile.no_bypass_anticheat.body": "Companion 不能提供绕过反作弊的“仍要继续”（C1）。"
 }

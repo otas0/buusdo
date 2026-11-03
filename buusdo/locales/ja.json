@@ -231,5 +231,18 @@
   "hw.vram_spill.title": "VRAM のシステム RAM への溢れ",
   "hw.vram_spill.body": "VRAM 不足時のドライバページングは多くの場合より遅くカクつきます。最適化ではなくフォールバックです。",
   "hw.soft_raster.title": "CPU ソフトラスタ（例: llvmpipe）",
-  "hw.soft_raster.body": "ディスクリート GPU なしでも描画できますが通常は大幅に遅いです。最終手段のフォールバックのみ。"
+  "hw.soft_raster.body": "ディスクリート GPU なしでも描画できますが通常は大幅に遅いです。最終手段のフォールバックのみ。",
+  "mobile.not_a_feature": "コンパニオン機能ではありません — インストールはデスクトップ側。C1 は引き続き適用。",
+  "mobile.cap.status.title": "デスクトップ状態",
+  "mobile.cap.status.body": "オンライン状態・最近のゲーム・短い履歴の読み取り専用表示。",
+  "mobile.cap.status.notes": "インストールや注入は行いません。",
+  "mobile.cap.scan.title": "ライブラリスキャン要求",
+  "mobile.cap.scan.body": "ペアリング済みデスクトップに Steam ライブラリスキャンを依頼します。",
+  "mobile.cap.scan.notes": "スキャンはデスクトップで実行。端末は要求のみ。",
+  "mobile.no_remote_inject.title": "リモート注入 / インストール",
+  "mobile.no_remote_inject.body": "端末から ReShade 展開や PC ゲームへの注入はできません。変更はデスクトップ側のみ。",
+  "mobile.no_phone_gpu.title": "端末 GPU を PC 加速器にする",
+  "mobile.no_phone_gpu.body": "スマホ / タブレットのシリコンは PC フレーム用のリモート GPU にはなりません。",
+  "mobile.no_bypass_anticheat.title": "モバイルからアンチチート回避",
+  "mobile.no_bypass_anticheat.body": "コンパニオンはアンチチート回避の「続行」を提供しません（C1）。"
 }
