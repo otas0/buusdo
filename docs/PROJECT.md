@@ -88,9 +88,13 @@ is not a goal.
 - Tests: pytest
 - Packaging: pyside6-deploy
 - Config persistence: JSON per game under the user config directory
+- Mobile companion: protocol in `buusdo/companion/`; Flutter client under
+  `mobile/` (phone + tablet). Companion is **not** an injection host — see
+  [MOBILE.md](MOBILE.md)
 
 Do not introduce: Electron, Tauri, Rust build chains, kernel drivers, or
-in-house Vulkan/D3D hooks.
+in-house Vulkan/D3D hooks. Flutter for the companion client is an intentional
+exception to the desktop PySide6-only UI rule.
 
 ### UI visual language
 

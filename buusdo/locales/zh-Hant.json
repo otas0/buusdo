@@ -231,5 +231,18 @@
   "hw.vram_spill.title": "顯存換頁到系統記憶體",
   "hw.vram_spill.body": "顯存不足時驅動換頁通常更卡，屬於兜底而非優化手段。",
   "hw.soft_raster.title": "CPU 軟渲染（如 llvmpipe）",
-  "hw.soft_raster.body": "無獨顯也能出畫，但通常慢很多——僅作最後兜底，不是升級路徑。"
+  "hw.soft_raster.body": "無獨顯也能出畫，但通常慢很多——僅作最後兜底，不是升級路徑。",
+  "mobile.not_a_feature": "不是 Companion 功能 — 安裝由桌面端後端負責；C1 仍然適用。",
+  "mobile.cap.status.title": "桌面狀態",
+  "mobile.cap.status.body": "唯讀檢視桌面線上狀態、最近遊戲與簡短歷史。",
+  "mobile.cap.status.notes": "不會安裝或注入任何內容。",
+  "mobile.cap.scan.title": "請求函式庫掃描",
+  "mobile.cap.scan.body": "請求已配對的桌面端佇列進行 Steam 函式庫掃描。",
+  "mobile.cap.scan.notes": "掃描在桌面端執行；手機只發起請求。",
+  "mobile.no_remote_inject.title": "遠端注入 / 安裝",
+  "mobile.no_remote_inject.body": "手機不能部署 ReShade 或向 PC 遊戲注入。變更操作保留在桌面端。",
+  "mobile.no_phone_gpu.title": "手機 GPU 當作 PC 加速器",
+  "mobile.no_phone_gpu.body": "手機或平板晶片不會變成 PC 畫面的遠端 GPU。",
+  "mobile.no_bypass_anticheat.title": "從行動端繞過反作弊",
+  "mobile.no_bypass_anticheat.body": "Companion 不能提供繞過反作弊的「仍要繼續」（C1）。"
 }

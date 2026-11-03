@@ -231,5 +231,18 @@
   "hw.vram_spill.title": "VRAM spill to system RAM",
   "hw.vram_spill.body": "Driver paging when VRAM is full is usually slower/stuttery — a fallback, not an optimization.",
   "hw.soft_raster.title": "CPU soft raster (e.g. llvmpipe)",
-  "hw.soft_raster.body": "Can draw without a discrete GPU but is typically much slower — last-resort fallback only."
+  "hw.soft_raster.body": "Can draw without a discrete GPU but is typically much slower — last-resort fallback only.",
+  "mobile.not_a_feature": "Not a companion feature — desktop backends own installs; C1 still applies.",
+  "mobile.cap.status.title": "Desktop status",
+  "mobile.cap.status.body": "Read-only view of desktop online state, recent games, and short history.",
+  "mobile.cap.status.notes": "Does not install or inject anything.",
+  "mobile.cap.scan.title": "Request library scan",
+  "mobile.cap.scan.body": "Ask the paired desktop to queue a Steam library scan.",
+  "mobile.cap.scan.notes": "Scan runs on the desktop; the phone only requests it.",
+  "mobile.no_remote_inject.title": "Remote inject / install",
+  "mobile.no_remote_inject.body": "The phone cannot deploy ReShade or inject into PC games. Mutating work stays on the desktop.",
+  "mobile.no_phone_gpu.title": "Phone GPU as PC accelerator",
+  "mobile.no_phone_gpu.body": "Phone or tablet silicon does not become a remote GPU for PC frames.",
+  "mobile.no_bypass_anticheat.title": "Bypass anti-cheat from mobile",
+  "mobile.no_bypass_anticheat.body": "Companion cannot offer continue-anyway around anti-cheat (C1)."
 }

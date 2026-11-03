@@ -11,6 +11,8 @@ For the **GitHub v1.0.0 installer** gate (Inno, unsigned), see [STORE_MVP.md](ST
 - **macOS:** MetalFX compatibility-layer config only (C5 — no injection)
 - Anti-cheat hard block (C1) — no continue-anyway
 - Honest copy (C4) — no “ray tracing enabled”, no DLSS claims on macOS
+- Hardware honesty rows ([HARDWARE_NOTES.md](HARDWARE_NOTES.md)) — not product boosts
+- Mobile companion foundation ([MOBILE.md](MOBILE.md)) — status/scan request only; ships toward [RELEASE_1.1.0.md](RELEASE_1.1.0.md)
 - Developer self-test (local), not third-party acceptance sign-off
 - Distributable **wheel / sdist** under `dist/` with `SHA256SUMS` + three-step install notes
 - Optional host binary via `scripts/deploy.sh` (pyside6-deploy) when the toolchain is present
