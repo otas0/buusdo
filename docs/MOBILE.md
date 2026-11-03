@@ -46,23 +46,29 @@ remote GPU. Desktop backends keep owning all mutating work (C1–C5).
 - **C5** — macOS desktop host remains config-only; companion cannot invent
   injection just because the client is a phone.
 
-## Pairing (v1 sketch)
+## Pairing (v1)
 
-1. Desktop shows a short pairing code + LAN URL (user-initiated).
-2. Mobile enters the code; both store a device token (local only).
-3. Unpair from desktop clears the token; companion refuses unsigned devices.
+1. Desktop user opens **Companion** and clicks **Start pairing** (server is off
+   until then). Dialog shows LAN URL + 6-digit code (TTL ~5 minutes).
+2. Mobile `POST /v1/pair` with the code; desktop stores a device token under
+   `user_config_dir/companion_devices.json` via `Transaction` (C2).
+3. Mobile calls `POST /v1/rpc` with `Authorization: Bearer <token>`.
+4. Unpair / clear-all on desktop removes tokens; companion refuses unknown tokens.
 
-No accounts, no cloud identity in v1.
+No accounts, no cloud identity in v1. See [mobile/PROTOCOL.md](../mobile/PROTOCOL.md).
 
 ## Release gating
 
 Ship into **1.1.0** only when:
 
-1. Protocol + honesty unit tests are green.
-2. Desktop host can serve `status` without opening install APIs.
-3. At least one mobile client builds (debug) against the protocol on a phone **or**
-   tablet simulator — user-reported, not agent VM theater.
+1. Protocol + honesty + transport unit tests are green on CI.
+2. Desktop host serves `status` / paired `request_scan` without install APIs.
+3. **User-report gate:** at least one real phone **or** tablet simulator
+   completes pair + status (file a GitHub Issue with label `companion` —
+   **no agent VM / ISO theater**).
 4. Release notes state clearly: companion ≠ mobile injection host.
+5. Do **not** bump `__version__` / SHARE_BLURB until the cut-week release PR /
+   published `v1.1.0` tag.
 
 ## Non-goals for 1.1.0
 
@@ -70,3 +76,11 @@ Ship into **1.1.0** only when:
 - Cloud sync of game configs
 - Controlling console GPUs from the phone
 - Replacing the desktop app
+- LAN **HTTPS** / TLS pinning (post-1.1.0 hardening; v1 ships HTTP + Bearer token on LAN)
+
+## Holds (do not do in companion PRs)
+
+- Bump `__version__` / `pyproject.toml` / SHARE_BLURB before the cut-week
+  release PR / published `v1.1.0`
+- Merge `phase3/dwm-hdr` into the 1.1.0 tag
+- Require Developer ID notarization or Windows Authenticode for 1.1.0

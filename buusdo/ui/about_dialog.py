@@ -7,10 +7,11 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from buusdo import __version__
+from buusdo.companion.honesty import MOBILE_NON_GOALS
 from buusdo.core.hardware_notes import HARDWARE_NOTES
 from buusdo.core.i18n import t
 from buusdo.core.platform_detect import host_adapter_summary
-from buusdo.core.urls import FEEDBACK_URL, REPO_URL
+from buusdo.core.urls import DOCS_HARDWARE_URL, DOCS_MOBILE_URL, FEEDBACK_URL, REPO_URL
 from buusdo.ui.logo_widget import make_logo_label
 
 LICENSE_NAME = "See repository LICENSE (MIT)"
@@ -41,6 +42,19 @@ def show_about_dialog(parent=None) -> None:
     note.setObjectName("brandSubtitle")
     layout.addWidget(note)
 
+    mobile_hdr = QLabel(t("companion.about_section"))
+    mobile_hdr.setObjectName("sectionLabel")
+    layout.addWidget(mobile_hdr)
+    mobile_intro = QLabel(t("companion.about_intro"))
+    mobile_intro.setWordWrap(True)
+    mobile_intro.setObjectName("brandSubtitle")
+    layout.addWidget(mobile_intro)
+    for ng in MOBILE_NON_GOALS:
+        line = QLabel(f"• {t(ng.title_key)} — {t(ng.body_key)}")
+        line.setWordWrap(True)
+        line.setObjectName("brandSubtitle")
+        layout.addWidget(line)
+
     hw_hdr = QLabel(t("hw.section"))
     hw_hdr.setObjectName("sectionLabel")
     layout.addWidget(hw_hdr)
@@ -67,15 +81,21 @@ def show_about_dialog(parent=None) -> None:
     feedback.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FEEDBACK_URL)))
     repo = QPushButton(t("about.repo"))
     repo.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REPO_URL)))
+    docs_mobile = QPushButton(t("about.docs_mobile"))
+    docs_mobile.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_MOBILE_URL)))
+    docs_hw = QPushButton(t("about.docs_hardware"))
+    docs_hw.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_HARDWARE_URL)))
     close = QPushButton(t("about.close"))
     close.setObjectName("primaryAction")
     close.setDefault(True)
     close.clicked.connect(dlg.accept)
     row.addWidget(feedback)
     row.addWidget(repo)
+    row.addWidget(docs_mobile)
+    row.addWidget(docs_hw)
     row.addWidget(close)
     layout.addLayout(row)
     # Narrow windows: long DE/RU platform copy must wrap, not stretch the dialog.
     dlg.setMinimumWidth(360)
-    dlg.resize(460, 520)
+    dlg.resize(480, 620)
     dlg.exec()

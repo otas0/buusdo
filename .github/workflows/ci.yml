@@ -77,10 +77,41 @@ jobs:
         run: uv run pytest -q tests/test_i18n_locales.py --tb=line
       - name: Locale quality (pt/pt-BR, DE/RU budget, cap.experimental)
         run: uv run pytest -q tests/test_locale_quality.py --tb=line
+      - name: Companion protocol + LAN transport
+        run: uv run pytest -q tests/test_companion_protocol.py tests/test_companion_honesty.py tests/test_companion_devices.py tests/test_companion_transport.py --tb=line
       - name: Package datas (locales + logo_wordmark)
         run: uv run python scripts/check_package_datas.py
       - name: Pytest
         run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
+
+  flutter-analyze:
+    # Optional: runs only when mobile/flutter/pubspec.yaml exists.
+    # Failures here are soft until the Flutter client is release-critical.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Flutter app
+        id: flutter_app
+        run: |
+          if [[ -f mobile/flutter/pubspec.yaml ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "mobile/flutter absent; skipping analyze"
+          fi
+      - uses: subosito/flutter-action@v2
+        if: steps.flutter_app.outputs.present == 'true'
+        with:
+          channel: stable
+          cache: true
+      - name: flutter pub get + analyze
+        if: steps.flutter_app.outputs.present == 'true'
+        working-directory: mobile/flutter
+        run: |
+          flutter pub get
+          flutter analyze
+
 
   devui:
     runs-on: ubuntu-latest
