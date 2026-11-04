@@ -80,11 +80,19 @@ Ship into **1.1.0** only when:
 1. Protocol + honesty + transport unit tests are green on CI.
 2. Desktop host serves `status` / paired `request_scan` without install APIs.
 3. **User-report gate:** at least one real phone **or** tablet simulator
-   completes pair + status (file a GitHub Issue with label `companion` —
-   **no agent VM / ISO theater**).
+   completes pair + status (GitHub Issue **#13** / label `companion` —
+   **no agent VM / ISO theater**). Checklist for the human reporter:
+   - [ ] Desktop: Start pairing (LAN or loopback as appropriate)
+   - [ ] Flutter client: pair with code → `status` RPC succeeds
+   - [ ] Phone **or** tablet screenshot attached to the Issue
+   - [ ] Note OS / Flutter build / bind mode (LAN vs loopback)
 4. Release notes state clearly: companion ≠ mobile injection host.
 5. Do **not** bump `__version__` / SHARE_BLURB until the cut-week release PR /
    published `v1.1.0` tag.
+
+Optional post-gate setting: `companion_persist_last_label` (default off) stores
+only the last paired **label** in `settings.json` — never tokens (tokens remain
+Transaction-backed under `companion_devices.json`).
 
 ## Non-goals for 1.1.0
 

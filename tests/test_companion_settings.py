@@ -52,3 +52,18 @@ def test_startup_honors_companion_loopback_only_without_ui(cfg: Path) -> None:
         assert transport.bind_host == "127.0.0.1"
     finally:
         transport.stop()
+
+
+def test_last_paired_label_off_by_default(cfg: Path) -> None:
+    assert store.get_companion_persist_last_label() is False
+    assert store.get_companion_last_paired_label() == ""
+    store.set_companion_last_paired_label("pixel")
+    assert store.get_companion_last_paired_label() == ""
+
+
+def test_last_paired_label_when_flag_on(cfg: Path) -> None:
+    store.set_companion_persist_last_label(True)
+    store.set_companion_last_paired_label("  tablet-one  ")
+    assert store.get_companion_last_paired_label() == "tablet-one"
+    store.clear_companion_last_paired_label()
+    assert store.get_companion_last_paired_label() == ""
