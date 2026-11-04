@@ -98,8 +98,21 @@ gh workflow run ci.yml --ref <branch-or-sha>
 ```
 
 Merge only after that manual run is green (or a real `pull_request` check set
-appears). Prefer SSH fetch/push with `scripts/push_when_online.sh` when HTTPS
-CONNECT flakes; do not loop Dart/SDK downloads as a CI substitute.
+appears). Default remote path while HTTPS flakes: keep `origin` on HTTPS and use
+`scripts/push_when_online.sh` for pushes. Prefer SSH only after a working
+user/deploy key is confirmed. Do not loop Dart/SDK downloads as a CI substitute.
+
+**Git Data API fallback (when `git push` hangs):** create blobs/tree/commit/ref
+via REST instead of waiting on CONNECT (used for PR #22):
+
+```bash
+# After a local commit on a feature branch that cannot push:
+# 1) POST repos/.../git/blobs for each changed file
+# 2) POST repos/.../git/trees with base_tree=main tip
+# 3) POST repos/.../git/commits with parents=[main tip]
+# 4) POST repos/.../git/refs  refs/heads/<branch>
+# Then: gh pr create / gh api repos/.../pulls
+```
 
 **Local SSH note (this laptop):** `id_ed25519_shield` is already bound to
 another GitHub principal (cannot re-add as a buusdo deploy key). A dedicated
@@ -107,7 +120,9 @@ another GitHub principal (cannot re-add as a buusdo deploy key). A dedicated
 `github.com-buusdo`) is registered on `otas0/buusdo`. If agent-backed SSH
 offers are rejected, use `IdentityAgent none` for that Host or fall back to
 HTTPS + `push_when_online.sh`. `ssh -T` is not a valid deploy-key smoke —
-use `git ls-remote` / `git fetch`.
+use `git ls-remote` / `git fetch`. After adding the pubkey to the **otas0 user**
+SSH keys (`gh auth refresh -s admin:public_key` then `gh api user/keys`), you
+may delete the unused repo deploy key.
 
 ## Billing / spending limit (0s empty-step fails)
 
