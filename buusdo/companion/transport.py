@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 from buusdo.companion.devices import add_device, token_is_paired
 from buusdo.companion.host import CompanionHost
 from buusdo.companion.netinfo import DEFAULT_PORT
-from buusdo.companion.pairing import PairingDesk
+from buusdo.companion.pairing import PairAttemptLimit, PairingDesk
 from buusdo.companion.protocol import PROTOCOL_VERSION
 
 ScanCallback = Callable[[], str]
@@ -31,9 +31,11 @@ class CompanionHTTPServer(ThreadingHTTPServer):
         *,
         host: CompanionHost,
         pairing: PairingDesk,
+        pair_limit: PairAttemptLimit,
     ) -> None:
         self.companion_host = host
         self.pairing = pairing
+        self.pair_limit = pair_limit
         super().__init__(server_address, _CompanionHandler)
 
 
@@ -89,6 +91,12 @@ class _CompanionHandler(BaseHTTPRequestHandler):
         payload = self._read_json()
 
         if path == "/v1/pair":
+            client = ""
+            if self.client_address:
+                client = str(self.client_address[0])
+            if not self.server.pair_limit.allow(client):
+                self._json(429, {"ok": False, "error": "too many pairing attempts"})
+                return
             code = str(payload.get("code") or "").strip()
             label = str(payload.get("label") or "mobile")[:64]
             if not self.server.pairing.consume(code):
@@ -132,9 +140,11 @@ class CompanionTransport:
         pairing: PairingDesk | None = None,
         bind_host: str = "0.0.0.0",
         port: int = DEFAULT_PORT,
+        pair_limit: PairAttemptLimit | None = None,
     ) -> None:
         self.host = host
         self.pairing = pairing or PairingDesk()
+        self.pair_limit = pair_limit or PairAttemptLimit()
         self.bind_host = bind_host
         self.port = int(port)
         self._httpd: CompanionHTTPServer | None = None
@@ -151,6 +161,7 @@ class CompanionTransport:
             (self.bind_host, self.port),
             host=self.host,
             pairing=self.pairing,
+            pair_limit=self.pair_limit,
         )
         # Honour OS-assigned port when bind used port 0.
         self.port = int(httpd.server_address[1])

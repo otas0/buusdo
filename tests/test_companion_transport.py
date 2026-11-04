@@ -96,6 +96,37 @@ def test_rpc_rejects_without_token(transport) -> None:
     assert ei.value.code == 401
 
 
+def test_pair_rate_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from buusdo.companion.pairing import PairAttemptLimit
+
+    monkeypatch.setattr(devices_mod, "user_config_dir", lambda: tmp_path)
+    clear_devices()
+    host = CompanionHost(host_label="test", paired=False)
+    pairing = PairingDesk(ttl_sec=60)
+    limit = PairAttemptLimit(max_attempts=2, window_sec=60)
+    t = CompanionTransport(
+        host=host,
+        pairing=pairing,
+        bind_host="127.0.0.1",
+        port=0,
+        pair_limit=limit,
+    )
+    t.start()
+    try:
+        port = t.port
+        pairing.start()
+        for _ in range(2):
+            try:
+                _post(port, "/v1/pair", {"code": "000000"})
+            except urllib.error.HTTPError as exc:
+                assert exc.code == 403
+        with pytest.raises(urllib.error.HTTPError) as ei:
+            _post(port, "/v1/pair", {"code": "000000"})
+        assert ei.value.code == 429
+    finally:
+        t.stop()
+
+
 def test_forbidden_op_still_rejected_when_paired(transport) -> None:
     _t, pairing, port = transport
     session = pairing.start()

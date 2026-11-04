@@ -263,5 +263,6 @@
   "companion.about_section": "移动 Companion（非注入）",
   "companion.about_intro": "开始配对后，手机/平板通过局域网与本桌面通信。详见 docs/MOBILE.md。",
   "about.docs_mobile": "MOBILE.md",
-  "about.docs_hardware": "HARDWARE_NOTES"
+  "about.docs_hardware": "HARDWARE_NOTES",
+  "companion.chip_on": "Companion 局域网"
 }
