@@ -271,5 +271,8 @@
   "companion.chip_bind": "Companion {addr}",
   "companion.copy_url": "페어 URL 복사",
   "companion.copy_url_idle": "먼저 페어링을 시작한 뒤 LAN URL을 복사하세요.",
-  "companion.rate_limited": "페어링 제한: {seconds}초 후 다시 시도"
+  "companion.rate_limited": "페어링 제한: {seconds}초 후 다시 시도",
+  "companion.copy_code": "코드 복사",
+  "companion.copy_code_idle": "먼저 페어링을 시작한 뒤 코드를 복사하세요.",
+  "companion.chip_open": "클릭하여 Companion 열기"
 }

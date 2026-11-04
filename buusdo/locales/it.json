@@ -271,5 +271,8 @@
   "companion.chip_bind": "Companion {addr}",
   "companion.copy_url": "Copy pair URL",
   "companion.copy_url_idle": "Start pairing first to copy the LAN URL.",
-  "companion.rate_limited": "Pairing rate-limited: try again in {seconds}s"
+  "companion.rate_limited": "Pairing rate-limited: try again in {seconds}s",
+  "companion.copy_code": "Copy code",
+  "companion.copy_code_idle": "Start pairing first to copy the code.",
+  "companion.chip_open": "Click to open Companion"
 }

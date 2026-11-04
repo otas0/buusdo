@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Slot
-from PySide6.QtGui import QAction, QColor, QKeySequence, QShortcut
+from PySide6.QtCore import Qt, QEvent, QTimer, Slot
+from PySide6.QtGui import QAction, QColor, QCursor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -171,6 +171,9 @@ class MainWindow(QMainWindow):
         brand.addWidget(self._btn_companion)
         self._companion_chip = QLabel(t("companion.chip_on"))
         self._companion_chip.setObjectName("backendChip")
+        self._companion_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._companion_chip.setToolTip(t("companion.chip_open"))
+        self._companion_chip.installEventFilter(self)
         self._companion_chip.hide()
         brand.addWidget(self._companion_chip)
         self._btn_about = QPushButton(t("about.button"))
@@ -1330,6 +1333,13 @@ class MainWindow(QMainWindow):
         )
         self._refresh_companion_chip()
 
+    def eventFilter(self, obj, event):  # noqa: N802
+        if obj is self._companion_chip and event.type() == QEvent.Type.MouseButtonRelease:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self._show_companion()
+                return True
+        return super().eventFilter(obj, event)
+
     def _refresh_companion_chip(self) -> None:
         from buusdo.companion.netinfo import companion_bind_addr, truncate_bind_addr
 
@@ -1347,15 +1357,16 @@ class MainWindow(QMainWindow):
             self._companion_chip.setText(t("companion.chip_on"))
         self._companion_chip.setVisible(running)
         err = str(getattr(transport, "last_error", "") or "")
+        open_hint = t("companion.chip_open")
         if err:
             tip = t("companion.chip_error", error=err)
             if running:
-                tip = f"{t('companion.chip_bind', addr=addr)}\n{tip}"
+                tip = f"{t('companion.chip_bind', addr=addr)}\n{tip}\n{open_hint}"
             self._companion_chip.setToolTip(tip)
         elif running:
-            self._companion_chip.setToolTip(t("companion.chip_bind", addr=addr))
+            self._companion_chip.setToolTip(f"{t('companion.chip_bind', addr=addr)}\n{open_hint}")
         else:
-            self._companion_chip.setToolTip("")
+            self._companion_chip.setToolTip(open_hint)
 
     def _companion_request_scan(self) -> str:
         """Allowlisted companion op: queue the same desktop library scan."""

@@ -271,5 +271,8 @@
   "companion.chip_bind": "Companion {addr}",
   "companion.copy_url": "複製配對 URL",
   "companion.copy_url_idle": "請先開始配對再複製區域網路 URL。",
-  "companion.rate_limited": "配對次數過多：請 {seconds} 秒後再試"
+  "companion.rate_limited": "配對次數過多：請 {seconds} 秒後再試",
+  "companion.copy_code": "複製配對碼",
+  "companion.copy_code_idle": "請先開始配對再複製配對碼。",
+  "companion.chip_open": "點一下開啟 Companion"
 }

@@ -271,5 +271,8 @@
   "companion.chip_bind": "Companion {addr}",
   "companion.copy_url": "ペア URL をコピー",
   "companion.copy_url_idle": "先にペアリングを開始してから LAN URL をコピーしてください。",
-  "companion.rate_limited": "ペアリング制限中: {seconds} 秒後に再試行"
+  "companion.rate_limited": "ペアリング制限中: {seconds} 秒後に再試行",
+  "companion.copy_code": "コードをコピー",
+  "companion.copy_code_idle": "先にペアリングを開始してからコードをコピーしてください。",
+  "companion.chip_open": "クリックで Companion を開く"
 }
