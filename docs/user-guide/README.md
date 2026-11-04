@@ -1,5 +1,13 @@
 # buusdo user guides (all UI languages)
 
+**Start here if you just downloaded buusdo** and need click-by-click steps to open
+it on Windows, macOS, or Linux (unsigned build → SmartScreen / Gatekeeper).
+
+| | |
+|--|--|
+| **Download release** | [v1.0.0 Assets](https://github.com/otas0/buusdo/releases/tag/v1.0.0) |
+| **Back to project** | [README](../../README.md) |
+
 GitHub **does not** auto-translate repository docs. This folder ships one guide
 per UI locale from `buusdo/locales/` (same codes as the in-app language picker).
 
@@ -19,7 +27,7 @@ per UI locale from `buusdo/locales/` (same codes as the in-app language picker).
 | [Русский](ru.md) | `ru` | Russian |
 
 Canonical English: [en.md](en.md).  
-Release: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0). Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
+Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
 
 **Note:** Product UI strings are localized separately in `buusdo/locales/*.json`.
 These guides are download / first-open instructions (especially unsigned Windows
