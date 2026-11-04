@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+)
 
 from buusdo import __version__
 from buusdo.companion.honesty import MOBILE_NON_GOALS
@@ -81,30 +88,54 @@ def show_about_dialog(parent=None) -> None:
     hw_foot.setObjectName("brandSubtitle")
     layout.addWidget(hw_foot)
 
-    row = QHBoxLayout()
-    feedback = QPushButton(t("about.feedback"))
+    def _link_btn(label: str, url: str, tip: str = "") -> QPushButton:
+        btn = QPushButton(label)
+        # Prefer natural width; never squeeze below the text sizeHint.
+        btn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        btn.setMinimumWidth(btn.sizeHint().width())
+        if tip:
+            btn.setToolTip(tip)
+        btn.clicked.connect(lambda _=False, u=url: QDesktopServices.openUrl(QUrl(u)))
+        return btn
+
+    # Two rows so zh/long labels (Feedback / MOBILE / HARDWARE) are not clipped.
+    row1 = QHBoxLayout()
+    row1.setSpacing(8)
+    feedback = _link_btn(t("about.feedback"), FEEDBACK_URL, FEEDBACK_URL)
     feedback.setObjectName("accentAction")
-    feedback.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FEEDBACK_URL)))
-    repo = QPushButton(t("about.repo"))
-    repo.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REPO_URL)))
-    docs_guide = QPushButton(t("about.docs_user_guide"))
-    docs_guide.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_USER_GUIDE_URL)))
-    docs_mobile = QPushButton(t("about.docs_mobile"))
-    docs_mobile.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_MOBILE_URL)))
-    docs_hw = QPushButton(t("about.docs_hardware"))
-    docs_hw.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_HARDWARE_URL)))
+    # Recompute min width after accent style may change metrics.
+    feedback.setMinimumWidth(feedback.sizeHint().width())
+    repo = _link_btn(t("about.repo"), REPO_URL, REPO_URL)
+    docs_guide = _link_btn(
+        t("about.docs_user_guide"), DOCS_USER_GUIDE_URL, "docs/user-guide/"
+    )
+    row1.addWidget(feedback)
+    row1.addWidget(repo)
+    row1.addWidget(docs_guide)
+    row1.addStretch(1)
+    layout.addLayout(row1)
+
+    row2 = QHBoxLayout()
+    row2.setSpacing(8)
+    docs_mobile = _link_btn(
+        t("about.docs_mobile"), DOCS_MOBILE_URL, "docs/MOBILE.md"
+    )
+    docs_hw = _link_btn(
+        t("about.docs_hardware"), DOCS_HARDWARE_URL, "docs/HARDWARE_NOTES.md"
+    )
     close = QPushButton(t("about.close"))
     close.setObjectName("primaryAction")
     close.setDefault(True)
+    close.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    close.setMinimumWidth(close.sizeHint().width())
     close.clicked.connect(dlg.accept)
-    row.addWidget(feedback)
-    row.addWidget(repo)
-    row.addWidget(docs_guide)
-    row.addWidget(docs_mobile)
-    row.addWidget(docs_hw)
-    row.addWidget(close)
-    layout.addLayout(row)
+    row2.addWidget(docs_mobile)
+    row2.addWidget(docs_hw)
+    row2.addStretch(1)
+    row2.addWidget(close)
+    layout.addLayout(row2)
     # Narrow windows: long DE/RU platform copy must wrap, not stretch the dialog.
-    dlg.setMinimumWidth(360)
-    dlg.resize(480, 620)
+    # Button rows need a bit more than 360 so three labels fit without clip.
+    dlg.setMinimumWidth(420)
+    dlg.resize(520, 640)
     dlg.exec()
