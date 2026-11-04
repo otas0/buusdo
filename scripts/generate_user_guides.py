@@ -729,14 +729,48 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 """
 
 
+def stub_body(code: str, native: str, eng: str, langs: list[tuple[str, str, str]]) -> str:
+    """English stub when a locale JSON exists but BODIES[code] was never written."""
+    return f"""# buusdo user guide ({eng})
+
+Languages: {nav(code, langs)}
+
+> **Stub:** add a full translation for `{code}` ({native}). Until then, follow the
+> English guide: [en.md](en.md). Latest release: [v1.0.0]({RELEASE}).
+
+## What you are installing
+
+buusdo is a desktop **scheduler / config coordinator** for existing graphics stacks
+(ReShade, OptiScaler, etc.). Kits are **BYO**. macOS is **config-only** (no injection).
+
+## 1. Download
+
+Open [{RELEASE}]({RELEASE}) → **Assets** → pick Windows Setup / macOS `.app` zip /
+Linux onedir or wheel. Optional: verify `SHA256SUMS`.
+
+## 2–4. Open the app
+
+Use the same SmartScreen / Gatekeeper / Linux steps as [en.md](en.md) (unsigned
+build). Do **not** disable SIP on macOS.
+
+## 5. After first launch
+
+Point the UI at your kit folders. Anti-cheat cannot be bypassed. Issues: {REPO}/issues.
+"""
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     langs = discover_langs()
     missing = [c for c, _, _ in langs if c not in BODIES]
+    for code, native, eng in langs:
+        if code not in BODIES:
+            BODIES[code] = stub_body(code, native, eng, langs)
+            print(f"stub BODIES[{code!r}] ({eng})")
     if missing:
-        raise SystemExit(
-            f"missing bodies for locale stems from {LOCALES}: {missing} "
-            f"(add BODIES[code] and LOCALE_NAMES[code])"
+        print(
+            f"note: stubbed missing bodies for {missing}; "
+            f"replace with real translations and LOCALE_NAMES entries as needed"
         )
     orphan_bodies = sorted(set(BODIES) - {c for c, _, _ in langs})
     if orphan_bodies:
