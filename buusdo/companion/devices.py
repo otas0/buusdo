@@ -80,6 +80,8 @@ def _save(raw: dict[str, Any]) -> None:
 
 def add_device(*, label: str = "mobile") -> PairedDevice:
     """Create a paired device with a fresh bearer token (transactional write)."""
+    from buusdo.core.config_store import set_companion_last_paired_label
+
     device = PairedDevice(
         device_id=secrets.token_hex(8),
         token=secrets.token_urlsafe(32),
@@ -91,6 +93,8 @@ def add_device(*, label: str = "mobile") -> PairedDevice:
     devices.append(device)
     raw["devices"] = [d.to_dict() for d in devices]
     _save(raw)
+    # Label only (feature-flagged); tokens stay in companion_devices.json via Transaction.
+    set_companion_last_paired_label(device.label)
     return device
 
 

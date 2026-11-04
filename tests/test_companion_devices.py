@@ -19,6 +19,7 @@ from buusdo.companion.devices import (
 @pytest.fixture()
 def companion_cfg(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(devices_mod, "user_config_dir", lambda: tmp_path)
+    monkeypatch.setattr("buusdo.core.config_store.user_config_dir", lambda: tmp_path)
     return tmp_path
 
 
@@ -30,6 +31,21 @@ def test_add_and_auth_token(companion_cfg: Path) -> None:
     assert token_is_paired(d.token)
     assert not token_is_paired("nope")
     assert len(list_devices()) == 1
+
+
+def test_add_device_remembers_label_only_when_flag_on(companion_cfg: Path) -> None:
+    from buusdo.core import config_store as store
+
+    clear_devices()
+    store.set_companion_persist_last_label(False)
+    add_device(label="ignored-label")
+    assert store.get_companion_last_paired_label() == ""
+    store.set_companion_persist_last_label(True)
+    add_device(label="pixel-7")
+    assert store.get_companion_last_paired_label() == "pixel-7"
+    raw = (companion_cfg / "settings.json").read_text(encoding="utf-8")
+    assert "pixel-7" in raw
+    assert "token" not in raw
 
 
 def test_remove_and_clear(companion_cfg: Path) -> None:

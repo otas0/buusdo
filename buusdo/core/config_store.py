@@ -118,6 +118,37 @@ def set_companion_loopback_only(enabled: bool) -> None:
     save_settings(data)
 
 
+def get_companion_persist_last_label() -> bool:
+    """Feature flag: remember last paired device *label* (not tokens). Default off until #13."""
+    return bool(load_settings().get("companion_persist_last_label", False))
+
+
+def set_companion_persist_last_label(enabled: bool) -> None:
+    data = load_settings()
+    data["companion_persist_last_label"] = bool(enabled)
+    save_settings(data)
+
+
+def get_companion_last_paired_label() -> str:
+    """Last paired companion label from settings (empty if unset). Never a token."""
+    return str(load_settings().get("companion_last_paired_label") or "").strip()[:64]
+
+
+def set_companion_last_paired_label(label: str) -> None:
+    """Store label only when companion_persist_last_label is enabled."""
+    if not get_companion_persist_last_label():
+        return
+    data = load_settings()
+    data["companion_last_paired_label"] = str(label or "").strip()[:64]
+    save_settings(data)
+
+
+def clear_companion_last_paired_label() -> None:
+    data = load_settings()
+    data.pop("companion_last_paired_label", None)
+    save_settings(data)
+
+
 def export_configs(dest_zip: Path | str) -> Path:
     """Export settings + per-game JSON into a zip archive."""
     dest = Path(dest_zip).expanduser()
