@@ -63,6 +63,8 @@ jobs:
         run: uv run python scripts/check_conflict_export_schema_drift.py
       - name: Docs language (no Han under docs/)
         run: uv run python scripts/check_docs_language.py
+      - name: User-guide locale coverage
+        run: uv run python scripts/check_user_guide_locales.py
       - name: Offline dwm-hdr PoC verify (JSON)
         run: uv run python scripts/verify_dwm_hdr_poc_local.py --json
       - name: MVP self-test (developer gate)
