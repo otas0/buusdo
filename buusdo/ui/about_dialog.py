@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QFontMetrics
 from PySide6.QtWidgets import (
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
+    QWidget,
 )
 
 from buusdo import __version__
@@ -30,16 +33,36 @@ from buusdo.ui.logo_widget import make_logo_label
 LICENSE_NAME = "See repository LICENSE (MIT)"
 
 
+def _fit_button_width(btn: QPushButton) -> None:
+    """Pin min width using font metrics — monospace + CJK undersizes sizeHint."""
+    fm = QFontMetrics(btn.font())
+    # Style padding is ~12px each side; add slack so glyphs are not clipped.
+    text_w = fm.horizontalAdvance(btn.text())
+    btn.setMinimumWidth(text_w + 28)
+    btn.setMinimumHeight(max(btn.sizeHint().height(), fm.height() + 14))
+
+
 def show_about_dialog(parent=None) -> None:
     dlg = QDialog(parent)
     dlg.setObjectName("instrumentDialog")
     dlg.setWindowTitle(t("about.title"))
     dlg.setWindowIcon(parent.windowIcon() if parent is not None else dlg.windowIcon())
-    layout = QVBoxLayout(dlg)
-    layout.setContentsMargins(16, 16, 16, 16)
+    root = QVBoxLayout(dlg)
+    root.setContentsMargins(16, 16, 16, 16)
+    root.setSpacing(10)
+
+    scroll = QScrollArea(dlg)
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+    body = QWidget()
+    layout = QVBoxLayout(body)
+    layout.setContentsMargins(0, 0, 8, 0)
     layout.setSpacing(10)
 
-    mark = make_logo_label(22, dlg)
+    mark = make_logo_label(22, body)
     mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
     layout.addWidget(mark, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
@@ -87,24 +110,27 @@ def show_about_dialog(parent=None) -> None:
     hw_foot.setWordWrap(True)
     hw_foot.setObjectName("brandSubtitle")
     layout.addWidget(hw_foot)
+    layout.addStretch(1)
+
+    scroll.setWidget(body)
+    root.addWidget(scroll, 1)
 
     def _link_btn(label: str, url: str, tip: str = "") -> QPushButton:
         btn = QPushButton(label)
-        # Prefer natural width; never squeeze below the text sizeHint.
         btn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        btn.setMinimumWidth(btn.sizeHint().width())
+        _fit_button_width(btn)
         if tip:
             btn.setToolTip(tip)
         btn.clicked.connect(lambda _=False, u=url: QDesktopServices.openUrl(QUrl(u)))
         return btn
 
-    # Two rows so zh/long labels (Feedback / MOBILE / HARDWARE) are not clipped.
+    # Footer stays outside the scroll area so links stay visible and body text
+    # (e.g. HARDWARE_NOTES.md in hw.not_a_boost) is not clipped mid-glyph.
     row1 = QHBoxLayout()
     row1.setSpacing(8)
     feedback = _link_btn(t("about.feedback"), FEEDBACK_URL, FEEDBACK_URL)
     feedback.setObjectName("accentAction")
-    # Recompute min width after accent style may change metrics.
-    feedback.setMinimumWidth(feedback.sizeHint().width())
+    _fit_button_width(feedback)
     repo = _link_btn(t("about.repo"), REPO_URL, REPO_URL)
     docs_guide = _link_btn(
         t("about.docs_user_guide"), DOCS_USER_GUIDE_URL, "docs/user-guide/"
@@ -113,7 +139,7 @@ def show_about_dialog(parent=None) -> None:
     row1.addWidget(repo)
     row1.addWidget(docs_guide)
     row1.addStretch(1)
-    layout.addLayout(row1)
+    root.addLayout(row1)
 
     row2 = QHBoxLayout()
     row2.setSpacing(8)
@@ -127,15 +153,15 @@ def show_about_dialog(parent=None) -> None:
     close.setObjectName("primaryAction")
     close.setDefault(True)
     close.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-    close.setMinimumWidth(close.sizeHint().width())
+    _fit_button_width(close)
     close.clicked.connect(dlg.accept)
     row2.addWidget(docs_mobile)
     row2.addWidget(docs_hw)
     row2.addStretch(1)
     row2.addWidget(close)
-    layout.addLayout(row2)
-    # Narrow windows: long DE/RU platform copy must wrap, not stretch the dialog.
-    # Button rows need a bit more than 360 so three labels fit without clip.
+    root.addLayout(row2)
+
     dlg.setMinimumWidth(420)
-    dlg.resize(520, 640)
+    dlg.setMinimumHeight(420)
+    dlg.resize(520, 560)
     dlg.exec()
