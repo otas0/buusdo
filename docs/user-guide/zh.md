@@ -2,7 +2,7 @@
 
 语言: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · **简体中文**
 
-如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0)。
+如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
 
 ## 你在安装什么
 
@@ -10,7 +10,7 @@ buusdo 是桌面端的图形增强 **调度 / 配置协调** 工具（ReShade、
 
 ## 1. 下载正确的文件
 
-1. 浏览器打开 [https://github.com/otas0/buusdo/releases/tag/v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0)。
+1. 浏览器打开 [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
 2. 滚到 **Assets**。
 3. 按系统选择：
    - **Windows：** Setup / 安装包 `.exe`
@@ -21,7 +21,7 @@ buusdo 是桌面端的图形增强 **调度 / 配置协调** 工具（ReShade、
 
 ## 2. Windows — 打开安装包（未签名）
 
-v1.0.0 **没有** Authenticode 签名，出现 SmartScreen **正常**。跑 Setup **不需要** 安装 Python。
+v1.1.0 **没有** Authenticode 签名，出现 SmartScreen **正常**。跑 Setup **不需要** 安装 Python。
 
 ### A. 先解除锁定
 
@@ -56,7 +56,7 @@ Edge/Chrome：`Ctrl + J` 打开下载列表，选 **保留** / **仍要保留**�
 
 ## 3. macOS — 打开 .app（未公证）
 
-v1.0.0 **未**公证，Gatekeeper 拦截 **正常**。
+v1.1.0 **未**公证，Gatekeeper 拦截 **正常**。
 
 1. 下载 macOS `.zip`，双击解压。
 2. 将 `Buusdo.app` 拖到 **应用程序**（建议）。
@@ -114,6 +114,6 @@ python3 -m buusdo
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · **简体中文***

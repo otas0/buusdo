@@ -1,8 +1,8 @@
 # Release track: 1.1.0
 
-**Status:** cut week — human asked to ship. Tag `v1.1.0` after this bump lands on
-`main`. Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub
-source under `mobile/flutter/` (no store).
+**Status:** published — [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub source under
+`mobile/flutter/` (no store). SHARE_BLURB / README updated post-publish.
 
 ## Why 1.1.0
 
@@ -38,7 +38,7 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
 - [ ] User Issue [#13](https://github.com/otas0/buusdo/issues/13): pair+status
       report still welcome post-ship (not blocking this cut)
 - [x] Bump `__version__` / `pyproject.toml` to `1.1.0` in this cut
-- [ ] README / SHARE_BLURB → 1.1.0 **after** the tag is published
+- [x] README / SHARE_BLURB → 1.1.0 **after** the tag is published
 - [x] Human decided to publish (`先发吧`)
 - [x] `phase3/dwm-hdr` not merged into the 1.1.0 tag
 - [x] Developer ID / Authenticode still deferred

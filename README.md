@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Download · Open · Install</strong><br />
-  <a href="https://github.com/otas0/buusdo/releases/tag/v1.0.0"><strong>Get v1.0.0</strong></a>
+  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><strong>Get v1.1.0</strong></a>
   ·
   <a href="docs/user-guide/README.md"><strong>User guide (all languages)</strong></a>
   ·
@@ -40,17 +40,17 @@ If SmartScreen / Gatekeeper blocks the unsigned build, or you need step-by-step 
 Same locale codes as the in-app language picker (`buusdo/locales/`).
 
 **Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
-Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
+Latest: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel) + LAN companion foundation.
 Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mac Dock notes: [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md). Hardware honesty (no “RAM as GPU”): [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
-Next release track: [docs/RELEASE_1.1.0.md](docs/RELEASE_1.1.0.md). Mobile companion (phone/tablet, not injection): [docs/MOBILE.md](docs/MOBILE.md).
+Release track notes: [docs/RELEASE_1.1.0.md](docs/RELEASE_1.1.0.md). Mobile companion (phone/tablet GitHub source, not injection / not store): [docs/MOBILE.md](docs/MOBILE.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
-buusdo 1.0.0 — BYO ReShade/OptiScaler kits · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.0.0
+buusdo 1.1.0 — BYO kits · companion source · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.1.0
 
 ### Unsigned vs notarized (macOS / Windows)
 
-| Build | What you see | Status for v1.0.0 |
+| Build | What you see | Status for v1.1.0 |
 |-------|----------------|-------------------|
 | **Unsigned** | Windows SmartScreen / macOS Gatekeeper (“Not Opened” / Move to Trash) | **Current** — expected |
 | **Notarized + stapled** (macOS Developer ID) | Fresh download opens without that Gatekeeper block | **Not yet** — needs Developer ID cert + `notarytool` on a signing Mac |
