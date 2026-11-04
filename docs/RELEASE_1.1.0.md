@@ -39,7 +39,7 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
       report still welcome post-ship (not blocking this cut)
 - [x] Bump `__version__` / `pyproject.toml` to `1.1.0` in this cut
 - [x] README / SHARE_BLURB → 1.1.0 **after** the tag is published
-- [x] Human decided to publish (`先发吧`)
+- [x] Human decided to publish (ship-now request)
 - [x] `phase3/dwm-hdr` not merged into the 1.1.0 tag
 - [x] Developer ID / Authenticode still deferred
 
