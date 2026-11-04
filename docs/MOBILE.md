@@ -75,26 +75,25 @@ No accounts, no cloud identity in v1. See [mobile/PROTOCOL.md](../mobile/PROTOCO
 
 ## Release gating
 
-Ship into **1.1.0** only when:
+**1.1.0 cut:** desktop packages + this companion foundation ship on GitHub.
+Mobile client = **source only** under `mobile/flutter/` (no store APK/IPA).
+Pair + status remains a **user-report** on Issue **#13** (label `companion`) —
+not agent VM theater; reports welcome after ship.
 
-1. Protocol + honesty + transport unit tests are green on CI.
-2. Desktop host serves `status` / paired `request_scan` without install APIs.
-3. **User-report gate:** at least one real phone **or** tablet simulator
-   completes pair + status (GitHub Issue **#13** / label `companion` —
-   **no agent VM / ISO theater**). Checklist for the human reporter:
-   - [ ] Desktop: Start pairing (LAN or loopback as appropriate)
-   - [ ] Flutter client: pair with code → `status` RPC succeeds
-   - [ ] Phone **or** tablet screenshot attached to the Issue
-   - [ ] Note OS / Flutter build / bind mode (LAN vs loopback)
-4. Release notes state clearly: companion ≠ mobile injection host.
-5. Do **not** bump `__version__` / SHARE_BLURB until the cut-week release PR /
-   published `v1.1.0` tag.
+Checklist for reporters:
+- [ ] Desktop: Start pairing (LAN or loopback as appropriate)
+- [ ] Flutter client: pair with code → `status` RPC succeeds
+- [ ] Phone **or** tablet screenshot attached to the Issue
+- [ ] Note OS / Flutter build / bind mode (LAN vs loopback)
+
+Release notes state clearly: companion ≠ mobile injection host.
+`SHARE_BLURB` / README release links update **after** `v1.1.0` is published.
 
 Optional setting (Companion dialog checkbox, **default off**):
 `companion_persist_last_label` stores only the last paired **label** in
 `settings.json` — never tokens (tokens remain Transaction-backed under
 `companion_devices.json`). Clear-all unpaired devices also clears the saved
-label. Prefer leaving this off until Issue **#13** device gate closes.
+label. Default-on only with explicit human OK.
 
 ## Non-goals for 1.1.0
 
@@ -104,9 +103,8 @@ label. Prefer leaving this off until Issue **#13** device gate closes.
 - Replacing the desktop app
 - LAN **HTTPS** / TLS pinning (post-1.1.0 hardening; v1 ships HTTP + Bearer token on LAN)
 
-## Holds (do not do in companion PRs)
+## Holds (still off for 1.1.0)
 
-- Bump `__version__` / `pyproject.toml` / SHARE_BLURB before the cut-week
-  release PR / published `v1.1.0`
 - Merge `phase3/dwm-hdr` into the 1.1.0 tag
 - Require Developer ID notarization or Windows Authenticode for 1.1.0
+- App Store / Play Store packaging

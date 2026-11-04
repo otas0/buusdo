@@ -1,7 +1,8 @@
 # Release track: 1.1.0
 
-**Status:** planned next public release after unsigned [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
-Do not tag `v1.1.0` until the gate below is green and a human publishes.
+**Status:** cut week — human asked to ship. Tag `v1.1.0` after this bump lands on
+`main`. Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub
+source under `mobile/flutter/` (no store).
 
 ## Why 1.1.0
 
@@ -26,23 +27,23 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
 - Developer ID notarization / staple (needs Apple certs — see CODE_SIGNING.md)
 - Windows Authenticode
 - Phase 3 DWM HDR (`phase3/dwm-hdr` stays isolated)
-- App Store / Play Store submission polish
+- App Store / Play Store submission (mobile ships as GitHub source only)
 - Cloud pairing / WAN relay
+- LAN HTTPS (cleartext honesty stays in MOBILE.md)
 
-## Gate (human)
+## Gate
 
-- [ ] `pytest` green on CI for companion + hardware honesty tests
-- [ ] Desktop companion host: `status` works; install endpoints absent
-- [ ] User Issue (`companion`): one real phone **or** tablet simulator
-      pair+status (no agent VM theater)
-- [ ] Bump `__version__` / `pyproject.toml` to `1.1.0` **only** in the cut-week
-      release PR (not earlier)
-- [ ] README / SHARE_BLURB point at 1.1.0 **only after** the tag is published
-- [ ] Draft unpublished until a human decides to publish
-- [ ] `phase3/dwm-hdr` not merged into the 1.1.0 tag
-- [ ] Developer ID / Authenticode still deferred (not a blocker)
+- [x] `pytest` green on CI for companion + hardware honesty tests (ongoing on `main`)
+- [x] Desktop companion host: `status` works; install endpoints absent
+- [ ] User Issue [#13](https://github.com/otas0/buusdo/issues/13): pair+status
+      report still welcome post-ship (not blocking this cut)
+- [x] Bump `__version__` / `pyproject.toml` to `1.1.0` in this cut
+- [ ] README / SHARE_BLURB → 1.1.0 **after** the tag is published
+- [x] Human decided to publish (`先发吧`)
+- [x] `phase3/dwm-hdr` not merged into the 1.1.0 tag
+- [x] Developer ID / Authenticode still deferred
 
 ## Versioning
 
-Keep package `__version__` / `pyproject.toml` at `1.0.0` until cut week; bump to
-`1.1.0` in the release PR, then tag `v1.1.0`.
+Bump to `1.1.0` here, then tag `v1.1.0` to run the unsigned multi-platform
+release workflow.
