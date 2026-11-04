@@ -1332,6 +1332,18 @@ class MainWindow(QMainWindow):
         running = bool(getattr(self._companion_transport, "running", False))
         self._companion_chip.setText(t("companion.chip_on"))
         self._companion_chip.setVisible(running)
+        err = str(getattr(self._companion_transport, "last_error", "") or "")
+        if err:
+            self._companion_chip.setToolTip(t("companion.chip_error", error=err))
+        elif running:
+            mode = (
+                t("companion.loopback_only")
+                if getattr(self._companion_transport, "loopback_only", False)
+                else t("companion.chip_on")
+            )
+            self._companion_chip.setToolTip(mode)
+        else:
+            self._companion_chip.setToolTip("")
 
     def _companion_request_scan(self) -> str:
         """Allowlisted companion op: queue the same desktop library scan."""

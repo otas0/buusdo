@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -66,6 +67,11 @@ class CompanionDialog(QDialog):
         warn.setObjectName("brandSubtitle")
         layout.addWidget(warn)
 
+        self._loopback = QCheckBox(t("companion.loopback_only"))
+        self._loopback.setChecked(self._transport.loopback_only)
+        self._loopback.setToolTip(t("companion.loopback_hint"))
+        layout.addWidget(self._loopback)
+
         row = QHBoxLayout()
         self._btn_start = QPushButton(t("companion.start"))
         self._btn_start.setObjectName("accentAction")
@@ -100,9 +106,17 @@ class CompanionDialog(QDialog):
         self._sync_running_ui()
 
     def _start_pairing(self) -> None:
-        self._transport.start()
+        try:
+            self._transport.set_loopback_only(self._loopback.isChecked())
+            self._transport.start()
+        except Exception as exc:
+            self._transport.last_error = str(exc)
+            QMessageBox.warning(self, t("companion.title"), str(exc))
+            self._sync_running_ui()
+            return
         session = self._pairing.start()
-        base = companion_base_url(port=self._transport.port)
+        host = "127.0.0.1" if self._transport.loopback_only else None
+        base = companion_base_url(host=host, port=self._transport.port)
         self._url.setText(t("companion.url_active", url=base))
         self._code.setText(t("companion.code_active", code=session.code))
         self._sync_running_ui()
@@ -117,6 +131,7 @@ class CompanionDialog(QDialog):
         running = self._transport.running
         self._btn_start.setEnabled(not running)
         self._btn_stop.setEnabled(running)
+        self._loopback.setEnabled(not running)
 
     def _refresh_devices(self) -> None:
         self._devices.clear()

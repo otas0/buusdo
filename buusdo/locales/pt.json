@@ -264,5 +264,8 @@
   "companion.about_intro": "Phone/tablet talks to this desktop over LAN after you start pairing. See docs/MOBILE.md.",
   "about.docs_mobile": "MOBILE.md",
   "about.docs_hardware": "HARDWARE_NOTES",
-  "companion.chip_on": "Companion LAN"
+  "companion.chip_on": "Companion LAN",
+  "companion.loopback_only": "Loopback only (127.0.0.1)",
+  "companion.loopback_hint": "Safer for local smoke. Uncheck to listen on the LAN.",
+  "companion.chip_error": "Last error: {error}"
 }

@@ -264,5 +264,8 @@
   "companion.about_intro": "ペアリング開始後、端末は LAN 経由でこのデスクトップと通信します。docs/MOBILE.md を参照。",
   "about.docs_mobile": "MOBILE.md",
   "about.docs_hardware": "HARDWARE_NOTES",
-  "companion.chip_on": "Companion LAN"
+  "companion.chip_on": "Companion LAN",
+  "companion.loopback_only": "ループバックのみ (127.0.0.1)",
+  "companion.loopback_hint": "ローカル確認向け。オフにすると LAN で待ち受けます。",
+  "companion.chip_error": "直近のエラー: {error}"
 }

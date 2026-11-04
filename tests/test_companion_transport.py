@@ -12,7 +12,7 @@ import pytest
 from buusdo.companion import devices as devices_mod
 from buusdo.companion.devices import clear_devices, list_devices
 from buusdo.companion.host import CompanionHost
-from buusdo.companion.pairing import PairingDesk
+from buusdo.companion.pairing import PairAttemptLimit, PairingDesk
 from buusdo.companion.transport import CompanionTransport
 
 
@@ -94,6 +94,35 @@ def test_rpc_rejects_without_token(transport) -> None:
     with pytest.raises(urllib.error.HTTPError) as ei:
         _post(port, "/v1/rpc", {"protocol_version": 1, "op": "status"})
     assert ei.value.code == 401
+
+
+def test_loopback_bind_and_last_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(devices_mod, "user_config_dir", lambda: tmp_path)
+    clear_devices()
+    host = CompanionHost(host_label="test", paired=False)
+    pairing = PairingDesk(ttl_sec=60)
+    t = CompanionTransport(
+        host=host,
+        pairing=pairing,
+        bind_host="0.0.0.0",
+        port=0,
+        pair_limit=PairAttemptLimit(max_attempts=1, window_sec=60),
+    )
+    t.set_loopback_only(True)
+    assert t.bind_host == "127.0.0.1"
+    t.start()
+    try:
+        assert t.running
+        pairing.start()
+        with pytest.raises(urllib.error.HTTPError) as first:
+            _post(t.port, "/v1/pair", {"code": "000000"})
+        assert first.value.code == 403
+        with pytest.raises(urllib.error.HTTPError) as second:
+            _post(t.port, "/v1/pair", {"code": "000000"})
+        assert second.value.code == 429
+        assert "too many" in t.last_error
+    finally:
+        t.stop()
 
 
 def test_pair_rate_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
