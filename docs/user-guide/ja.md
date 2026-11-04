@@ -2,15 +2,15 @@
 
 言語: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · **日本語** · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Windows / macOS / Linux でのダウンロードと起動手順。[v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0)。
+Windows / macOS / Linux でのダウンロードと起動手順。[v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
 
 ## 概要
 
-グラフィックス強化の **スケジューラ / 設定コーディネータ**。キットは同梱されません（BYO）。macOS は **設定のみ**（注入なし）。v1.0.0 は **未署名** です。
+グラフィックス強化の **スケジューラ / 設定コーディネータ**。キットは同梱されません（BYO）。macOS は **設定のみ**（注入なし）。v1.1.0 は **未署名** です。
 
 ## 1. ダウンロード
 
-[https://github.com/otas0/buusdo/releases/tag/v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) の **Assets** から OS 用ファイルを選びます（Windows Setup `.exe` / macOS `.app` zip / Linux onedir または wheel + `install_linux.sh`）。
+[https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) の **Assets** から OS 用ファイルを選びます（Windows Setup `.exe` / macOS `.app` zip / Linux onedir または wheel + `install_linux.sh`）。
 
 ## 2. Windows
 
@@ -49,6 +49,6 @@ UI で ReShade / OptiScaler キットフォルダを指定。アンチチート�
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · **日本語** · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*

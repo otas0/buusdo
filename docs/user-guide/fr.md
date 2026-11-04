@@ -2,15 +2,15 @@
 
 Langues : [Deutsch](de.md) · [English](en.md) · [Español](es.md) · **Français** · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
+Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
 
 ## Aperçu
 
-Coordinateur / planificateur d’améliorations graphiques. Kits **non inclus** (BYO). macOS = **config seule** (pas d’injection). v1.0.0 est **non signé**.
+Coordinateur / planificateur d’améliorations graphiques. Kits **non inclus** (BYO). macOS = **config seule** (pas d’injection). v1.1.0 est **non signé**.
 
 ## 1. Téléchargement
 
-Sur [https://github.com/otas0/buusdo/releases/tag/v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0), section **Assets** : Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
+Sur [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0), section **Assets** : Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
 
 ## 2. Windows
 
@@ -48,6 +48,6 @@ Choisir les dossiers de kits dans l’UI. Pas de contournement anti-cheat. Issue
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *[Deutsch](de.md) · [English](en.md) · [Español](es.md) · **Français** · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*

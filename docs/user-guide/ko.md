@@ -2,15 +2,15 @@
 
 언어: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · **한국어** · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Windows / macOS / Linux 다운로드 및 실행. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
+Windows / macOS / Linux 다운로드 및 실행. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
 
 ## 개요
 
-그래픽 향상 **스케줄러/설정 조정** 도구. 키트는 번들되지 않음(BYO). macOS는 **설정 전용**(인젝션 없음). v1.0.0은 **미서명**입니다.
+그래픽 향상 **스케줄러/설정 조정** 도구. 키트는 번들되지 않음(BYO). macOS는 **설정 전용**(인젝션 없음). v1.1.0은 **미서명**입니다.
 
 ## 1. 다운로드
 
-[https://github.com/otas0/buusdo/releases/tag/v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) **Assets**에서 OS별 파일 선택(Windows Setup `.exe` / macOS `.app` zip / Linux onedir 또는 wheel + `install_linux.sh`).
+[https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) **Assets**에서 OS별 파일 선택(Windows Setup `.exe` / macOS `.app` zip / Linux onedir 또는 wheel + `install_linux.sh`).
 
 ## 2. Windows
 
@@ -48,6 +48,6 @@ UI에서 ReShade/OptiScaler 키트 폴더 지정. 안티치트 차단은 우회 
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · **한국어** · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*

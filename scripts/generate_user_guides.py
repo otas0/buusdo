@@ -26,7 +26,7 @@ LOCALE_NAMES: dict[str, tuple[str, str]] = {
     "ru": ("Русский", "Russian"),
 }
 
-RELEASE = "https://github.com/otas0/buusdo/releases/tag/v1.0.0"
+RELEASE = "https://github.com/otas0/buusdo/releases/tag/v1.1.0"
 REPO = "https://github.com/otas0/buusdo"
 
 
@@ -66,7 +66,7 @@ def common_footer(code: str, langs: list[tuple[str, str, str]]) -> str:
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *{nav(code, langs)}*
 """
@@ -80,7 +80,7 @@ BODIES["en"] = f"""# buusdo user guide (English)
 
 Languages: {nav("en")}
 
-How to download and open **buusdo** on Windows, macOS, and Linux. Latest release: [v1.0.0]({RELEASE}).
+How to download and open **buusdo** on Windows, macOS, and Linux. Latest release: [v1.1.0]({RELEASE}).
 
 ## What you are installing
 
@@ -99,7 +99,7 @@ buusdo is a desktop **scheduler / config coordinator** for existing graphics sta
 
 ## 2. Windows — open the installer (unsigned)
 
-v1.0.0 is **not** Authenticode-signed. SmartScreen is expected. You do **not** need Python for the Setup `.exe`.
+v1.1.0 is **not** Authenticode-signed. SmartScreen is expected. You do **not** need Python for the Setup `.exe`.
 
 ### A. Unblock the file (do this first)
 
@@ -134,7 +134,7 @@ Edge/Chrome may also quarantine the download — open the download list (`Ctrl +
 
 ## 3. macOS — open the .app (unsigned)
 
-v1.0.0 is **not** notarized. Gatekeeper blocks are expected.
+v1.1.0 is **not** notarized. Gatekeeper blocks are expected.
 
 1. Download the macOS `.zip` from Assets; double-click to unzip.
 2. Drag `Buusdo.app` to **Applications** (recommended).
@@ -192,7 +192,7 @@ BODIES["zh"] = f"""# buusdo 用户指南（简体中文）
 
 语言: {nav("zh")}
 
-如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.0.0]({RELEASE})。
+如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.1.0]({RELEASE})。
 
 ## 你在安装什么
 
@@ -211,7 +211,7 @@ buusdo 是桌面端的图形增强 **调度 / 配置协调** 工具（ReShade、
 
 ## 2. Windows — 打开安装包（未签名）
 
-v1.0.0 **没有** Authenticode 签名，出现 SmartScreen **正常**。跑 Setup **不需要** 安装 Python。
+v1.1.0 **没有** Authenticode 签名，出现 SmartScreen **正常**。跑 Setup **不需要** 安装 Python。
 
 ### A. 先解除锁定
 
@@ -246,7 +246,7 @@ Edge/Chrome：`Ctrl + J` 打开下载列表，选 **保留** / **仍要保留**�
 
 ## 3. macOS — 打开 .app（未公证）
 
-v1.0.0 **未**公证，Gatekeeper 拦截 **正常**。
+v1.1.0 **未**公证，Gatekeeper 拦截 **正常**。
 
 1. 下载 macOS `.zip`，双击解压。
 2. 将 `Buusdo.app` 拖到 **应用程序**（建议）。
@@ -300,7 +300,7 @@ BODIES["zh-Hant"] = f"""# buusdo 使用者指南（繁體中文）
 
 語言: {nav("zh-Hant")}
 
-如何在 Windows / macOS / Linux 下載並開啟 **buusdo**。最新版：[v1.0.0]({RELEASE})。
+如何在 Windows / macOS / Linux 下載並開啟 **buusdo**。最新版：[v1.1.0]({RELEASE})。
 
 ## 你在安裝什麼
 
@@ -353,11 +353,11 @@ BODIES["ja"] = f"""# buusdo ユーザーガイド（日本語）
 
 言語: {nav("ja")}
 
-Windows / macOS / Linux でのダウンロードと起動手順。[v1.0.0]({RELEASE})。
+Windows / macOS / Linux でのダウンロードと起動手順。[v1.1.0]({RELEASE})。
 
 ## 概要
 
-グラフィックス強化の **スケジューラ / 設定コーディネータ**。キットは同梱されません（BYO）。macOS は **設定のみ**（注入なし）。v1.0.0 は **未署名** です。
+グラフィックス強化の **スケジューラ / 設定コーディネータ**。キットは同梱されません（BYO）。macOS は **設定のみ**（注入なし）。v1.1.0 は **未署名** です。
 
 ## 1. ダウンロード
 
@@ -396,11 +396,11 @@ BODIES["ko"] = f"""# buusdo 사용자 가이드（한국어）
 
 언어: {nav("ko")}
 
-Windows / macOS / Linux 다운로드 및 실행. [v1.0.0]({RELEASE}).
+Windows / macOS / Linux 다운로드 및 실행. [v1.1.0]({RELEASE}).
 
 ## 개요
 
-그래픽 향상 **스케줄러/설정 조정** 도구. 키트는 번들되지 않음(BYO). macOS는 **설정 전용**(인젝션 없음). v1.0.0은 **미서명**입니다.
+그래픽 향상 **스케줄러/설정 조정** 도구. 키트는 번들되지 않음(BYO). macOS는 **설정 전용**(인젝션 없음). v1.1.0은 **미서명**입니다.
 
 ## 1. 다운로드
 
@@ -438,11 +438,11 @@ BODIES["de"] = f"""# buusdo-Benutzerhandbuch (Deutsch)
 
 Sprachen: {nav("de")}
 
-Download und Start unter Windows, macOS und Linux. [v1.0.0]({RELEASE}).
+Download und Start unter Windows, macOS und Linux. [v1.1.0]({RELEASE}).
 
 ## Überblick
 
-Desktop-**Scheduler / Konfigurations-Koordinator**. Kits sind BYO. macOS ist **nur Konfiguration** (kein Inject). v1.0.0 ist **unsigniert**.
+Desktop-**Scheduler / Konfigurations-Koordinator**. Kits sind BYO. macOS ist **nur Konfiguration** (kein Inject). v1.1.0 ist **unsigniert**.
 
 ## 1. Download
 
@@ -480,11 +480,11 @@ BODIES["fr"] = f"""# Guide utilisateur buusdo (Français)
 
 Langues : {nav("fr")}
 
-Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.0.0]({RELEASE}).
+Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.1.0]({RELEASE}).
 
 ## Aperçu
 
-Coordinateur / planificateur d’améliorations graphiques. Kits **non inclus** (BYO). macOS = **config seule** (pas d’injection). v1.0.0 est **non signé**.
+Coordinateur / planificateur d’améliorations graphiques. Kits **non inclus** (BYO). macOS = **config seule** (pas d’injection). v1.1.0 est **non signé**.
 
 ## 1. Téléchargement
 
@@ -522,11 +522,11 @@ BODIES["es"] = f"""# Guía de usuario de buusdo (Español)
 
 Idiomas: {nav("es")}
 
-Descargar y abrir buusdo en Windows, macOS y Linux. [v1.0.0]({RELEASE}).
+Descargar y abrir buusdo en Windows, macOS y Linux. [v1.1.0]({RELEASE}).
 
 ## Resumen
 
-Coordinador / programador de mejoras gráficas. Kits BYO. macOS es **solo configuración**. v1.0.0 está **sin firmar**.
+Coordinador / programador de mejoras gráficas. Kits BYO. macOS es **solo configuración**. v1.1.0 está **sin firmar**.
 
 ## 1. Descarga
 
@@ -564,11 +564,11 @@ BODIES["it"] = f"""# Guida utente buusdo (Italiano)
 
 Lingue: {nav("it")}
 
-Download e avvio su Windows, macOS e Linux. [v1.0.0]({RELEASE}).
+Download e avvio su Windows, macOS e Linux. [v1.1.0]({RELEASE}).
 
 ## Panoramica
 
-Scheduler / coordinatore di configurazione grafica. Kit BYO. macOS è **solo config**. v1.0.0 è **non firmato**.
+Scheduler / coordinatore di configurazione grafica. Kit BYO. macOS è **solo config**. v1.1.0 è **non firmato**.
 
 ## 1. Download
 
@@ -606,11 +606,11 @@ BODIES["pt"] = f"""# Guia do utilizador buusdo (Português)
 
 Idiomas: {nav("pt")}
 
-Transferir e abrir o buusdo no Windows, macOS e Linux. [v1.0.0]({RELEASE}).
+Transferir e abrir o buusdo no Windows, macOS e Linux. [v1.1.0]({RELEASE}).
 
 ## Resumo
 
-Agendador / coordenador de configuração gráfica. Kits BYO. macOS é **só configuração**. v1.0.0 está **sem assinatura**.
+Agendador / coordenador de configuração gráfica. Kits BYO. macOS é **só configuração**. v1.1.0 está **sem assinatura**.
 
 ## 1. Transferência
 
@@ -648,11 +648,11 @@ BODIES["pt-BR"] = f"""# Guia do usuário buusdo (Português do Brasil)
 
 Idiomas: {nav("pt-BR")}
 
-Baixar e abrir o buusdo no Windows, macOS e Linux. [v1.0.0]({RELEASE}).
+Baixar e abrir o buusdo no Windows, macOS e Linux. [v1.1.0]({RELEASE}).
 
 ## Resumo
 
-Agendador / coordenador de configuração gráfica. Kits BYO. macOS é **só configuração**. v1.0.0 está **sem assinatura**.
+Agendador / coordenador de configuração gráfica. Kits BYO. macOS é **só configuração**. v1.1.0 está **sem assinatura**.
 
 ## 1. Download
 
@@ -690,11 +690,11 @@ BODIES["ru"] = f"""# Руководство пользователя buusdo (Р�
 
 Языки: {nav("ru")}
 
-Скачивание и запуск на Windows, macOS и Linux. [v1.0.0]({RELEASE}).
+Скачивание и запуск на Windows, macOS и Linux. [v1.1.0]({RELEASE}).
 
 ## Обзор
 
-Планировщик / координатор графических настроек. Наборы (kits) BYO. На macOS — **только конфигурация**. v1.0.0 **без подписи**.
+Планировщик / координатор графических настроек. Наборы (kits) BYO. На macOS — **только конфигурация**. v1.1.0 **без подписи**.
 
 ## 1. Скачивание
 
@@ -736,7 +736,7 @@ def stub_body(code: str, native: str, eng: str, langs: list[tuple[str, str, str]
 Languages: {nav(code, langs)}
 
 > **Stub:** add a full translation for `{code}` ({native}). Until then, follow the
-> English guide: [en.md](en.md). Latest release: [v1.0.0]({RELEASE}).
+> English guide: [en.md](en.md). Latest release: [v1.1.0]({RELEASE}).
 
 ## What you are installing
 
@@ -790,7 +790,7 @@ per UI locale from `buusdo/locales/` (same codes as the in-app language picker).
 {index_rows}
 
 Canonical English: [en.md](en.md).  
-Release: [v1.0.0]({RELEASE}). Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
+Release: [v1.1.0]({RELEASE}). Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
 
 **Note:** Product UI strings are localized separately in `buusdo/locales/*.json`.
 These guides are download / first-open instructions (especially unsigned Windows

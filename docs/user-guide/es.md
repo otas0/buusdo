@@ -2,15 +2,15 @@
 
 Idiomas: [Deutsch](de.md) · [English](en.md) · **Español** · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Descargar y abrir buusdo en Windows, macOS y Linux. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
+Descargar y abrir buusdo en Windows, macOS y Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
 
 ## Resumen
 
-Coordinador / programador de mejoras gráficas. Kits BYO. macOS es **solo configuración**. v1.0.0 está **sin firmar**.
+Coordinador / programador de mejoras gráficas. Kits BYO. macOS es **solo configuración**. v1.1.0 está **sin firmar**.
 
 ## 1. Descarga
 
-En [https://github.com/otas0/buusdo/releases/tag/v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) → **Assets**: Setup Windows `.exe` / zip macOS `.app` / Linux onedir o wheel + `install_linux.sh`.
+En [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) → **Assets**: Setup Windows `.exe` / zip macOS `.app` / Linux onedir o wheel + `install_linux.sh`.
 
 ## 2. Windows
 
@@ -48,6 +48,6 @@ Elige carpetas de kits en la UI. El bloqueo anti-cheat no se puede omitir. Issue
 - Hardware honesty: [HARDWARE_NOTES.md](../HARDWARE_NOTES.md)
 - Project constraints: [PROJECT.md](../PROJECT.md)
 
-v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
+v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
 *[Deutsch](de.md) · [English](en.md) · **Español** · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*
