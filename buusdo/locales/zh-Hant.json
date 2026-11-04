@@ -274,5 +274,7 @@
   "companion.rate_limited": "配對次數過多：請 {seconds} 秒後再試",
   "companion.copy_code": "複製配對碼",
   "companion.copy_code_idle": "請先開始配對再複製配對碼。",
-  "companion.chip_open": "點一下開啟 Companion"
+  "companion.chip_open": "點一下開啟 Companion",
+  "companion.copy_url_done": "已複製配對 URL",
+  "companion.copy_code_done": "已複製配對碼"
 }

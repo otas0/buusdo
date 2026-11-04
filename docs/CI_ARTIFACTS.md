@@ -69,6 +69,38 @@ Set repo secret `ARTIFACT_PRUNE_TOKEN` (classic PAT with `repo` + access to Zint
 bash scripts/setup_artifact_prune_token.sh otas0/buusdo
 ```
 
+## Blank PR checks / missed `pull_request` CI
+
+`ci.yml` runs on `pull_request` (all branches) and on `push` only for `main` +
+`phase3/**`. Feature-branch pushes alone do **not** start CI — the PR event must
+fire.
+
+If a PR shows empty `statusCheckRollup` / `gh pr checks` says “no checks”, first
+confirm whether a `pull_request` run exists:
+
+```bash
+gh api 'repos/otas0/buusdo/actions/runs?event=pull_request&per_page=10' \
+  --jq '.workflow_runs[] | {id,head_branch,conclusion,created_at}'
+```
+
+**PR #19 lesson:** only a later `workflow_dispatch` ran for
+`feature/companion-copy-code-chip-click`; no `pull_request` run was recorded
+(prior companion PRs were fine). Treat that as a **transient Actions webhook /
+API flake** (same window as intermittent 502s), not a workflow YAML bug — do not
+harden `flutter-analyze` or rewrite triggers for this alone.
+
+Fallback when PR checks stay blank:
+
+```bash
+# Prefer SSH remotes + scripts/push_when_online.sh for git; for CI:
+gh workflow run ci.yml --ref <branch-or-sha>
+# or Actions → ci → Run workflow (workflow_dispatch)
+```
+
+Merge only after that manual run is green (or a real `pull_request` check set
+appears). Prefer SSH fetch/push with `scripts/push_when_online.sh` when HTTPS
+CONNECT flakes; do not loop Dart/SDK downloads as a CI substitute.
+
 ## Billing / spending limit (0s empty-step fails)
 
 API cannot raise the spending limit for this account (`/users/.../settings/billing/actions` → 404).

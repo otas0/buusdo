@@ -274,5 +274,7 @@
   "companion.rate_limited": "페어링 제한: {seconds}초 후 다시 시도",
   "companion.copy_code": "코드 복사",
   "companion.copy_code_idle": "먼저 페어링을 시작한 뒤 코드를 복사하세요.",
-  "companion.chip_open": "클릭하여 Companion 열기"
+  "companion.chip_open": "클릭하여 Companion 열기",
+  "companion.copy_url_done": "페어 URL을 복사했습니다",
+  "companion.copy_code_done": "페어링 코드를 복사했습니다"
 }

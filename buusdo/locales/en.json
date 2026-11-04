@@ -274,5 +274,7 @@
   "companion.rate_limited": "Pairing rate-limited: try again in {seconds}s",
   "companion.copy_code": "Copy code",
   "companion.copy_code_idle": "Start pairing first to copy the code.",
-  "companion.chip_open": "Click to open Companion"
+  "companion.chip_open": "Click to open Companion",
+  "companion.copy_url_done": "Pair URL copied",
+  "companion.copy_code_done": "Pairing code copied"
 }
