@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -100,9 +101,26 @@ class _CompanionHandler(BaseHTTPRequestHandler):
                 client = str(self.client_address[0])
             if not self.server.pair_limit.allow(client):
                 # Log client only — never the pairing code body.
-                _log.warning("companion pair rate-limited client=%s", client or "unknown")
+                retry_after = int(
+                    self.server.pair_limit.retry_after_sec(client) + 0.999
+                )
+                _log.warning(
+                    "companion pair rate-limited client=%s retry_after=%s",
+                    client or "unknown",
+                    retry_after,
+                )
                 self._note_error("too many pairing attempts")
-                self._json(429, {"ok": False, "error": "too many pairing attempts"})
+                transport = self.server.transport
+                if transport is not None:
+                    transport.last_rate_limit_until = time.time() + max(1, retry_after)
+                self._json(
+                    429,
+                    {
+                        "ok": False,
+                        "error": "too many pairing attempts",
+                        "retry_after": max(1, retry_after),
+                    },
+                )
                 return
             code = str(payload.get("code") or "").strip()
             label = str(payload.get("label") or "mobile")[:64]
@@ -167,8 +185,15 @@ class CompanionTransport:
         self.bind_host = bind_host
         self.port = int(port)
         self.last_error = ""
+        self.last_rate_limit_until = 0.0
         self._httpd: CompanionHTTPServer | None = None
         self._thread: threading.Thread | None = None
+
+    def rate_limit_remaining_sec(self, *, now: float | None = None) -> int:
+        """Whole seconds left on the last pair 429 window (0 if clear)."""
+        ts = time.time() if now is None else now
+        left = self.last_rate_limit_until - ts
+        return max(0, int(left + 0.999)) if left > 0 else 0
 
     @property
     def running(self) -> bool:

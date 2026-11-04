@@ -32,3 +32,22 @@ def primary_lan_ipv4() -> str:
 def companion_base_url(*, host: str | None = None, port: int = DEFAULT_PORT) -> str:
     h = host or primary_lan_ipv4()
     return f"http://{h}:{int(port)}"
+
+
+def companion_bind_addr(*, loopback_only: bool, port: int) -> str:
+    """Display bind as ``host:port`` (loopback or primary LAN IPv4)."""
+    host = "127.0.0.1" if loopback_only else primary_lan_ipv4()
+    p = int(port or 0)
+    return f"{host}:{p}" if p else host
+
+
+def truncate_bind_addr(addr: str, *, max_len: int = 22) -> str:
+    """Short chip label; keep ``:port`` visible when possible."""
+    if max_len < 6 or len(addr) <= max_len:
+        return addr
+    if ":" in addr:
+        host, _, port = addr.rpartition(":")
+        budget = max_len - len(port) - 2  # ellipsis + colon
+        if budget >= 4 and host:
+            return f"{host[:budget]}…:{port}"
+    return addr[: max_len - 1] + "…"

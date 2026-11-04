@@ -268,5 +268,8 @@
   "companion.loopback_only": "仅本机回环 (127.0.0.1)",
   "companion.loopback_hint": "本地自测更安全。取消勾选则监听局域网。",
   "companion.chip_error": "最近错误：{error}",
-  "companion.chip_bind": "Companion {addr}"
+  "companion.chip_bind": "Companion {addr}",
+  "companion.copy_url": "复制配对 URL",
+  "companion.copy_url_idle": "请先开始配对再复制局域网 URL。",
+  "companion.rate_limited": "配对次数过多：请 {seconds} 秒后再试"
 }

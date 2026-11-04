@@ -268,5 +268,8 @@
   "companion.loopback_only": "루프백만 (127.0.0.1)",
   "companion.loopback_hint": "로컬 스모크에 더 안전합니다. 해제하면 LAN에서 수신합니다.",
   "companion.chip_error": "최근 오류: {error}",
-  "companion.chip_bind": "Companion {addr}"
+  "companion.chip_bind": "Companion {addr}",
+  "companion.copy_url": "페어 URL 복사",
+  "companion.copy_url_idle": "먼저 페어링을 시작한 뒤 LAN URL을 복사하세요.",
+  "companion.rate_limited": "페어링 제한: {seconds}초 후 다시 시도"
 }

@@ -75,3 +75,14 @@ class PairAttemptLimit:
         recent.append(ts)
         self._hits[key] = recent
         return True
+
+    def retry_after_sec(self, client_key: str, *, now: float | None = None) -> float:
+        """Seconds until the oldest hit in the window expires (0 if under limit)."""
+        ts = time.time() if now is None else now
+        key = client_key or "unknown"
+        recent = [t for t in self._hits.get(key, []) if ts - t < self.window_sec]
+        self._hits[key] = recent
+        if len(recent) < self.max_attempts:
+            return 0.0
+        oldest = min(recent)
+        return max(0.0, self.window_sec - (ts - oldest))

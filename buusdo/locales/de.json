@@ -268,5 +268,8 @@
   "companion.loopback_only": "Loopback only (127.0.0.1)",
   "companion.loopback_hint": "Safer for local smoke. Uncheck to listen on the LAN.",
   "companion.chip_error": "Last error: {error}",
-  "companion.chip_bind": "Companion {addr}"
+  "companion.chip_bind": "Companion {addr}",
+  "companion.copy_url": "Copy pair URL",
+  "companion.copy_url_idle": "Start pairing first to copy the LAN URL.",
+  "companion.rate_limited": "Pairing rate-limited: try again in {seconds}s"
 }

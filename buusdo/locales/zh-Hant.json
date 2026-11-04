@@ -268,5 +268,8 @@
   "companion.loopback_only": "僅本機回環 (127.0.0.1)",
   "companion.loopback_hint": "本機自測更安全。取消勾選則監聽區域網路。",
   "companion.chip_error": "最近錯誤：{error}",
-  "companion.chip_bind": "Companion {addr}"
+  "companion.chip_bind": "Companion {addr}",
+  "companion.copy_url": "複製配對 URL",
+  "companion.copy_url_idle": "請先開始配對再複製區域網路 URL。",
+  "companion.rate_limited": "配對次數過多：請 {seconds} 秒後再試"
 }
