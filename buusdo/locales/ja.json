@@ -263,5 +263,6 @@
   "companion.about_section": "モバイル Companion（注入ではない）",
   "companion.about_intro": "ペアリング開始後、端末は LAN 経由でこのデスクトップと通信します。docs/MOBILE.md を参照。",
   "about.docs_mobile": "MOBILE.md",
-  "about.docs_hardware": "HARDWARE_NOTES"
+  "about.docs_hardware": "HARDWARE_NOTES",
+  "companion.chip_on": "Companion LAN"
 }

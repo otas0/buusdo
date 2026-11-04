@@ -263,5 +263,6 @@
   "companion.about_section": "行動 Companion（非注入）",
   "companion.about_intro": "開始配對後，手機/平板透過區域網路與本桌面通訊。詳見 docs/MOBILE.md。",
   "about.docs_mobile": "MOBILE.md",
-  "about.docs_hardware": "HARDWARE_NOTES"
+  "about.docs_hardware": "HARDWARE_NOTES",
+  "companion.chip_on": "Companion 區域網路"
 }

@@ -263,5 +263,6 @@
   "companion.about_section": "Mobile companion (not injection)",
   "companion.about_intro": "Phone/tablet talks to this desktop over LAN after you start pairing. See docs/MOBILE.md.",
   "about.docs_mobile": "MOBILE.md",
-  "about.docs_hardware": "HARDWARE_NOTES"
+  "about.docs_hardware": "HARDWARE_NOTES",
+  "companion.chip_on": "Companion LAN"
 }

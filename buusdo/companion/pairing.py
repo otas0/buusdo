@@ -55,3 +55,23 @@ class PairingDesk:
             self._session = None
             return True
         return False
+
+
+class PairAttemptLimit:
+    """Per-client sliding window for /v1/pair (no cloud; LAN brute-force brake)."""
+
+    def __init__(self, *, max_attempts: int = 8, window_sec: float = 60.0) -> None:
+        self.max_attempts = max(1, int(max_attempts))
+        self.window_sec = float(window_sec)
+        self._hits: dict[str, list[float]] = {}
+
+    def allow(self, client_key: str, *, now: float | None = None) -> bool:
+        ts = time.time() if now is None else now
+        key = client_key or "unknown"
+        recent = [t for t in self._hits.get(key, []) if ts - t < self.window_sec]
+        if len(recent) >= self.max_attempts:
+            self._hits[key] = recent
+            return False
+        recent.append(ts)
+        self._hits[key] = recent
+        return True

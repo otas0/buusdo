@@ -167,6 +167,10 @@ class MainWindow(QMainWindow):
         self._btn_companion = QPushButton(t("companion.button"))
         self._btn_companion.clicked.connect(self._show_companion)
         brand.addWidget(self._btn_companion)
+        self._companion_chip = QLabel(t("companion.chip_on"))
+        self._companion_chip.setObjectName("backendChip")
+        self._companion_chip.hide()
+        brand.addWidget(self._companion_chip)
         self._btn_about = QPushButton(t("about.button"))
         self._btn_about.clicked.connect(self._show_about)
         brand.addWidget(self._btn_about)
@@ -825,6 +829,7 @@ class MainWindow(QMainWindow):
         self._lang_btn.setToolTip(t("lang.button"))
         self._btn_about.setText(t("about.button"))
         self._btn_companion.setText(t("companion.button"))
+        self._refresh_companion_chip()
         self._refresh_theme_button()
         self._btn_scan.setText(t("action.scan"))
         self._btn_force.setText(t("action.force_scan"))
@@ -1321,6 +1326,12 @@ class MainWindow(QMainWindow):
             transport=self._companion_transport,
             pairing=self._companion_pairing,
         )
+        self._refresh_companion_chip()
+
+    def _refresh_companion_chip(self) -> None:
+        running = bool(getattr(self._companion_transport, "running", False))
+        self._companion_chip.setText(t("companion.chip_on"))
+        self._companion_chip.setVisible(running)
 
     def _companion_request_scan(self) -> str:
         """Allowlisted companion op: queue the same desktop library scan."""
