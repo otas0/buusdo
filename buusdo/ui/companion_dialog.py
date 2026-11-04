@@ -42,6 +42,7 @@ class CompanionDialog(QDialog):
         self._transport = transport
         self._pairing = pairing
         self._pair_url = ""
+        self._pair_code = ""
         self.setObjectName("instrumentDialog")
         self.setWindowTitle(t("companion.title"))
         self.setMinimumWidth(420)
@@ -90,9 +91,12 @@ class CompanionDialog(QDialog):
         self._btn_stop.clicked.connect(self._stop_pairing)
         self._btn_copy = QPushButton(t("companion.copy_url"))
         self._btn_copy.clicked.connect(self._copy_pair_url)
+        self._btn_copy_code = QPushButton(t("companion.copy_code"))
+        self._btn_copy_code.clicked.connect(self._copy_pair_code)
         row.addWidget(self._btn_start)
         row.addWidget(self._btn_stop)
         row.addWidget(self._btn_copy)
+        row.addWidget(self._btn_copy_code)
         layout.addLayout(row)
 
         devices_hdr = QLabel(t("companion.devices"))
@@ -134,6 +138,7 @@ class CompanionDialog(QDialog):
         self._url.setText(t("companion.url_active", url=self._pair_url))
         session = self._pairing.peek()
         if session is not None:
+            self._pair_code = session.code
             self._code.setText(t("companion.code_active", code=session.code))
 
     def _start_pairing(self) -> None:
@@ -148,6 +153,7 @@ class CompanionDialog(QDialog):
             self._sync_running_ui()
             return
         session = self._pairing.start()
+        self._pair_code = session.code
         self._show_active_url()
         self._code.setText(t("companion.code_active", code=session.code))
         self._sync_running_ui()
@@ -155,20 +161,33 @@ class CompanionDialog(QDialog):
     def _stop_pairing(self) -> None:
         self._transport.stop()
         self._pair_url = ""
+        self._pair_code = ""
         self._url.setText(t("companion.url_idle"))
         self._code.setText(t("companion.code_idle"))
         self._sync_running_ui()
         self._refresh_rate_limit_ui()
+
+    def _clipboard_set(self, text: str) -> None:
+        clip = QGuiApplication.clipboard()
+        if clip is not None:
+            clip.setText(text)
 
     def _copy_pair_url(self) -> None:
         url = self._pair_url or (self._pair_base_url() if self._transport.running else "")
         if not url:
             QMessageBox.information(self, t("companion.title"), t("companion.copy_url_idle"))
             return
-        clip = QGuiApplication.clipboard()
-        if clip is None:
+        self._clipboard_set(url)
+
+    def _copy_pair_code(self) -> None:
+        code = self._pair_code
+        if not code:
+            session = self._pairing.peek()
+            code = session.code if session is not None else ""
+        if not code:
+            QMessageBox.information(self, t("companion.title"), t("companion.copy_code_idle"))
             return
-        clip.setText(url)
+        self._clipboard_set(code)
 
     def _refresh_rate_limit_ui(self) -> None:
         left = self._transport.rate_limit_remaining_sec()
@@ -184,6 +203,7 @@ class CompanionDialog(QDialog):
         self._btn_start.setEnabled(not running)
         self._btn_stop.setEnabled(running)
         self._btn_copy.setEnabled(running)
+        self._btn_copy_code.setEnabled(bool(self._pair_code) or self._pairing.peek() is not None)
         # Docs: change bind only while stopped.
         self._loopback.setEnabled(not running)
         self._refresh_rate_limit_ui()

@@ -271,5 +271,8 @@
   "companion.chip_bind": "Companion {addr}",
   "companion.copy_url": "复制配对 URL",
   "companion.copy_url_idle": "请先开始配对再复制局域网 URL。",
-  "companion.rate_limited": "配对次数过多：请 {seconds} 秒后再试"
+  "companion.rate_limited": "配对次数过多：请 {seconds} 秒后再试",
+  "companion.copy_code": "复制配对码",
+  "companion.copy_code_idle": "请先开始配对再复制配对码。",
+  "companion.chip_open": "点击打开 Companion"
 }

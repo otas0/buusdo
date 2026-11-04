@@ -121,7 +121,9 @@ def test_loopback_bind_and_last_error(tmp_path: Path, monkeypatch: pytest.Monkey
             _post(t.port, "/v1/pair", {"code": "000000"})
         assert second.value.code == 429
         body = json.loads(second.value.read().decode("utf-8"))
-        assert body.get("retry_after", 0) >= 1
+        retry_after = body.get("retry_after")
+        assert isinstance(retry_after, int)
+        assert retry_after >= 1
         assert "too many" in t.last_error
         assert t.rate_limit_remaining_sec() >= 1
     finally:
@@ -155,6 +157,10 @@ def test_pair_rate_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
         with pytest.raises(urllib.error.HTTPError) as ei:
             _post(port, "/v1/pair", {"code": "000000"})
         assert ei.value.code == 429
+        body = json.loads(ei.value.read().decode("utf-8"))
+        retry_after = body.get("retry_after")
+        assert isinstance(retry_after, int)
+        assert retry_after >= 1
     finally:
         t.stop()
 
