@@ -1,6 +1,6 @@
 # buusdo-Benutzerhandbuch (Deutsch)
 
-Sprachen: [English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · **Deutsch** · [Français](fr.md) · [Italiano](it.md) · [Русский](ru.md)
+Sprachen: **Deutsch** · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
 Download und Start unter Windows, macOS und Linux. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
 
@@ -50,4 +50,4 @@ Im UI Kit-Ordner wählen. Anti-Cheat-Sperren sind nicht umgehbar. Issues: https:
 
 v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
-*[English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · **Deutsch** · [Français](fr.md) · [Italiano](it.md) · [Русский](ru.md)*
+***Deutsch** · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*
