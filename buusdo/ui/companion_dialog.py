@@ -172,12 +172,22 @@ class CompanionDialog(QDialog):
         if clip is not None:
             clip.setText(text)
 
+    def _toast(self, message: str) -> None:
+        parent = self.parent()
+        toast = getattr(parent, "_toast", None) if parent is not None else None
+        if callable(toast):
+            toast(message)
+            return
+        self._rate.setText(message)
+        self._rate.setVisible(True)
+
     def _copy_pair_url(self) -> None:
         url = self._pair_url or (self._pair_base_url() if self._transport.running else "")
         if not url:
             QMessageBox.information(self, t("companion.title"), t("companion.copy_url_idle"))
             return
         self._clipboard_set(url)
+        self._toast(t("companion.copy_url_done"))
 
     def _copy_pair_code(self) -> None:
         code = self._pair_code
@@ -188,6 +198,7 @@ class CompanionDialog(QDialog):
             QMessageBox.information(self, t("companion.title"), t("companion.copy_code_idle"))
             return
         self._clipboard_set(code)
+        self._toast(t("companion.copy_code_done"))
 
     def _refresh_rate_limit_ui(self) -> None:
         left = self._transport.rate_limit_remaining_sec()

@@ -274,5 +274,7 @@
   "companion.rate_limited": "ペアリング制限中: {seconds} 秒後に再試行",
   "companion.copy_code": "コードをコピー",
   "companion.copy_code_idle": "先にペアリングを開始してからコードをコピーしてください。",
-  "companion.chip_open": "クリックで Companion を開く"
+  "companion.chip_open": "クリックで Companion を開く",
+  "companion.copy_url_done": "ペア URL をコピーしました",
+  "companion.copy_code_done": "ペアリングコードをコピーしました"
 }
