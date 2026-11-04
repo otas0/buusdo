@@ -276,5 +276,6 @@
   "companion.copy_code_idle": "先にペアリングを開始してからコードをコピーしてください。",
   "companion.chip_open": "クリックまたは Enter で Companion を開く",
   "companion.copy_url_done": "ペア URL をコピーしました",
-  "companion.copy_code_done": "ペアリングコードをコピーしました"
+  "companion.copy_code_done": "ペアリングコードをコピーしました",
+  "about.docs_user_guide": "ユーザーガイド"
 }

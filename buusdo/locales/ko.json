@@ -276,5 +276,6 @@
   "companion.copy_code_idle": "먼저 페어링을 시작한 뒤 코드를 복사하세요.",
   "companion.chip_open": "클릭 또는 Enter로 Companion 열기",
   "companion.copy_url_done": "페어 URL을 복사했습니다",
-  "companion.copy_code_done": "페어링 코드를 복사했습니다"
+  "companion.copy_code_done": "페어링 코드를 복사했습니다",
+  "about.docs_user_guide": "사용자 가이드"
 }
