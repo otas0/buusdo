@@ -21,6 +21,7 @@ from buusdo.companion.host import CompanionHost
 from buusdo.companion.netinfo import companion_base_url
 from buusdo.companion.pairing import PairingDesk
 from buusdo.companion.transport import CompanionTransport
+from buusdo.core.config_store import get_companion_loopback_only, set_companion_loopback_only
 from buusdo.core.i18n import t
 
 
@@ -68,7 +69,8 @@ class CompanionDialog(QDialog):
         layout.addWidget(warn)
 
         self._loopback = QCheckBox(t("companion.loopback_only"))
-        self._loopback.setChecked(self._transport.loopback_only)
+        preferred = get_companion_loopback_only() or self._transport.loopback_only
+        self._loopback.setChecked(preferred)
         self._loopback.setToolTip(t("companion.loopback_hint"))
         layout.addWidget(self._loopback)
 
@@ -107,7 +109,9 @@ class CompanionDialog(QDialog):
 
     def _start_pairing(self) -> None:
         try:
-            self._transport.set_loopback_only(self._loopback.isChecked())
+            loopback = self._loopback.isChecked()
+            self._transport.set_loopback_only(loopback)
+            set_companion_loopback_only(loopback)
             self._transport.start()
         except Exception as exc:
             self._transport.last_error = str(exc)

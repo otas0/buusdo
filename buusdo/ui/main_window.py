@@ -36,6 +36,7 @@ from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
 from buusdo.core.config_store import (
     export_configs,
+    get_companion_loopback_only,
     get_optiscaler_kit_path,
     get_reshade_kit_path,
     import_configs,
@@ -134,6 +135,8 @@ class MainWindow(QMainWindow):
             host=self._companion_host,
             pairing=self._companion_pairing,
         )
+        if get_companion_loopback_only():
+            self._companion_transport.set_loopback_only(True)
 
         settings = load_settings()
         if settings.get("locale") in available_locales():
@@ -1329,19 +1332,25 @@ class MainWindow(QMainWindow):
         self._refresh_companion_chip()
 
     def _refresh_companion_chip(self) -> None:
-        running = bool(getattr(self._companion_transport, "running", False))
-        self._companion_chip.setText(t("companion.chip_on"))
+        from buusdo.companion.netinfo import primary_lan_ipv4
+
+        transport = self._companion_transport
+        running = bool(getattr(transport, "running", False))
+        port = int(getattr(transport, "port", 0) or 0)
+        if getattr(transport, "loopback_only", False):
+            addr = f"127.0.0.1:{port}" if port else "127.0.0.1"
+        else:
+            addr = f"{primary_lan_ipv4()}:{port}" if port else primary_lan_ipv4()
+        if running:
+            self._companion_chip.setText(t("companion.chip_bind", addr=addr))
+        else:
+            self._companion_chip.setText(t("companion.chip_on"))
         self._companion_chip.setVisible(running)
-        err = str(getattr(self._companion_transport, "last_error", "") or "")
+        err = str(getattr(transport, "last_error", "") or "")
         if err:
             self._companion_chip.setToolTip(t("companion.chip_error", error=err))
         elif running:
-            mode = (
-                t("companion.loopback_only")
-                if getattr(self._companion_transport, "loopback_only", False)
-                else t("companion.chip_on")
-            )
-            self._companion_chip.setToolTip(mode)
+            self._companion_chip.setToolTip(t("companion.chip_bind", addr=addr))
         else:
             self._companion_chip.setToolTip("")
 

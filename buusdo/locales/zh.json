@@ -267,5 +267,6 @@
   "companion.chip_on": "Companion 局域网",
   "companion.loopback_only": "仅本机回环 (127.0.0.1)",
   "companion.loopback_hint": "本地自测更安全。取消勾选则监听局域网。",
-  "companion.chip_error": "最近错误：{error}"
+  "companion.chip_error": "最近错误：{error}",
+  "companion.chip_bind": "Companion {addr}"
 }
