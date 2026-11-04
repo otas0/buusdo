@@ -264,5 +264,8 @@
   "companion.about_intro": "페어링을 시작하면 휴대폰/태블릿이 LAN으로 이 데스크톱과 통신합니다. docs/MOBILE.md 참고.",
   "about.docs_mobile": "MOBILE.md",
   "about.docs_hardware": "HARDWARE_NOTES",
-  "companion.chip_on": "Companion LAN"
+  "companion.chip_on": "Companion LAN",
+  "companion.loopback_only": "루프백만 (127.0.0.1)",
+  "companion.loopback_hint": "로컬 스모크에 더 안전합니다. 해제하면 LAN에서 수신합니다.",
+  "companion.chip_error": "최근 오류: {error}"
 }

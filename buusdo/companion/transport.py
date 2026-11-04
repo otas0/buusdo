@@ -7,6 +7,7 @@ pairing; ``/v1/pair`` accepts a short-lived pairing code.
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable
@@ -19,6 +20,7 @@ from buusdo.companion.pairing import PairAttemptLimit, PairingDesk
 from buusdo.companion.protocol import PROTOCOL_VERSION
 
 ScanCallback = Callable[[], str]
+_log = logging.getLogger("buusdo.companion")
 
 
 class CompanionHTTPServer(ThreadingHTTPServer):
@@ -32,10 +34,12 @@ class CompanionHTTPServer(ThreadingHTTPServer):
         host: CompanionHost,
         pairing: PairingDesk,
         pair_limit: PairAttemptLimit,
+        transport: CompanionTransport | None = None,
     ) -> None:
         self.companion_host = host
         self.pairing = pairing
         self.pair_limit = pair_limit
+        self.transport = transport
         super().__init__(server_address, _CompanionHandler)
 
 
@@ -95,15 +99,20 @@ class _CompanionHandler(BaseHTTPRequestHandler):
             if self.client_address:
                 client = str(self.client_address[0])
             if not self.server.pair_limit.allow(client):
+                # Log client only — never the pairing code body.
+                _log.warning("companion pair rate-limited client=%s", client or "unknown")
+                self._note_error("too many pairing attempts")
                 self._json(429, {"ok": False, "error": "too many pairing attempts"})
                 return
             code = str(payload.get("code") or "").strip()
             label = str(payload.get("label") or "mobile")[:64]
             if not self.server.pairing.consume(code):
+                self._note_error("invalid or expired pairing code")
                 self._json(403, {"ok": False, "error": "invalid or expired pairing code"})
                 return
             device = add_device(label=label)
             self.server.companion_host.paired = True
+            self._note_error("")
             self._json(
                 200,
                 {
@@ -119,15 +128,25 @@ class _CompanionHandler(BaseHTTPRequestHandler):
         if path == "/v1/rpc":
             token = self._bearer()
             if not token_is_paired(token):
+                self._note_error("unauthorized")
                 self._json(401, {"ok": False, "error": "unauthorized"})
                 return
             self.server.companion_host.paired = True
             resp = self.server.companion_host.handle(payload)
+            if not resp.ok:
+                self._note_error(resp.error or "rpc failed")
+            else:
+                self._note_error("")
             # Always HTTP 200 for RPC; clients read CompanionResponse.ok.
             self._json(200, resp.to_dict())
             return
 
         self._json(404, {"ok": False, "error": "not found"})
+
+    def _note_error(self, message: str) -> None:
+        transport = self.server.transport
+        if transport is not None:
+            transport.last_error = str(message or "")
 
 
 class CompanionTransport:
@@ -147,6 +166,7 @@ class CompanionTransport:
         self.pair_limit = pair_limit or PairAttemptLimit()
         self.bind_host = bind_host
         self.port = int(port)
+        self.last_error = ""
         self._httpd: CompanionHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -154,14 +174,26 @@ class CompanionTransport:
     def running(self) -> bool:
         return self._httpd is not None
 
+    @property
+    def loopback_only(self) -> bool:
+        return self.bind_host in ("127.0.0.1", "::1", "localhost")
+
+    def set_loopback_only(self, enabled: bool) -> None:
+        """Safer local smoke: bind loopback only. Must be set while stopped."""
+        if self.running:
+            raise RuntimeError("stop companion host before changing bind mode")
+        self.bind_host = "127.0.0.1" if enabled else "0.0.0.0"
+
     def start(self) -> None:
         if self._httpd is not None:
             return
+        self.last_error = ""
         httpd = CompanionHTTPServer(
             (self.bind_host, self.port),
             host=self.host,
             pairing=self.pairing,
             pair_limit=self.pair_limit,
+            transport=self,
         )
         # Honour OS-assigned port when bind used port 0.
         self.port = int(httpd.server_address[1])

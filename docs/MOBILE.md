@@ -50,10 +50,17 @@ remote GPU. Desktop backends keep owning all mutating work (C1–C5).
 
 1. Desktop user opens **Companion** and clicks **Start pairing** (server is off
    until then). Dialog shows LAN URL + 6-digit code (TTL ~5 minutes).
-2. Mobile `POST /v1/pair` with the code; desktop stores a device token under
+2. Optional **Loopback only** bind (`127.0.0.1`) for safer local smoke; default
+   is LAN (`0.0.0.0`). Change bind mode only while the host is stopped.
+3. Mobile `POST /v1/pair` with the code; desktop stores a device token under
    `user_config_dir/companion_devices.json` via `Transaction` (C2).
-3. Mobile calls `POST /v1/rpc` with `Authorization: Bearer <token>`.
-4. Unpair / clear-all on desktop removes tokens; companion refuses unknown tokens.
+4. Mobile calls `POST /v1/rpc` with `Authorization: Bearer <token>`.
+5. Unpair / clear-all on desktop removes tokens; companion refuses unknown tokens.
+
+Desktop chrome shows a **Companion LAN** chip while the host is running; the
+chip tooltip surfaces the last companion error (if any). Pairing is rate-limited
+(8 attempts / client / 60s → HTTP 429). Rate-limit logs record the client
+address only — never the pairing code.
 
 No accounts, no cloud identity in v1. See [mobile/PROTOCOL.md](../mobile/PROTOCOL.md).
 
