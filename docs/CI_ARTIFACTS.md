@@ -101,6 +101,14 @@ Merge only after that manual run is green (or a real `pull_request` check set
 appears). Prefer SSH fetch/push with `scripts/push_when_online.sh` when HTTPS
 CONNECT flakes; do not loop Dart/SDK downloads as a CI substitute.
 
+**Local SSH note (this laptop):** `id_ed25519_shield` is already bound to
+another GitHub principal (cannot re-add as a buusdo deploy key). A dedicated
+`buusdo-laptop-deploy` deploy key (`~/.ssh/id_ed25519_buusdo`, Host alias
+`github.com-buusdo`) is registered on `otas0/buusdo`. If agent-backed SSH
+offers are rejected, use `IdentityAgent none` for that Host or fall back to
+HTTPS + `push_when_online.sh`. `ssh -T` is not a valid deploy-key smoke —
+use `git ls-remote` / `git fetch`.
+
 ## Billing / spending limit (0s empty-step fails)
 
 API cannot raise the spending limit for this account (`/users/.../settings/billing/actions` → 404).
