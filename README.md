@@ -4,9 +4,40 @@
   <img src="buusdo/assets/logo.png" alt="buusdo wordmark" width="280" />
 </p>
 
+<p align="center">
+  <strong>Download · Open · Install</strong><br />
+  <a href="https://github.com/otas0/buusdo/releases/tag/v1.0.0"><strong>Get v1.0.0</strong></a>
+  ·
+  <a href="docs/user-guide/README.md"><strong>User guide (all languages)</strong></a>
+  ·
+  <a href="docs/user-guide/en.md">English</a>
+</p>
+
 Cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS).
 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
+
+## User guide (start here)
+
+If SmartScreen / Gatekeeper blocks the unsigned build, or you need step-by-step clicks for Windows, macOS, or Linux:
+
+| | |
+|--|--|
+| **All languages (hub)** | **[docs/user-guide/](docs/user-guide/README.md)** |
+| English | [en](docs/user-guide/en.md) |
+| Chinese (Simplified) | [zh](docs/user-guide/zh.md) |
+| Chinese (Traditional) | [zh-Hant](docs/user-guide/zh-Hant.md) |
+| Japanese | [ja](docs/user-guide/ja.md) |
+| Korean | [ko](docs/user-guide/ko.md) |
+| Portuguese (Brazil) | [pt-BR](docs/user-guide/pt-BR.md) |
+| Portuguese | [pt](docs/user-guide/pt.md) |
+| Spanish | [es](docs/user-guide/es.md) |
+| German | [de](docs/user-guide/de.md) |
+| French | [fr](docs/user-guide/fr.md) |
+| Italian | [it](docs/user-guide/it.md) |
+| Russian | [ru](docs/user-guide/ru.md) |
+
+Same locale codes as the in-app language picker (`buusdo/locales/`).
 
 **Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
 Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
@@ -27,7 +58,11 @@ buusdo 1.0.0 — BYO ReShade/OptiScaler kits · Windows / Linux / macOS · https
 
 macOS first open while unsigned: Finder → right-click `Buusdo.app` → **Open**. After notarization ships, that step should not be required for clean downloads.
 
-## End-user install (three steps)
+## End-user install
+
+**Prefer the packaged release** (Windows Setup / macOS `.app` / Linux helper) — see the **[User guide](docs/user-guide/README.md)** for first-open steps (unsigned SmartScreen / Gatekeeper).
+
+### Advanced: Python wheel
 
 1. Install Python 3.11+ and get a wheel from a release/`dist/` build (`buusdo-*.whl`).
 2. Install and launch:
