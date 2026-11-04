@@ -1,6 +1,6 @@
 # buusdo 使用者指南（繁體中文）
 
-語言: [English](en.md) · [简体中文](zh.md) · **繁體中文** · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · [Italiano](it.md) · [Русский](ru.md)
+語言: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · **繁體中文** · [简体中文](zh.md)
 
 如何在 Windows / macOS / Linux 下載並開啟 **buusdo**。最新版：[v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0)。
 
@@ -60,4 +60,4 @@ python3 -m buusdo
 
 v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
-*[English](en.md) · [简体中文](zh.md) · **繁體中文** · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · [Italiano](it.md) · [Русский](ru.md)*
+*[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · **繁體中文** · [简体中文](zh.md)*

@@ -7,30 +7,47 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "user-guide"
+LOCALES = ROOT / "buusdo" / "locales"
 
-# code -> (native name, english name)
-LANGS: list[tuple[str, str, str]] = [
-    ("en", "English", "English"),
-    ("zh", "简体中文", "Simplified Chinese"),
-    ("zh-Hant", "繁體中文", "Traditional Chinese"),
-    ("ja", "日本語", "Japanese"),
-    ("ko", "한국어", "Korean"),
-    ("pt-BR", "Português (Brasil)", "Portuguese (Brazil)"),
-    ("pt", "Português", "Portuguese"),
-    ("es", "Español", "Spanish"),
-    ("de", "Deutsch", "German"),
-    ("fr", "Français", "French"),
-    ("it", "Italiano", "Italian"),
-    ("ru", "Русский", "Russian"),
-]
+# Display names for known locale stems (native, english). New stems need an entry
+# here (or they fall back to the raw code) when discovered under buusdo/locales/.
+LOCALE_NAMES: dict[str, tuple[str, str]] = {
+    "en": ("English", "English"),
+    "zh": ("简体中文", "Simplified Chinese"),
+    "zh-Hant": ("繁體中文", "Traditional Chinese"),
+    "ja": ("日本語", "Japanese"),
+    "ko": ("한국어", "Korean"),
+    "pt-BR": ("Português (Brasil)", "Portuguese (Brazil)"),
+    "pt": ("Português", "Portuguese"),
+    "es": ("Español", "Spanish"),
+    "de": ("Deutsch", "German"),
+    "fr": ("Français", "French"),
+    "it": ("Italiano", "Italian"),
+    "ru": ("Русский", "Russian"),
+}
 
 RELEASE = "https://github.com/otas0/buusdo/releases/tag/v1.0.0"
 REPO = "https://github.com/otas0/buusdo"
 
 
-def nav(current: str) -> str:
+def discover_langs() -> list[tuple[str, str, str]]:
+    """UI locale stems from buusdo/locales/*.json → (code, native, english)."""
+    if not LOCALES.is_dir():
+        raise SystemExit(f"missing locales dir: {LOCALES}")
+    langs: list[tuple[str, str, str]] = []
+    for path in sorted(LOCALES.glob("*.json")):
+        code = path.stem
+        native, eng = LOCALE_NAMES.get(code, (code, code))
+        langs.append((code, native, eng))
+    if not langs:
+        raise SystemExit(f"no locale JSON under {LOCALES}")
+    return langs
+
+
+def nav(current: str, langs: list[tuple[str, str, str]] | None = None) -> str:
+    rows = langs if langs is not None else discover_langs()
     parts = []
-    for code, native, _ in LANGS:
+    for code, native, _ in rows:
         if code == current:
             parts.append(f"**{native}**")
         else:
@@ -38,7 +55,7 @@ def nav(current: str) -> str:
     return " · ".join(parts)
 
 
-def common_footer(code: str) -> str:
+def common_footer(code: str, langs: list[tuple[str, str, str]]) -> str:
     return f"""
 ---
 
@@ -51,7 +68,7 @@ def common_footer(code: str) -> str:
 
 v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
-*{nav(code)}*
+*{nav(code, langs)}*
 """
 
 
@@ -714,13 +731,20 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    missing = [c for c, _, _ in LANGS if c not in BODIES]
+    langs = discover_langs()
+    missing = [c for c, _, _ in langs if c not in BODIES]
     if missing:
-        raise SystemExit(f"missing bodies: {missing}")
+        raise SystemExit(
+            f"missing bodies for locale stems from {LOCALES}: {missing} "
+            f"(add BODIES[code] and LOCALE_NAMES[code])"
+        )
+    orphan_bodies = sorted(set(BODIES) - {c for c, _, _ in langs})
+    if orphan_bodies:
+        print(f"warn: BODIES without locale JSON (ignored): {orphan_bodies}")
 
     index_rows = "\n".join(
         f"| [{native}]({code}.md) | `{code}` | {eng} |"
-        for code, native, eng in LANGS
+        for code, native, eng in langs
     )
     index = f"""# buusdo user guides (all UI languages)
 
@@ -740,12 +764,12 @@ SmartScreen and macOS Gatekeeper).
 """
     (OUT / "README.md").write_text(index + "\n", encoding="utf-8")
 
-    for code, _, _ in LANGS:
-        body = BODIES[code].rstrip() + "\n" + common_footer(code)
+    for code, _, _ in langs:
+        body = BODIES[code].rstrip() + "\n" + common_footer(code, langs)
         (OUT / f"{code}.md").write_text(body, encoding="utf-8")
         print("wrote", code)
 
-    print("ok", OUT)
+    print("ok", OUT, f"({len(langs)} locales from {LOCALES.relative_to(ROOT)})")
 
 
 if __name__ == "__main__":

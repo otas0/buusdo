@@ -1,6 +1,6 @@
 # Guida utente buusdo (Italiano)
 
-Lingue: [English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · **Italiano** · [Русский](ru.md)
+Lingue: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · **Italiano** · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
 Download e avvio su Windows, macOS e Linux. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
 
@@ -50,4 +50,4 @@ Seleziona le cartelle kit nell’UI. Nessun bypass anti-cheat. Issues: https://g
 
 v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
-*[English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · **Italiano** · [Русский](ru.md)*
+*[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · **Italiano** · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*

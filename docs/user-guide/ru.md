@@ -1,6 +1,6 @@
 # Руководство пользователя buusdo (Русский)
 
-Языки: [English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · [Italiano](it.md) · **Русский**
+Языки: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · **Русский** · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
 Скачивание и запуск на Windows, macOS и Linux. [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0).
 
@@ -50,4 +50,4 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 v1.0.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do **not** need a system Python install to run the Windows Setup or macOS `.app` packages.
 
-*[English](en.md) · [简体中文](zh.md) · [繁體中文](zh-Hant.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Español](es.md) · [Deutsch](de.md) · [Français](fr.md) · [Italiano](it.md) · **Русский***
+*[Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · **Русский** · [繁體中文](zh-Hant.md) · [简体中文](zh.md)*
