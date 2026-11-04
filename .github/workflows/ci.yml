@@ -86,7 +86,8 @@ jobs:
 
   flutter-analyze:
     # Optional: runs only when mobile/flutter/pubspec.yaml exists.
-    # Failures here are soft until the Flutter client is release-critical.
+    # Soft (continue-on-error) until a human `flutter create` adds platform
+    # folders and Issue #13 device gate closes — do not harden to blocking yet.
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:

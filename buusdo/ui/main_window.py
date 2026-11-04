@@ -34,9 +34,9 @@ from PySide6.QtWidgets import (
 from buusdo.ui.tray_icon import tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
+from buusdo.companion.bindpref import apply_companion_bind_preference
 from buusdo.core.config_store import (
     export_configs,
-    get_companion_loopback_only,
     get_optiscaler_kit_path,
     get_reshade_kit_path,
     import_configs,
@@ -135,8 +135,7 @@ class MainWindow(QMainWindow):
             host=self._companion_host,
             pairing=self._companion_pairing,
         )
-        if get_companion_loopback_only():
-            self._companion_transport.set_loopback_only(True)
+        apply_companion_bind_preference(self._companion_transport)
 
         settings = load_settings()
         if settings.get("locale") in available_locales():
@@ -1332,23 +1331,27 @@ class MainWindow(QMainWindow):
         self._refresh_companion_chip()
 
     def _refresh_companion_chip(self) -> None:
-        from buusdo.companion.netinfo import primary_lan_ipv4
+        from buusdo.companion.netinfo import companion_bind_addr, truncate_bind_addr
 
         transport = self._companion_transport
         running = bool(getattr(transport, "running", False))
         port = int(getattr(transport, "port", 0) or 0)
-        if getattr(transport, "loopback_only", False):
-            addr = f"127.0.0.1:{port}" if port else "127.0.0.1"
-        else:
-            addr = f"{primary_lan_ipv4()}:{port}" if port else primary_lan_ipv4()
+        addr = companion_bind_addr(
+            loopback_only=bool(getattr(transport, "loopback_only", False)),
+            port=port,
+        )
+        short = truncate_bind_addr(addr)
         if running:
-            self._companion_chip.setText(t("companion.chip_bind", addr=addr))
+            self._companion_chip.setText(t("companion.chip_bind", addr=short))
         else:
             self._companion_chip.setText(t("companion.chip_on"))
         self._companion_chip.setVisible(running)
         err = str(getattr(transport, "last_error", "") or "")
         if err:
-            self._companion_chip.setToolTip(t("companion.chip_error", error=err))
+            tip = t("companion.chip_error", error=err)
+            if running:
+                tip = f"{t('companion.chip_bind', addr=addr)}\n{tip}"
+            self._companion_chip.setToolTip(tip)
         elif running:
             self._companion_chip.setToolTip(t("companion.chip_bind", addr=addr))
         else:

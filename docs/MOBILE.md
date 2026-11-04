@@ -20,12 +20,17 @@ remote GPU. Desktop backends keep owning all mutating work (C1–C5).
 ## Architecture
 
 ```
-┌─────────────────┐   paired LAN (HTTPS or localhost tunnel)   ┌──────────────────┐
-│ Mobile client   │ ◄──────────────────────────────────────► │ Desktop host     │
-│ (phone/tablet)  │   JSON companion protocol v1               │ buusdo.companion │
-└─────────────────┘                                            │ → EnhancementBackend
-                                                               └──────────────────┘
+┌─────────────────┐   paired LAN HTTP (Bearer token; no TLS yet) ┌──────────────────┐
+│ Mobile client   │ ◄─────────────────────────────────────────► │ Desktop host     │
+│ (phone/tablet)  │   JSON companion protocol v1                 │ buusdo.companion │
+└─────────────────┘                                              │ → EnhancementBackend
+                                                                 └──────────────────┘
 ```
+
+**Cleartext LAN risk (1.1.0 honesty):** v1 uses plain HTTP on the local network
+plus a Bearer device token. Anyone who can sniff that LAN segment can observe
+pairing codes and tokens. Prefer **Loopback only** for local smoke; keep pairing
+short; unpair unused devices. LAN **HTTPS** is deferred past 1.1.0.
 
 - **Protocol** lives in `buusdo/companion/` (shared schema + honesty guards).
 - **Desktop host** exposes only allowlisted ops (`status`, `history_summary`,
@@ -52,16 +57,18 @@ remote GPU. Desktop backends keep owning all mutating work (C1–C5).
    until then). Dialog shows LAN URL + 6-digit code (TTL ~5 minutes).
 2. Optional **Loopback only** bind (`127.0.0.1`) for safer local smoke; default
    is LAN (`0.0.0.0`). Preference is stored in `settings.json` as
-   `companion_loopback_only`. Change bind mode only while the host is stopped.
-   While running, the desktop chip shows the bind address (`Companion host:port`).
+   `companion_loopback_only` and applied on desktop startup. The dialog disables
+   the toggle while the host is running (stop first to change bind). **Copy pair
+   URL** copies the loopback or LAN base URL matching the current bind.
 3. Mobile `POST /v1/pair` with the code; desktop stores a device token under
    `user_config_dir/companion_devices.json` via `Transaction` (C2).
 4. Mobile calls `POST /v1/rpc` with `Authorization: Bearer <token>`.
 5. Unpair / clear-all on desktop removes tokens; companion refuses unknown tokens.
 
-Desktop chrome shows a **Companion LAN** chip while the host is running; the
-chip tooltip surfaces the last companion error (if any). Pairing is rate-limited
-(8 attempts / client / 60s → HTTP 429). Rate-limit logs record the client
+Desktop chrome shows a **Companion** chip with a truncated bind address while
+the host is running; the tooltip keeps the full `host:port` (and last error).
+Pairing is rate-limited (8 attempts / client / 60s → HTTP 429 with
+`retry_after`). The Companion dialog shows a countdown; logs record the client
 address only — never the pairing code.
 
 No accounts, no cloud identity in v1. See [mobile/PROTOCOL.md](../mobile/PROTOCOL.md).

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -40,6 +41,7 @@ class CompanionDialog(QDialog):
         self._host = host
         self._transport = transport
         self._pairing = pairing
+        self._pair_url = ""
         self.setObjectName("instrumentDialog")
         self.setWindowTitle(t("companion.title"))
         self.setMinimumWidth(420)
@@ -68,6 +70,12 @@ class CompanionDialog(QDialog):
         warn.setObjectName("brandSubtitle")
         layout.addWidget(warn)
 
+        self._rate = QLabel("")
+        self._rate.setWordWrap(True)
+        self._rate.setObjectName("brandSubtitle")
+        self._rate.setVisible(False)
+        layout.addWidget(self._rate)
+
         self._loopback = QCheckBox(t("companion.loopback_only"))
         preferred = get_companion_loopback_only() or self._transport.loopback_only
         self._loopback.setChecked(preferred)
@@ -80,8 +88,11 @@ class CompanionDialog(QDialog):
         self._btn_start.clicked.connect(self._start_pairing)
         self._btn_stop = QPushButton(t("companion.stop"))
         self._btn_stop.clicked.connect(self._stop_pairing)
+        self._btn_copy = QPushButton(t("companion.copy_url"))
+        self._btn_copy.clicked.connect(self._copy_pair_url)
         row.addWidget(self._btn_start)
         row.addWidget(self._btn_stop)
+        row.addWidget(self._btn_copy)
         layout.addLayout(row)
 
         devices_hdr = QLabel(t("companion.devices"))
@@ -104,8 +115,26 @@ class CompanionDialog(QDialog):
         dev_row.addWidget(close)
         layout.addLayout(dev_row)
 
+        self._tick = QTimer(self)
+        self._tick.setInterval(1000)
+        self._tick.timeout.connect(self._refresh_rate_limit_ui)
+        self._tick.start()
+
         self._refresh_devices()
         self._sync_running_ui()
+        if self._transport.running:
+            self._show_active_url()
+
+    def _pair_base_url(self) -> str:
+        host = "127.0.0.1" if self._transport.loopback_only else None
+        return companion_base_url(host=host, port=self._transport.port)
+
+    def _show_active_url(self) -> None:
+        self._pair_url = self._pair_base_url()
+        self._url.setText(t("companion.url_active", url=self._pair_url))
+        session = self._pairing.peek()
+        if session is not None:
+            self._code.setText(t("companion.code_active", code=session.code))
 
     def _start_pairing(self) -> None:
         try:
@@ -119,23 +148,45 @@ class CompanionDialog(QDialog):
             self._sync_running_ui()
             return
         session = self._pairing.start()
-        host = "127.0.0.1" if self._transport.loopback_only else None
-        base = companion_base_url(host=host, port=self._transport.port)
-        self._url.setText(t("companion.url_active", url=base))
+        self._show_active_url()
         self._code.setText(t("companion.code_active", code=session.code))
         self._sync_running_ui()
 
     def _stop_pairing(self) -> None:
         self._transport.stop()
+        self._pair_url = ""
         self._url.setText(t("companion.url_idle"))
         self._code.setText(t("companion.code_idle"))
         self._sync_running_ui()
+        self._refresh_rate_limit_ui()
+
+    def _copy_pair_url(self) -> None:
+        url = self._pair_url or (self._pair_base_url() if self._transport.running else "")
+        if not url:
+            QMessageBox.information(self, t("companion.title"), t("companion.copy_url_idle"))
+            return
+        clip = QGuiApplication.clipboard()
+        if clip is None:
+            return
+        clip.setText(url)
+
+    def _refresh_rate_limit_ui(self) -> None:
+        left = self._transport.rate_limit_remaining_sec()
+        if left > 0:
+            self._rate.setText(t("companion.rate_limited", seconds=left))
+            self._rate.setVisible(True)
+        else:
+            self._rate.clear()
+            self._rate.setVisible(False)
 
     def _sync_running_ui(self) -> None:
         running = self._transport.running
         self._btn_start.setEnabled(not running)
         self._btn_stop.setEnabled(running)
+        self._btn_copy.setEnabled(running)
+        # Docs: change bind only while stopped.
         self._loopback.setEnabled(not running)
+        self._refresh_rate_limit_ui()
 
     def _refresh_devices(self) -> None:
         self._devices.clear()
@@ -164,6 +215,7 @@ class CompanionDialog(QDialog):
 
     def closeEvent(self, event) -> None:  # noqa: N802
         # Leave transport running if user started it; only clear ephemeral code on stop.
+        self._tick.stop()
         super().closeEvent(event)
 
 

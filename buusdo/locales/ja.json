@@ -268,5 +268,8 @@
   "companion.loopback_only": "ループバックのみ (127.0.0.1)",
   "companion.loopback_hint": "ローカル確認向け。オフにすると LAN で待ち受けます。",
   "companion.chip_error": "直近のエラー: {error}",
-  "companion.chip_bind": "Companion {addr}"
+  "companion.chip_bind": "Companion {addr}",
+  "companion.copy_url": "ペア URL をコピー",
+  "companion.copy_url_idle": "先にペアリングを開始してから LAN URL をコピーしてください。",
+  "companion.rate_limited": "ペアリング制限中: {seconds} 秒後に再試行"
 }
