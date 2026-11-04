@@ -43,6 +43,7 @@ class CompanionDialog(QDialog):
         self._pairing = pairing
         self._pair_url = ""
         self._pair_code = ""
+        self._copy_toast_pending = False
         self.setObjectName("instrumentDialog")
         self.setWindowTitle(t("companion.title"))
         self.setMinimumWidth(420)
@@ -172,9 +173,10 @@ class CompanionDialog(QDialog):
         if clip is not None:
             clip.setText(text)
 
-    def _toast(self, message: str) -> None:
+    def _toast(self, message: str, *, copy_flash: bool = False) -> None:
         parent = self.parent()
         toast = getattr(parent, "_toast", None) if parent is not None else None
+        self._copy_toast_pending = bool(copy_flash)
         if callable(toast):
             toast(message)
             return
@@ -187,7 +189,7 @@ class CompanionDialog(QDialog):
             QMessageBox.information(self, t("companion.title"), t("companion.copy_url_idle"))
             return
         self._clipboard_set(url)
-        self._toast(t("companion.copy_url_done"))
+        self._toast(t("companion.copy_url_done"), copy_flash=True)
 
     def _copy_pair_code(self) -> None:
         code = self._pair_code
@@ -198,13 +200,21 @@ class CompanionDialog(QDialog):
             QMessageBox.information(self, t("companion.title"), t("companion.copy_code_idle"))
             return
         self._clipboard_set(code)
-        self._toast(t("companion.copy_code_done"))
+        self._toast(t("companion.copy_code_done"), copy_flash=True)
 
     def _refresh_rate_limit_ui(self) -> None:
         left = self._transport.rate_limit_remaining_sec()
         if left > 0:
-            self._rate.setText(t("companion.rate_limited", seconds=left))
+            msg = t("companion.rate_limited", seconds=left)
+            self._rate.setText(msg)
             self._rate.setVisible(True)
+            # Replace a stale copy toast once when the 429 countdown appears.
+            if self._copy_toast_pending:
+                parent = self.parent()
+                toast = getattr(parent, "_toast", None) if parent is not None else None
+                if callable(toast):
+                    toast(msg)
+                self._copy_toast_pending = False
         else:
             self._rate.clear()
             self._rate.setVisible(False)
