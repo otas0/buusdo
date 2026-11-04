@@ -277,5 +277,9 @@
   "companion.chip_open": "클릭 또는 Enter로 Companion 열기",
   "companion.copy_url_done": "페어 URL을 복사했습니다",
   "companion.copy_code_done": "페어링 코드를 복사했습니다",
-  "about.docs_user_guide": "사용자 가이드"
+  "about.docs_user_guide": "사용자 가이드",
+  "companion.persist_last_label": "마지막 페어 라벨 기억",
+  "companion.persist_last_label_hint": "장치 라벨만 settings.json에 저장합니다(토큰 없음). 기본 꺼짐.",
+  "companion.last_paired_label": "마지막 페어 라벨: {label}",
+  "companion.last_paired_none": "마지막 페어 라벨: (없음)"
 }

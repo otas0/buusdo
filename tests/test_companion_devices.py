@@ -48,6 +48,18 @@ def test_add_device_remembers_label_only_when_flag_on(companion_cfg: Path) -> No
     assert "token" not in raw
 
 
+def test_clear_devices_clears_last_label(companion_cfg: Path) -> None:
+    from buusdo.core import config_store as store
+
+    clear_devices()
+    store.set_companion_persist_last_label(True)
+    add_device(label="gone")
+    assert store.get_companion_last_paired_label() == "gone"
+    clear_devices()
+    assert store.get_companion_last_paired_label() == ""
+    assert list_devices() == []
+
+
 def test_remove_and_clear(companion_cfg: Path) -> None:
     clear_devices()
     a = add_device(label="a")

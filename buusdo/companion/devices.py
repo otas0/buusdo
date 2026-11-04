@@ -110,7 +110,10 @@ def remove_device(device_id: str) -> bool:
 
 
 def clear_devices() -> None:
+    from buusdo.core.config_store import clear_companion_last_paired_label
+
     _save({"schema_version": 1, "devices": []})
+    clear_companion_last_paired_label()
 
 
 def token_is_paired(token: str) -> bool:
