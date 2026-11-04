@@ -276,5 +276,6 @@
   "companion.copy_code_idle": "Start pairing first to copy the code.",
   "companion.chip_open": "Click or press Enter to open Companion",
   "companion.copy_url_done": "Pair URL copied",
-  "companion.copy_code_done": "Pairing code copied"
+  "companion.copy_code_done": "Pairing code copied",
+  "about.docs_user_guide": "User guide"
 }

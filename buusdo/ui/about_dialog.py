@@ -11,7 +11,13 @@ from buusdo.companion.honesty import MOBILE_NON_GOALS
 from buusdo.core.hardware_notes import HARDWARE_NOTES
 from buusdo.core.i18n import t
 from buusdo.core.platform_detect import host_adapter_summary
-from buusdo.core.urls import DOCS_HARDWARE_URL, DOCS_MOBILE_URL, FEEDBACK_URL, REPO_URL
+from buusdo.core.urls import (
+    DOCS_HARDWARE_URL,
+    DOCS_MOBILE_URL,
+    DOCS_USER_GUIDE_URL,
+    FEEDBACK_URL,
+    REPO_URL,
+)
 from buusdo.ui.logo_widget import make_logo_label
 
 LICENSE_NAME = "See repository LICENSE (MIT)"
@@ -81,6 +87,8 @@ def show_about_dialog(parent=None) -> None:
     feedback.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(FEEDBACK_URL)))
     repo = QPushButton(t("about.repo"))
     repo.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(REPO_URL)))
+    docs_guide = QPushButton(t("about.docs_user_guide"))
+    docs_guide.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_USER_GUIDE_URL)))
     docs_mobile = QPushButton(t("about.docs_mobile"))
     docs_mobile.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(DOCS_MOBILE_URL)))
     docs_hw = QPushButton(t("about.docs_hardware"))
@@ -91,6 +99,7 @@ def show_about_dialog(parent=None) -> None:
     close.clicked.connect(dlg.accept)
     row.addWidget(feedback)
     row.addWidget(repo)
+    row.addWidget(docs_guide)
     row.addWidget(docs_mobile)
     row.addWidget(docs_hw)
     row.addWidget(close)

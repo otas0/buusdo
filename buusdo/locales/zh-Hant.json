@@ -276,5 +276,6 @@
   "companion.copy_code_idle": "請先開始配對再複製配對碼。",
   "companion.chip_open": "點一下或按 Enter 開啟 Companion",
   "companion.copy_url_done": "已複製配對 URL",
-  "companion.copy_code_done": "已複製配對碼"
+  "companion.copy_code_done": "已複製配對碼",
+  "about.docs_user_guide": "使用者指南"
 }
