@@ -107,6 +107,17 @@ def set_optiscaler_kit_path(path: Path | str) -> None:
     save_settings(data)
 
 
+def get_companion_loopback_only() -> bool:
+    """Prefer loopback companion bind for local smoke (default False = LAN)."""
+    return bool(load_settings().get("companion_loopback_only", False))
+
+
+def set_companion_loopback_only(enabled: bool) -> None:
+    data = load_settings()
+    data["companion_loopback_only"] = bool(enabled)
+    save_settings(data)
+
+
 def export_configs(dest_zip: Path | str) -> Path:
     """Export settings + per-game JSON into a zip archive."""
     dest = Path(dest_zip).expanduser()

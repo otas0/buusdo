@@ -51,7 +51,9 @@ remote GPU. Desktop backends keep owning all mutating work (C1–C5).
 1. Desktop user opens **Companion** and clicks **Start pairing** (server is off
    until then). Dialog shows LAN URL + 6-digit code (TTL ~5 minutes).
 2. Optional **Loopback only** bind (`127.0.0.1`) for safer local smoke; default
-   is LAN (`0.0.0.0`). Change bind mode only while the host is stopped.
+   is LAN (`0.0.0.0`). Preference is stored in `settings.json` as
+   `companion_loopback_only`. Change bind mode only while the host is stopped.
+   While running, the desktop chip shows the bind address (`Companion host:port`).
 3. Mobile `POST /v1/pair` with the code; desktop stores a device token under
    `user_config_dir/companion_devices.json` via `Transaction` (C2).
 4. Mobile calls `POST /v1/rpc` with `Authorization: Bearer <token>`.
