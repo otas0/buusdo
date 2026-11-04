@@ -172,6 +172,7 @@ class MainWindow(QMainWindow):
         self._companion_chip = QLabel(t("companion.chip_on"))
         self._companion_chip.setObjectName("backendChip")
         self._companion_chip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self._companion_chip.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._companion_chip.setToolTip(t("companion.chip_open"))
         self._companion_chip.installEventFilter(self)
         self._companion_chip.hide()
@@ -1334,10 +1335,16 @@ class MainWindow(QMainWindow):
         self._refresh_companion_chip()
 
     def eventFilter(self, obj, event):  # noqa: N802
-        if obj is self._companion_chip and event.type() == QEvent.Type.MouseButtonRelease:
-            if event.button() == Qt.MouseButton.LeftButton:
-                self._show_companion()
-                return True
+        if obj is self._companion_chip:
+            if event.type() == QEvent.Type.MouseButtonRelease:
+                if event.button() == Qt.MouseButton.LeftButton:
+                    self._show_companion()
+                    return True
+            if event.type() == QEvent.Type.KeyPress:
+                key = event.key()
+                if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+                    self._show_companion()
+                    return True
         return super().eventFilter(obj, event)
 
     def _refresh_companion_chip(self) -> None:
