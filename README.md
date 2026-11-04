@@ -10,7 +10,7 @@ It reuses each platform’s existing enhancement stack. It does not implement re
 
 **Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
 Latest: [v1.0.0](https://github.com/otas0/buusdo/releases/tag/v1.0.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel).
-**End-user open / install guides (all UI languages):** [docs/user-guide/](docs/user-guide/README.md) — [English](docs/user-guide/en.md) · [简体中文](docs/user-guide/zh.md) · [日本語](docs/user-guide/ja.md) · …
+**End-user open / install guides (all UI languages):** [docs/user-guide/](docs/user-guide/README.md) (English hub + per-locale pages).
 Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mac Dock notes: [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
 Full constraints: [docs/PROJECT.md](docs/PROJECT.md). Hardware honesty (no “RAM as GPU”): [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
 Next release track: [docs/RELEASE_1.1.0.md](docs/RELEASE_1.1.0.md). Mobile companion (phone/tablet, not injection): [docs/MOBILE.md](docs/MOBILE.md).
