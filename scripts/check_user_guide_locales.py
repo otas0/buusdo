@@ -23,6 +23,11 @@ def main() -> int:
             ", ".join(missing),
             file=sys.stderr,
         )
+        print(
+            "Hook: extend LANGS/BODIES in scripts/generate_user_guides.py, "
+            "then run: python scripts/generate_user_guides.py",
+            file=sys.stderr,
+        )
         return 1
     print(f"OK: {len(codes)} locale(s) each have docs/user-guide/<code>.md")
     return 0

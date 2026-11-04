@@ -10,6 +10,10 @@ language).
 - **Exception:** end-user install/open guides under `docs/user-guide/` may ship
   one file per UI locale (`buusdo/locales/`). Other `docs/**` stay English;
   `scripts/check_docs_language.py` skips only that folder.
+- When adding a UI locale JSON under `buusdo/locales/`, also add
+  `docs/user-guide/<code>.md` (extend `LANGS` / `BODIES` in
+  `scripts/generate_user_guides.py`, then run it). CI enforces coverage via
+  `scripts/check_user_guide_locales.py`.
 - UI string catalogs may still ship `zh` + `en` via `buusdo/core/i18n.py` (product
   localization). That is separate from repo documentation language.
 - Product honesty rules (C4) apply in every language the UI shows.
