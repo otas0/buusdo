@@ -90,9 +90,11 @@ Ship into **1.1.0** only when:
 5. Do **not** bump `__version__` / SHARE_BLURB until the cut-week release PR /
    published `v1.1.0` tag.
 
-Optional post-gate setting: `companion_persist_last_label` (default off) stores
-only the last paired **label** in `settings.json` — never tokens (tokens remain
-Transaction-backed under `companion_devices.json`).
+Optional setting (Companion dialog checkbox, **default off**):
+`companion_persist_last_label` stores only the last paired **label** in
+`settings.json` — never tokens (tokens remain Transaction-backed under
+`companion_devices.json`). Clear-all unpaired devices also clears the saved
+label. Prefer leaving this off until Issue **#13** device gate closes.
 
 ## Non-goals for 1.1.0
 

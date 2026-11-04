@@ -277,5 +277,9 @@
   "companion.chip_open": "Click or press Enter to open Companion",
   "companion.copy_url_done": "Pair URL copied",
   "companion.copy_code_done": "Pairing code copied",
-  "about.docs_user_guide": "User guide"
+  "about.docs_user_guide": "User guide",
+  "companion.persist_last_label": "Remember last paired label",
+  "companion.persist_last_label_hint": "Stores only the device label in settings.json — never tokens. Off by default until the device gate.",
+  "companion.last_paired_label": "Last paired label: {label}",
+  "companion.last_paired_none": "Last paired label: (none yet)"
 }

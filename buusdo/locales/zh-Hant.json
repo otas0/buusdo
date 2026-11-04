@@ -277,5 +277,9 @@
   "companion.chip_open": "點一下或按 Enter 開啟 Companion",
   "companion.copy_url_done": "已複製配對 URL",
   "companion.copy_code_done": "已複製配對碼",
-  "about.docs_user_guide": "使用者指南"
+  "about.docs_user_guide": "使用者指南",
+  "companion.persist_last_label": "記住上次配對標籤",
+  "companion.persist_last_label_hint": "只把裝置標籤寫入 settings.json，絕不存 token。預設關閉。",
+  "companion.last_paired_label": "上次配對標籤：{label}",
+  "companion.last_paired_none": "上次配對標籤：（尚無）"
 }

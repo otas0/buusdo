@@ -22,7 +22,14 @@ from buusdo.companion.host import CompanionHost
 from buusdo.companion.netinfo import companion_base_url
 from buusdo.companion.pairing import PairingDesk
 from buusdo.companion.transport import CompanionTransport
-from buusdo.core.config_store import get_companion_loopback_only, set_companion_loopback_only
+from buusdo.core.config_store import (
+    clear_companion_last_paired_label,
+    get_companion_last_paired_label,
+    get_companion_loopback_only,
+    get_companion_persist_last_label,
+    set_companion_loopback_only,
+    set_companion_persist_last_label,
+)
 from buusdo.core.i18n import t
 
 
@@ -84,6 +91,17 @@ class CompanionDialog(QDialog):
         self._loopback.setToolTip(t("companion.loopback_hint"))
         layout.addWidget(self._loopback)
 
+        self._persist_label = QCheckBox(t("companion.persist_last_label"))
+        self._persist_label.setChecked(get_companion_persist_last_label())
+        self._persist_label.setToolTip(t("companion.persist_last_label_hint"))
+        self._persist_label.toggled.connect(self._on_persist_label_toggled)
+        layout.addWidget(self._persist_label)
+
+        self._last_label = QLabel("")
+        self._last_label.setWordWrap(True)
+        self._last_label.setObjectName("brandSubtitle")
+        layout.addWidget(self._last_label)
+
         row = QHBoxLayout()
         self._btn_start = QPushButton(t("companion.start"))
         self._btn_start.setObjectName("accentAction")
@@ -126,6 +144,7 @@ class CompanionDialog(QDialog):
         self._tick.start()
 
         self._refresh_devices()
+        self._refresh_last_label_ui()
         self._sync_running_ui()
         if self._transport.running:
             self._show_active_url()
@@ -229,12 +248,32 @@ class CompanionDialog(QDialog):
         self._loopback.setEnabled(not running)
         self._refresh_rate_limit_ui()
 
+    def _on_persist_label_toggled(self, checked: bool) -> None:
+        set_companion_persist_last_label(bool(checked))
+        if not checked:
+            clear_companion_last_paired_label()
+        self._refresh_last_label_ui()
+
+    def _refresh_last_label_ui(self) -> None:
+        if not get_companion_persist_last_label():
+            self._last_label.clear()
+            self._last_label.setVisible(False)
+            return
+        label = get_companion_last_paired_label()
+        if label:
+            self._last_label.setText(t("companion.last_paired_label", label=label))
+            self._last_label.setVisible(True)
+        else:
+            self._last_label.setText(t("companion.last_paired_none"))
+            self._last_label.setVisible(True)
+
     def _refresh_devices(self) -> None:
         self._devices.clear()
         for d in list_devices():
             self._devices.addItem(f"{d.label} · {d.device_id} · {d.paired_at}")
             self._devices.item(self._devices.count() - 1).setData(Qt.ItemDataRole.UserRole, d.device_id)
         self._host.paired = bool(list_devices())
+        self._refresh_last_label_ui()
 
     def _unpair_selected(self) -> None:
         item = self._devices.currentItem()
@@ -252,6 +291,7 @@ class CompanionDialog(QDialog):
         ):
             return
         clear_devices()
+        clear_companion_last_paired_label()
         self._refresh_devices()
 
     def closeEvent(self, event) -> None:  # noqa: N802
