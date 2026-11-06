@@ -49,5 +49,28 @@ if "NSAllowsArbitraryLoads" not in pt:
     pt = pt.replace("</dict>\n</plist>", insert + "</dict>\n</plist>", 1)
     plist.write_text(pt, encoding="utf-8")
 
+# flutter create drops a stock widget_test that references MyApp — replace it.
+test = app / "test/widget_test.dart"
+test.parent.mkdir(parents=True, exist_ok=True)
+test.write_text(
+    """import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:buusdo_companion/main.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('companion home loads', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(BuusdoCompanionApp(prefs: prefs));
+    expect(find.textContaining('buusdo'), findsWidgets);
+  });
+}
+""",
+    encoding="utf-8",
+)
+
 print("OK scaffold + cleartext LAN HTTP")
 PY
