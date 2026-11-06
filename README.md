@@ -5,6 +5,11 @@
 </p>
 
 <p align="center">
+  <a href="docs/PROJECT_COMPLETE.md"><img src="https://img.shields.io/badge/product_track-complete-0E7A3A" alt="product track complete" /></a>
+  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/shelf-v1.1.0-111111" alt="v1.1.0 GitHub shelf" /></a>
+</p>
+
+<p align="center">
   <strong>Download · Open · Install</strong><br />
   <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><strong>Get v1.1.0 (GitHub)</strong></a>
   ·
@@ -13,6 +18,8 @@
   <a href="docs/user-guide/README.md"><strong>User guide</strong></a>
   ·
   <a href="docs/user-guide/en.md">English</a>
+  ·
+  <a href="docs/PROJECT_COMPLETE.md"><strong>Complete</strong></a>
 </p>
 
 Cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS).
