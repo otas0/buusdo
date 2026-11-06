@@ -1,135 +1,39 @@
 # Code signing
 
-**Status (2026-11):** prep track **started**. Unsigned Inno draft remains the default
-ship path. Do **not** attach signed Setup/`buusdo.exe` to the draft release until
-Explorer wordmark smoke on Setup + `buusdo.exe` is confirmed.
+**Status (2026-11-06): cancelled — will not ship.**
 
-Checklist before first signed artifact:
+Product decision: no Apple Developer ID / notarization / staple, and no Windows
+Authenticode, for any buusdo release. The GitHub shelf stays **unsigned** forever
+for this project track. SmartScreen / Gatekeeper warnings are expected and
+documented in the [user guide](user-guide/README.md).
 
-1. [ ] **macOS:** Developer ID Application identity installed (`security find-identity -v -p codesigning`)
-2. [ ] **macOS:** `notarytool store-credentials` profile + gitignored `scripts/codesign.env`
-3. [ ] **Windows:** Authenticode cert (EV preferred for SmartScreen; OV also OK) — **separate** from Apple
-4. [ ] `scripts/codesign.env` present locally (gitignored) — see `codesign.env.example`
-5. [x] Explorer wordmark OK on Setup + `buusdo.exe` (human, 2026-11-02)
-6. [ ] `bash scripts/sign_and_notarize_macos.sh` (or hooks) dry-run on a throwaway `.app`
-7. [ ] Replace v1.0.0 macOS zip + refresh `SHA256SUMS` only after staple succeeds
-8. [ ] Windows: `signtool` dry-run on throwaway Setup/`buusdo.exe` (never commit `.p12` / passwords; CI gets no private keys)
+Historical prep notes below are **archived** for reference only. Do not buy
+certs, do not dry-run `signtool` / `notarytool` for ship, and do not attach
+signed Setup / `.app` artifacts.
 
-**Do not** check macOS items green until identities exist on the signing machine.
+## Why unsigned is enough
 
-## Windows (Authenticode)
+- MVP and [RELEASE_1.1.0.md](RELEASE_1.1.0.md) listed codesign as non-blocking.
+- v1.1.0 published desktop + companion APK without signing.
+- Project track is **complete** at that shelf; signing is out of scope permanently.
 
-1. Obtain a code-signing certificate (EV recommended for SmartScreen).
-2. Build with `scripts/deploy.sh` / `pyside6-deploy` → `.exe`.
-3. Sign:
+## Archived: Windows (Authenticode) — do not run for ship
 
 ```bat
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /a dist\buusdo.exe
 signtool verify /pa dist\buusdo.exe
 ```
 
-4. Publish `SHA256SUMS` alongside the binary (CI release workflow already generates checksums for `dist/`).
-
-## macOS (Developer ID + Notarization + Staple)
-
-**Blocker (2026-11-02):** this builder has **0** codesigning identities
-(`security find-identity -v -p codesigning`). Signing cannot run until a
-**Developer ID Application** certificate is installed from an Apple Developer
-Program account, plus a `notarytool` keychain profile.
-
-### One-shot (preferred)
+## Archived: macOS (Developer ID) — do not run for ship
 
 ```bash
-cp scripts/codesign.env.example scripts/codesign.env
-# Edit CODESIGN_IDENTITY + NOTARY_PROFILE to real values (gitignored)
-
-# Store notary credentials once (app-specific password or API key):
-xcrun notarytool store-credentials "buusdo-notary" \
-  --apple-id "you@example.com" --team-id "TEAMID" --password "app-specific-password"
-
-chmod +x scripts/sign_and_notarize_macos.sh
 bash scripts/sign_and_notarize_macos.sh
-# → dist/buusdo-macos-$VERSION.zip (signed, notarized, stapled)
 ```
 
-### Manual steps
+CI `installer.yml` Authenticode inputs remain fail-closed defaults (`false`).
+Leave them off.
 
-1. Sign the `.app` with Developer ID Application (hardened runtime + timestamp):
+## Related
 
-```bash
-codesign --deep --force --options runtime --timestamp \
-  --sign "Developer ID Application: <Name> (TEAMID)" \
-  dist/macos/Buusdo.app
-```
-
-2. Notarize + staple:
-
-```bash
-ditto -c -k --keepParent dist/macos/Buusdo.app dist/buusdo-notarize.zip
-xcrun notarytool submit dist/buusdo-notarize.zip --keychain-profile "buusdo-notary" --wait
-xcrun stapler staple dist/macos/Buusdo.app
-spctl --assess --type execute dist/macos/Buusdo.app
-```
-
-3. Replace the GitHub Release macOS zip + refresh `SHA256SUMS` (release stays published).
-
-## Local hook (Windows / thin macOS)
-
-```bash
-cp scripts/codesign.env.example scripts/codesign.env
-chmod +x scripts/codesign_hooks.sh
-./scripts/codesign_hooks.sh dist/macos/Buusdo.app   # or .exe on Windows
-```
-
-Prefer `scripts/sign_and_notarize_macos.sh` for the full Apple Gatekeeper path.
-CI never receives private keys from the repo.
-
-## CI gate (Authenticode)
-
-`installer.yml` stays **unsigned by default**. Optional `workflow_dispatch` inputs:
-
-| Input | Default | Role |
-|-------|---------|------|
-| `attach_draft` | `true` | Attach Setup + SHA256SUMS to draft preview (unpublished) |
-| `explorer_wordmark_ok` | `false` | Human confirmed Explorer wordmark on Setup + `buusdo.exe` |
-| `sign_authenticode` | `false` | Request Authenticode path (fail-closed) |
-
-When `sign_authenticode=true`, the job **exits 1** unless both:
-
-1. `explorer_wordmark_ok=true`, and
-2. repo secrets `WINDOWS_CERT_PFX` + `WINDOWS_CERT_PASSWORD` are set.
-
-Do **not** replace draft assets with signed binaries until that gate passes and a human reviews the throwaway dry-run. Keep the draft unpublished.
-
-Local dry-run (no draft replace):
-
-```bash
-cp scripts/codesign.env.example scripts/codesign.env   # fill real values; gitignored
-# On Windows signing host, copy Setup/exe aside then:
-./scripts/codesign_hooks.sh /path/to/throwaway/buusdo.exe
-```
-
-Without `scripts/codesign.env` / cert, the hook must fail closed — that is expected.
-
-After every successful `attach_draft`, `installer.yml` downloads the attached draft Setup and
-re-runs `scripts/verify_pe_icon.py` (PE resource presence only — **not** Explorer wordmark).
-
-## Notarization failures (PyInstaller entitlements)
-
-If `notarytool submit … --wait` fails:
-
-```bash
-# Use the submission id from the failed submit output:
-xcrun notarytool log <submission-id> --keychain-profile "buusdo-notary"
-```
-
-Common PyInstaller / Qt hardened-runtime issues show up there (missing entitlements,
-unsigned helpers, invalid bundles). Fix entitlements / re-sign nested binaries, then
-re-run `scripts/sign_and_notarize_macos.sh`. Do **not** disable SIP (C5).
-
-## Notes
-
-- buusdo does not require SIP disable on macOS (C5).
-- Never embed private keys in the repo; **CI must not receive** `.p12` / Apple passwords from git.
-- `scripts/codesign.env`, `*.p12`, and `*.pfx` are gitignored.
-- Windows Authenticode needs a separate EV/OV cert — Apple Developer ID does not cover Setup.exe.
+- Project complete: [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md)
+- Honesty / unsigned UX: [user-guide/en.md](user-guide/en.md)

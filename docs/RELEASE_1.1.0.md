@@ -1,13 +1,14 @@
 # Release track: 1.1.0
 
 **Status:** published — [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
-Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub source under
-`mobile/flutter/` (no store). SHARE_BLURB / README updated post-publish.
+**Product track:** complete — see [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md).
+Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub APK +
+Flutter source (no store). SHARE_BLURB / README updated post-publish.
 
 ## Why 1.1.0
 
 Carry honesty + companion foundation that landed after 1.0.0, without waiting on
-Apple Developer ID / Authenticode (those remain optional follow-ons).
+Apple Developer ID / Authenticode (**cancelled** — will not ship; [CODE_SIGNING.md](CODE_SIGNING.md)).
 
 ## Intended contents
 
@@ -22,12 +23,12 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
 5. About rows for companion non-goals + links to MOBILE.md / HARDWARE_NOTES.md.
 6. Release notes that say clearly: phone/tablet = companion, not injection host.
 
-## Explicitly deferred (not blockers)
+## Explicitly out of scope (final)
 
-- Developer ID notarization / staple (needs Apple certs — see CODE_SIGNING.md)
-- Windows Authenticode
+- Developer ID notarization / staple — **cancelled**
+- Windows Authenticode — **cancelled**
 - Phase 3 DWM HDR (`phase3/dwm-hdr` stays isolated)
-- App Store / Play Store submission (mobile ships as GitHub source only)
+- App Store / Play Store / iOS IPA
 - Cloud pairing / WAN relay
 - LAN HTTPS (cleartext honesty stays in MOBILE.md)
 
@@ -35,13 +36,13 @@ Apple Developer ID / Authenticode (those remain optional follow-ons).
 
 - [x] `pytest` green on CI for companion + hardware honesty tests (ongoing on `main`)
 - [x] Desktop companion host: `status` works; install endpoints absent
-- [ ] User Issue [#13](https://github.com/otas0/buusdo/issues/13): pair+status
-      report still welcome post-ship (not blocking this cut)
+- [x] User Issue [#13](https://github.com/otas0/buusdo/issues/13): non-blocking; closed with project complete
 - [x] Bump `__version__` / `pyproject.toml` to `1.1.0` in this cut
 - [x] README / SHARE_BLURB → 1.1.0 **after** the tag is published
 - [x] Human decided to publish (ship-now request)
 - [x] `phase3/dwm-hdr` not merged into the 1.1.0 tag
-- [x] Developer ID / Authenticode still deferred
+- [x] Developer ID / Authenticode **cancelled** (not deferred)
+- [x] Human: product track complete at v1.1.0 shelf (2026-11-06)
 
 ## Versioning
 

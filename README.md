@@ -50,7 +50,7 @@ Same locale codes as the in-app language picker (`buusdo/locales/`).
 | Desktop Linux | [`buusdo-linux-1.1.0.tar.gz`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-linux-1.1.0.tar.gz) + [`install_linux.sh`](https://github.com/otas0/buusdo/releases/download/v1.1.0/install_linux.sh) | Onedir |
 | Desktop any OS | [`buusdo-1.1.0-py3-none-any.whl`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-1.1.0-py3-none-any.whl) | pip |
 | **Mobile Android** | [`buusdo-companion.apk`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-companion.apk) | Sideload; cleartext LAN; **not** Play Store |
-| Mobile iOS | [`mobile/flutter/ios/`](mobile/flutter/) | Source only — IPA needs Apple signing |
+| Mobile iOS | [`mobile/flutter/ios/`](mobile/flutter/) | Source only — **no IPA** (certs cancelled) |
 | Checksums | [`SHA256SUMS`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS) · [`SHA256SUMS-companion-apk.txt`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS-companion-apk.txt) | |
 
 Latest release page: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0). Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mobile honesty: [docs/MOBILE.md](docs/MOBILE.md). Hardware: [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
@@ -63,10 +63,11 @@ buusdo 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/bu
 | Build | What you see | Status for v1.1.0 |
 |-------|----------------|-------------------|
 | **Unsigned** | Windows SmartScreen / macOS Gatekeeper (“Not Opened” / Move to Trash) | **Current** — expected |
-| **Notarized + stapled** (macOS Developer ID) | Fresh download opens without that Gatekeeper block | **Not yet** — needs Developer ID cert + `notarytool` on a signing Mac |
-| **Authenticode** (Windows EV/OV) | Fewer SmartScreen warnings | **Not yet** — separate Windows cert; never put `.p12`/passwords in git or CI |
+| **Notarized + stapled** (macOS Developer ID) | Fresh download opens without that Gatekeeper block | **Cancelled** — will not ship ([CODE_SIGNING.md](docs/CODE_SIGNING.md)) |
+| **Authenticode** (Windows EV/OV) | Fewer SmartScreen warnings | **Cancelled** — will not ship |
 
-macOS first open while unsigned: Finder → right-click `Buusdo.app` → **Open**. After notarization ships, that step should not be required for clean downloads.
+macOS first open: Finder → right-click `Buusdo.app` → **Open**. Product track is
+**complete** at this unsigned shelf — [docs/PROJECT_COMPLETE.md](docs/PROJECT_COMPLETE.md).
 
 ## End-user install
 

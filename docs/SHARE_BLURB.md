@@ -8,13 +8,15 @@ Use when posting the Release link:
 
 > buusdo **1.1.0** (unsigned, GitHub only): https://github.com/otas0/buusdo/releases/tag/v1.1.0  
 > Desktop: Windows Setup / macOS `.app` zip / Linux onedir + wheel.  
-> Mobile: **`buusdo-companion.apk`** (Android sideload — not Play Store) + Flutter source (`android/`/`ios/`; no IPA without Apple signing).  
+> Mobile: **`buusdo-companion.apk`** (Android sideload — not Play Store) + Flutter source (`android/`/`ios/`; no IPA — certs cancelled).  
 > BYO ReShade/OptiScaler kits. Companion ≠ injection. Cleartext LAN HTTP. macOS config-only. No DWM HDR. SmartScreen / Gatekeeper may warn. Feedback: GitHub Issues (`launch` / `scan` / `companion`).
 
 Short:
 
 > buusdo 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
 
-## Post-1.1 fixes
+## Project complete
 
-Ship patch tags only after real `launch` / `scan` / `companion` Issues are filed **and** fixed (fixes-only — no feature creep). Authenticode / notarization remain deferred until certs + dry-run.
+Product track finished at v1.1.0 — [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md).
+Codesign cancelled. Optional fixes-only patches only after real Issues **and** a
+maintainer chooses to cut a patch; no feature creep, no certs.

@@ -116,5 +116,5 @@ label. Default-on only with explicit human OK.
 ## Holds (still off for 1.1.x)
 
 - Merge `phase3/dwm-hdr` into a release tag
-- Require Developer ID notarization or Windows Authenticode
+- Require Developer ID notarization or Windows Authenticode (**cancelled** — project complete)
 - App Store / Play Store packaging

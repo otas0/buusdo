@@ -22,7 +22,7 @@ For the **GitHub v1.0.0 installer** gate (Inno, unsigned), see [STORE_MVP.md](ST
 - Phase 3 DWM HDR live injection (`phase3/dwm-hdr` stays isolated)
 - Dual-monitor CCD live fixture overwrite (ILLUSTRATIVE until a Windows host records)
 - Feature **parity** across OS (capabilities differ by platform — that is intentional)
-- Codesign / notarization / SmartScreen reputation (document UNSIGNED; sign later)
+- Codesign / notarization / SmartScreen reputation (document UNSIGNED; **cancelled** — see [CODE_SIGNING.md](CODE_SIGNING.md) / [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md))
 - Agent polling of GitHub Actions; after Billing fix → **one** `workflow_dispatch` only
 
 ## Kits

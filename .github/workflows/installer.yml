@@ -3,6 +3,10 @@ name: installer
 # Build unsigned Windows Inno setup.exe for GitHub Releases.
 # Prefer workflow_dispatch (one shot). Do not agent-poll; download the artifact when green.
 # Optional: attach Setup + SHA256SUMS to the draft preview release (never publishes, never v1.*).
+#
+# HISTORICAL (2026-11-06): Authenticode inputs / gate below are archived. Codesign was
+# cancelled for the finished v1.1.0 track — leave sign_authenticode=false forever.
+# See docs/CODE_SIGNING.md and docs/PROJECT_COMPLETE.md.
 
 on:
   workflow_dispatch:
@@ -17,12 +21,12 @@ on:
         required: false
         default: true
       explorer_wordmark_ok:
-        description: "Human confirmed Explorer wordmark on Setup + buusdo.exe (required for Authenticode)"
+        description: "[historical] Explorer wordmark OK — unused; Authenticode cancelled"
         type: boolean
         required: false
         default: false
       sign_authenticode:
-        description: "Sign throwaway copies with repo secrets (never default; needs wordmark-OK + secrets)"
+        description: "[historical] Authenticode path — cancelled; keep false"
         type: boolean
         required: false
         default: false
@@ -40,13 +44,12 @@ jobs:
         run: |
           {
             echo "## Unsigned Inno installer"
-            echo "Authenticode prep started — still no signed ship until Explorer wordmark smoke."
-            echo "v1.0.0 only after manual smoke. Keep draft unpublished."
-            echo "0.1.1 prep started (fixes-only); do not tag until launch/scan Issues."
+            echo "Product track complete at v1.1.0 — Authenticode **cancelled** (historical inputs only)."
+            echo "Keep draft unpublished unless a maintainer explicitly attaches."
             echo "Phase 3 stays on phase3/dwm-hdr (default branch is main)."
-            echo "Authenticode CI: sign_authenticode=${{ inputs.sign_authenticode }} explorer_wordmark_ok=${{ inputs.explorer_wordmark_ok }} (default both false)."
+            echo "Authenticode CI (historical): sign_authenticode=${{ inputs.sign_authenticode }} explorer_wordmark_ok=${{ inputs.explorer_wordmark_ok }} (keep both false)."
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Authenticode gate (fail closed)
+      - name: Authenticode gate (historical, fail closed)
         if: ${{ inputs.sign_authenticode }}
         shell: bash
         env:
@@ -55,16 +58,8 @@ jobs:
           HAS_PFX_PASS: ${{ secrets.WINDOWS_CERT_PASSWORD != '' }}
         run: |
           set -euo pipefail
-          if [[ "${WORDMARK_OK}" != "true" ]]; then
-            echo "::error::Refusing Authenticode: set explorer_wordmark_ok=true after manual Explorer smoke."
-            exit 1
-          fi
-          if [[ "${HAS_PFX}" != "true" || "${HAS_PFX_PASS}" != "true" ]]; then
-            echo "::error::Refusing Authenticode: missing WINDOWS_CERT_PFX / WINDOWS_CERT_PASSWORD secrets."
-            exit 1
-          fi
-          echo "Authenticode gate passed (wordmark-OK + secrets present)."
-          echo "NOTE: this job still builds unsigned Setup by default; signing replaces draft only when a later step is added and explicitly reviewed."
+          echo "::error::Authenticode path is historical and cancelled (docs/CODE_SIGNING.md). Leave sign_authenticode=false."
+          exit 1
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
@@ -112,8 +107,8 @@ jobs:
           {
             echo "## Icon smoke"
             echo "- PE: \`scripts/verify_pe_icon.py\` (RT_GROUP_ICON on Setup + buusdo.exe)."
-            echo "- Manual Explorer: wordmark on Setup + buusdo.exe before Authenticode."
-            echo "- Keep draft unpublished; no v1.*; hold 0.1.1 for launch/scan Issues."
+            echo "- Manual Explorer wordmark / Authenticode: **historical** — certs cancelled."
+            echo "- Unsigned Setup only; product track complete at v1.1.0."
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -160,5 +155,5 @@ jobs:
           {
             echo "## Draft PE re-verify"
             echo "- Downloaded attached draft Setup and ran \`verify_pe_icon.py\` (pass)."
-            echo "- Explorer wordmark remains a **manual** gate before Authenticode."
+            echo "- Authenticode remains **cancelled** (historical); unsigned only."
           } >> "$GITHUB_STEP_SUMMARY"
