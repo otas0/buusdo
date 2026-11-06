@@ -1,6 +1,7 @@
 # Mobile companion (phone / tablet)
 
-**Status:** foundation for the **1.1.0** track. Not a second injection host.
+**Status:** shipped with **v1.1.0** (desktop). Mobile client ships as **GitHub
+source + Android APK** (unsigned). No App Store / Play Store.
 
 buusdo on phone or tablet is a **companion** to the desktop app. It does not
 install ReShade, inject into PC/console games, or turn phone silicon into a
@@ -95,16 +96,25 @@ Optional setting (Companion dialog checkbox, **default off**):
 `companion_devices.json`). Clear-all unpaired devices also clears the saved
 label. Default-on only with explicit human OK.
 
-## Non-goals for 1.1.0
+## GitHub mobile packages
 
-- App Store / Play Store listing polish
+| Asset | Where | Notes |
+|-------|--------|-------|
+| Flutter source + `android/` + `ios/` | `mobile/flutter/` | Scaffold via `scripts/companion_flutter_scaffold.sh` |
+| Android APK (unsigned) | Actions `companion-apk` artifact / Release asset `buusdo-companion.apk` | Sideload; cleartext LAN HTTP enabled |
+| iOS IPA | **Not** attached | Needs Apple signing; `ios/` sources only |
+
+## Non-goals for 1.1.x
+
+- App Store / Play Store listing
 - Cloud sync of game configs
 - Controlling console GPUs from the phone
 - Replacing the desktop app
-- LAN **HTTPS** / TLS pinning (post-1.1.0 hardening; v1 ships HTTP + Bearer token on LAN)
+- LAN **HTTPS** / TLS pinning (v1 ships HTTP + Bearer token on LAN)
+- Unsigned iOS IPA on GitHub (Apple signing required)
 
-## Holds (still off for 1.1.0)
+## Holds (still off for 1.1.x)
 
-- Merge `phase3/dwm-hdr` into the 1.1.0 tag
-- Require Developer ID notarization or Windows Authenticode for 1.1.0
+- Merge `phase3/dwm-hdr` into a release tag
+- Require Developer ID notarization or Windows Authenticode
 - App Store / Play Store packaging

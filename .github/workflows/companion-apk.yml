@@ -1,0 +1,53 @@
+name: companion-apk
+
+# Build unsigned Android APK for GitHub (no Play Store).
+# Also regenerates android/ios when missing so maintainers can download the tree.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mobile/flutter/**"
+      - "scripts/companion_flutter_scaffold.sh"
+      - ".github/workflows/companion-apk.yml"
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Scaffold android/ios + cleartext LAN
+        run: |
+          chmod +x scripts/companion_flutter_scaffold.sh
+          bash scripts/companion_flutter_scaffold.sh
+      - name: Analyze + APK
+        working-directory: mobile/flutter
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter build apk --release
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/buusdo-companion.apk
+          shasum -a 256 dist/buusdo-companion.apk | tee dist/SHA256SUMS-companion-apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-companion-apk
+          path: |
+            mobile/flutter/dist/buusdo-companion.apk
+            mobile/flutter/dist/SHA256SUMS-companion-apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buusdo-companion-platforms
+          path: |
+            mobile/flutter/android
+            mobile/flutter/ios
+          if-no-files-found: error
