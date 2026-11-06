@@ -87,11 +87,9 @@ jobs:
         run: uv run pytest -q --ignore=tests/test_ui_blocked_smoke.py
 
   flutter-analyze:
-    # Optional: runs only when mobile/flutter/pubspec.yaml exists.
-    # Soft (continue-on-error) until a human `flutter create` adds platform
-    # folders and Issue #13 device gate closes — do not harden to blocking yet.
+    # Blocking once android/ios are on main (companion GitHub packages).
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - uses: actions/checkout@v4
       - name: Detect Flutter app
