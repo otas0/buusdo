@@ -9,3 +9,10 @@ build/
 **/flutter_export_environment.sh
 .idea/
 *.iml
+
+# Android / iOS local
+**/local.properties
+**/*.iml
+**/Flutter/ephemeral/
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
