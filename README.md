@@ -6,9 +6,11 @@
 
 <p align="center">
   <strong>Download · Open · Install</strong><br />
-  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><strong>Get v1.1.0</strong></a>
+  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><strong>Get v1.1.0 (GitHub)</strong></a>
   ·
-  <a href="docs/user-guide/README.md"><strong>User guide (all languages)</strong></a>
+  <a href="https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-companion.apk"><strong>Companion APK</strong></a>
+  ·
+  <a href="docs/user-guide/README.md"><strong>User guide</strong></a>
   ·
   <a href="docs/user-guide/en.md">English</a>
 </p>
@@ -39,14 +41,22 @@ If SmartScreen / Gatekeeper blocks the unsigned build, or you need step-by-step 
 
 Same locale codes as the in-app language picker (`buusdo/locales/`).
 
-**Release:** Windows, Linux, and macOS are supported targets (capabilities differ by OS; macOS is config-only).
-Latest: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) — full release (Windows Setup, macOS `.app` zip, Linux onedir/`install_linux.sh`, universal wheel) + LAN companion foundation.
-Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mac Dock notes: [docs/MAC_PACKAGE.md](docs/MAC_PACKAGE.md).
-Full constraints: [docs/PROJECT.md](docs/PROJECT.md). Hardware honesty (no “RAM as GPU”): [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
-Release track notes: [docs/RELEASE_1.1.0.md](docs/RELEASE_1.1.0.md). Mobile companion (phone/tablet GitHub source, not injection / not store): [docs/MOBILE.md](docs/MOBILE.md).
+### GitHub shelf (v1.1.0) — not App Store / Play Store
 
-**Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above, not the old pixel mark):
-buusdo 1.1.0 — BYO kits · companion source · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.1.0
+| Product | Asset | Notes |
+|---------|-------|-------|
+| Desktop Windows | [`buusdo-setup-1.1.0.exe`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-setup-1.1.0.exe) | Unsigned Inno |
+| Desktop macOS | [`buusdo-macos-1.1.0.zip`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-macos-1.1.0.zip) | Unsigned `.app` |
+| Desktop Linux | [`buusdo-linux-1.1.0.tar.gz`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-linux-1.1.0.tar.gz) + [`install_linux.sh`](https://github.com/otas0/buusdo/releases/download/v1.1.0/install_linux.sh) | Onedir |
+| Desktop any OS | [`buusdo-1.1.0-py3-none-any.whl`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-1.1.0-py3-none-any.whl) | pip |
+| **Mobile Android** | [`buusdo-companion.apk`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-companion.apk) | Sideload; cleartext LAN; **not** Play Store |
+| Mobile iOS | [`mobile/flutter/ios/`](mobile/flutter/) | Source only — IPA needs Apple signing |
+| Checksums | [`SHA256SUMS`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS) · [`SHA256SUMS-companion-apk.txt`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS-companion-apk.txt) | |
+
+Latest release page: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0). Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mobile honesty: [docs/MOBILE.md](docs/MOBILE.md). Hardware: [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
+
+**Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above):
+buusdo 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
 
 ### Unsigned vs notarized (macOS / Windows)
 

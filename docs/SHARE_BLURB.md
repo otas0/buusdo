@@ -6,12 +6,14 @@ Wordmark (canonical share / badge asset — `logo.png` only):
 
 Use when posting the Release link:
 
-> buusdo **1.1.0** (unsigned): https://github.com/otas0/buusdo/releases/tag/v1.1.0  
-> Windows Setup / macOS `.app` zip / Linux onedir + wheel. **Bring your own ReShade/OptiScaler kits** (not bundled). LAN **mobile companion** (GitHub Flutter source — not a store app, not injection). Capabilities differ by OS (macOS config-only). No DWM HDR. SmartScreen / Gatekeeper may warn. Feedback: GitHub Issues (`launch` / `scan` / `companion` welcome).
+> buusdo **1.1.0** (unsigned, GitHub only): https://github.com/otas0/buusdo/releases/tag/v1.1.0  
+> Desktop: Windows Setup / macOS `.app` zip / Linux onedir + wheel.  
+> Mobile: **`buusdo-companion.apk`** (Android sideload — not Play Store) + Flutter source (`android/`/`ios/`; no IPA without Apple signing).  
+> BYO ReShade/OptiScaler kits. Companion ≠ injection. Cleartext LAN HTTP. macOS config-only. No DWM HDR. SmartScreen / Gatekeeper may warn. Feedback: GitHub Issues (`launch` / `scan` / `companion`).
 
 Short:
 
-> buusdo 1.1.0 — BYO kits · companion source · Windows / Linux / macOS · https://github.com/otas0/buusdo/releases/tag/v1.1.0
+> buusdo 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
 
 ## Post-1.1 fixes
 
