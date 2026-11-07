@@ -150,9 +150,9 @@ class MainWindow(QMainWindow):
 
         brand = QHBoxLayout()
         # Flush wordmark to the top-left corner (no subtitle chrome).
-        brand.setContentsMargins(12, 10, 12, 8)
+        brand.setContentsMargins(12, 12, 12, 10)
         brand.setSpacing(12)
-        self._logo_label = make_logo_label(22, self)
+        self._logo_label = make_logo_label(40, self)
         brand.addWidget(self._logo_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         brand.addStretch(1)
         backend_chip = QLabel(f"backend · {self._backend.platform_id()}")

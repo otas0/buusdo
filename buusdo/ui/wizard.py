@@ -50,7 +50,7 @@ class FirstRunWizard(QDialog):
         self.setModal(True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 10, 12, 12)
-        logo = make_logo_label(22, self)
+        logo = make_logo_label(40, self)
         logo.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         hint = QLabel(t("wizard.hint"))

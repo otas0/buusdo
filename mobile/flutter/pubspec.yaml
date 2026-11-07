@@ -1,5 +1,7 @@
 name: buusdo_companion
-description: buusdo phone/tablet companion — status + scan request only (no inject).
+description: >-
+  buusdo Graphics Enhancement Tool companion (phone/tablet) —
+  status + scan request only (no inject).
 publish_to: "none"
 version: 1.1.0+1
 

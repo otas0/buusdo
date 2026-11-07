@@ -159,7 +159,7 @@ def _pixmap_from_svg(height: int, *, ink: str, paper: str, accent: str) -> QPixm
 
 
 def logo_pixmap(
-    height: int = 22,
+    height: int = 40,
     *,
     ink: str | None = None,
     paper: str | None = None,
@@ -175,7 +175,7 @@ def logo_pixmap(
     return pix
 
 
-def make_logo_label(height: int = 22, parent=None) -> QLabel:
+def make_logo_label(height: int = 40, parent=None) -> QLabel:
     label = QLabel(parent)
     label.setObjectName("brandMark")
     label.setAccessibleName("buusdo logo")
@@ -194,7 +194,7 @@ def make_logo_label(height: int = 22, parent=None) -> QLabel:
 
 
 def refresh_logo_label(label: QLabel, height: int | None = None) -> None:
-    h = height if height is not None else int(label.property("logoHeight") or 22)
+    h = height if height is not None else int(label.property("logoHeight") or 40)
     label.setProperty("logoHeight", h)
     pix = logo_pixmap(h)
     if pix.isNull():

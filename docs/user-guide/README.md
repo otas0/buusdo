@@ -1,4 +1,6 @@
-# buusdo user guides (all UI languages)
+# buusdo Graphics Enhancement Tool — user guides
+
+Official product name: **buusdo Graphics Enhancement Tool**.
 
 GitHub **does not** auto-translate repository docs. This folder ships one guide
 per UI locale from `buusdo/locales/` (same codes as the in-app language picker).

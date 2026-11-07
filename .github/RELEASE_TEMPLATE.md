@@ -1,4 +1,4 @@
-# buusdo $VERSION
+# buusdo Graphics Enhancement Tool $VERSION
 
 **Full release** (not preview). **Unsigned · GitHub only** — not App Store / Play Store.
 SmartScreen / Gatekeeper warnings are expected.

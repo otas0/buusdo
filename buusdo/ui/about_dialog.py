@@ -62,7 +62,7 @@ def show_about_dialog(parent=None) -> None:
     layout.setContentsMargins(0, 0, 8, 0)
     layout.setSpacing(10)
 
-    mark = make_logo_label(22, body)
+    mark = make_logo_label(40, body)
     mark.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
     layout.addWidget(mark, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
