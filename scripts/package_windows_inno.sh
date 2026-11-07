@@ -201,7 +201,7 @@ Installer (Windows, if ${SETUP_NAME} attached):
 
 Windows installer build (unsigned). Wheel/macOS zip/Linux tarball ship on the GitHub Release.
 Capabilities differ by OS (macOS config-only). No DWM HDR. Kits not bundled.
-Feedback: https://github.com/otas0/buusdo/issues
+Feedback: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues
 EOF
 
 (

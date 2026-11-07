@@ -26,8 +26,8 @@ LOCALE_NAMES: dict[str, tuple[str, str]] = {
     "ru": ("Русский", "Russian"),
 }
 
-RELEASE = "https://github.com/otas0/buusdo/releases/tag/v1.1.0"
-REPO = "https://github.com/otas0/buusdo"
+RELEASE = "https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0"
+REPO = "https://github.com/otas0/buusdo-Graphics-Enhancement-Tool"
 
 
 def discover_langs() -> list[tuple[str, str, str]]:

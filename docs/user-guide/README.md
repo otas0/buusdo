@@ -19,7 +19,7 @@ per UI locale from `buusdo/locales/` (same codes as the in-app language picker).
 | [简体中文](zh.md) | `zh` | Simplified Chinese |
 
 Canonical English: [en.md](en.md).  
-Release: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0). Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
+Release: [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0). Signing: [../CODE_SIGNING.md](../CODE_SIGNING.md).
 
 **Note:** Product UI strings are localized separately in `buusdo/locales/*.json`.
 These guides are download / first-open instructions (especially unsigned Windows

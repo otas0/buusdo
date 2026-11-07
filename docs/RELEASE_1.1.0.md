@@ -1,6 +1,6 @@
 # Release track: 1.1.0
 
-**Status:** published — [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+**Status:** published — [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 **Product track:** complete — see [PROJECT_COMPLETE.md](PROJECT_COMPLETE.md).
 Desktop packages via `.github/workflows/release.yml`. Mobile = GitHub APK +
 Flutter source (no store). SHARE_BLURB / README updated post-publish.
@@ -36,7 +36,7 @@ Apple Developer ID / Authenticode (**cancelled** — will not ship; [CODE_SIGNIN
 
 - [x] `pytest` green on CI for companion + hardware honesty tests (ongoing on `main`)
 - [x] Desktop companion host: `status` works; install endpoints absent
-- [x] User Issue [#13](https://github.com/otas0/buusdo/issues/13): non-blocking; closed with project complete
+- [x] User Issue [#13](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues/13): non-blocking; closed with project complete
 - [x] Bump `__version__` / `pyproject.toml` to `1.1.0` in this cut
 - [x] README / SHARE_BLURB → 1.1.0 **after** the tag is published
 - [x] Human decided to publish (ship-now request)

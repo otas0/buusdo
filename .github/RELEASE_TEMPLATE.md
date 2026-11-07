@@ -20,14 +20,14 @@ SmartScreen / Gatekeeper warnings are expected.
 - **macOS:** unzip → open `Buusdo.app` (Gatekeeper may warn; right-click → Open).
 - **Linux:** `bash install_linux.sh` next to the wheel, or extract the onedir tarball.
 - **Any OS (wheel):** `pip install buusdo-$VERSION-py3-none-any.whl "PySide6-Essentials==6.12.0"` then `python -m buusdo`.
-- **Android:** download `buusdo-companion.apk` → sideload. Pair with desktop Companion (LAN URL + code). See [MOBILE.md](https://github.com/otas0/buusdo/blob/main/docs/MOBILE.md).
+- **Android:** download `buusdo-companion.apk` → sideload. Pair with desktop Companion (LAN URL + code). See [MOBILE.md](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/blob/main/docs/MOBILE.md).
 
 ## What's new (1.1.0 track)
 
-- **Hardware honesty** — About / capabilities rows + [HARDWARE_NOTES.md](https://github.com/otas0/buusdo/blob/main/docs/HARDWARE_NOTES.md).
+- **Hardware honesty** — About / capabilities rows + [HARDWARE_NOTES.md](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/blob/main/docs/HARDWARE_NOTES.md).
 - **Mobile companion (not injection)** — Desktop Companion dialog + Flutter client (`mobile/flutter/`, android/ios sources) + GitHub APK.
 - Pair + status + optional request_scan only. Cleartext LAN HTTP in v1 (HTTPS deferred).
-- Device pair/status user reports welcome on [Issues](https://github.com/otas0/buusdo/issues) (label `companion`).
+- Device pair/status user reports welcome on [Issues](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues) (label `companion`).
 
 ## Honesty
 
@@ -45,4 +45,4 @@ shasum -a 256 -c SHA256SUMS
 shasum -a 256 -c SHA256SUMS-companion-apk.txt
 ```
 
-Feedback: https://github.com/otas0/buusdo/issues
+Feedback: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues

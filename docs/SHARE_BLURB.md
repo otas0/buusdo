@@ -6,14 +6,14 @@ Wordmark (canonical share / badge asset — `logo.png` only):
 
 Use when posting the Release link:
 
-> **buusdo Graphics Enhancement Tool** **1.1.0** (unsigned, GitHub only): https://github.com/otas0/buusdo/releases/tag/v1.1.0  
+> **buusdo Graphics Enhancement Tool** **1.1.0** (unsigned, GitHub only): https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0  
 > Desktop: Windows Setup / macOS `.app` zip / Linux onedir + wheel.  
 > Mobile: **`buusdo-companion.apk`** (Android sideload — not Play Store) + Flutter source (`android/`/`ios/`; no IPA — certs cancelled).  
 > BYO ReShade/OptiScaler kits. Companion ≠ injection. Cleartext LAN HTTP. macOS config-only. No DWM HDR. SmartScreen / Gatekeeper may warn. Feedback: GitHub Issues (`launch` / `scan` / `companion`).
 
 Short:
 
-> buusdo Graphics Enhancement Tool 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
+> buusdo Graphics Enhancement Tool 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0
 
 ## Project complete
 

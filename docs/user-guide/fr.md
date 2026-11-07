@@ -2,7 +2,7 @@
 
 Langues : [Deutsch](de.md) · [English](en.md) · [Español](es.md) · **Français** · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Télécharger et ouvrir buusdo sur Windows, macOS et Linux. [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## Aperçu
 
@@ -10,7 +10,7 @@ Coordinateur / planificateur d’améliorations graphiques. Kits **non inclus** 
 
 ## 1. Téléchargement
 
-Sur [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0), section **Assets** : Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
+Sur [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0), section **Assets** : Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
 
 ## 2. Windows
 
@@ -37,7 +37,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. Après le premier lancement
 
-Choisir les dossiers de kits dans l’UI. Pas de contournement anti-cheat. Issues : https://github.com/otas0/buusdo/issues.
+Choisir les dossiers de kits dans l’UI. Pas de contournement anti-cheat. Issues : https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 

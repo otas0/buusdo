@@ -43,7 +43,7 @@ def test_about_i18n() -> None:
 def test_about_feedback_url_is_issues() -> None:
     from buusdo.core.urls import FEEDBACK_URL
 
-    assert FEEDBACK_URL == "https://github.com/otas0/buusdo/issues"
+    assert FEEDBACK_URL == "https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues"
 
 
 def test_smoke_github_gate_script() -> None:

@@ -2,7 +2,7 @@
 
 言語: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · **日本語** · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Windows / macOS / Linux でのダウンロードと起動手順。[v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
+Windows / macOS / Linux でのダウンロードと起動手順。[v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)。
 
 ## 概要
 
@@ -10,7 +10,7 @@ Windows / macOS / Linux でのダウンロードと起動手順。[v1.1.0](https
 
 ## 1. ダウンロード
 
-[https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) の **Assets** から OS 用ファイルを選びます（Windows Setup `.exe` / macOS `.app` zip / Linux onedir または wheel + `install_linux.sh`）。
+[https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) の **Assets** から OS 用ファイルを選びます（Windows Setup `.exe` / macOS `.app` zip / Linux onedir または wheel + `install_linux.sh`）。
 
 ## 2. Windows
 
@@ -38,7 +38,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. 起動後
 
-UI で ReShade / OptiScaler キットフォルダを指定。アンチチート遮断は迂回できません。問題は https://github.com/otas0/buusdo/issues。
+UI で ReShade / OptiScaler キットフォルダを指定。アンチチート遮断は迂回できません。問題は https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues。
 
 ---
 

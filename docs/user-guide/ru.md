@@ -2,7 +2,7 @@
 
 Языки: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · **Русский** · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Скачивание и запуск на Windows, macOS и Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Скачивание и запуск на Windows, macOS и Linux. [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## Обзор
 
@@ -10,7 +10,7 @@
 
 ## 1. Скачивание
 
-На [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) в **Assets** выберите файл для вашей ОС (Windows Setup `.exe` / macOS `.app` в zip / Linux onedir или wheel + `install_linux.sh`).
+На [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) в **Assets** выберите файл для вашей ОС (Windows Setup `.exe` / macOS `.app` в zip / Linux onedir или wheel + `install_linux.sh`).
 
 ## 2. Windows
 
@@ -37,7 +37,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. После первого запуска
 
-Укажите папки kits в UI. Обход античита невозможен. Issues: https://github.com/otas0/buusdo/issues.
+Укажите папки kits в UI. Обход античита невозможен. Issues: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 

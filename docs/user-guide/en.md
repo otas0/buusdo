@@ -2,7 +2,7 @@
 
 Languages: [Deutsch](de.md) · **English** · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-How to download and open **buusdo Graphics Enhancement Tool** on Windows, macOS, and Linux. Latest release: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+How to download and open **buusdo Graphics Enhancement Tool** on Windows, macOS, and Linux. Latest release: [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## What you are installing
 
@@ -10,7 +10,7 @@ How to download and open **buusdo Graphics Enhancement Tool** on Windows, macOS,
 
 ## 1. Download the right file
 
-1. Open [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) in a browser.
+1. Open [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) in a browser.
 2. Scroll to **Assets**.
 3. Pick the file for your OS (names may vary slightly):
    - **Windows:** installer / Setup `.exe` (Inno)
@@ -107,7 +107,7 @@ If the UI fails to start, install Qt/xcb deps for your distro (e.g. on Debian/Ub
 
 ## 6. Still stuck?
 
-Note: (1) full dialog title/screenshot, (2) installer vs installed app, (3) OS version. Open an issue at https://github.com/otas0/buusdo/issues.
+Note: (1) full dialog title/screenshot, (2) installer vs installed app, (3) OS version. Open an issue at https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 

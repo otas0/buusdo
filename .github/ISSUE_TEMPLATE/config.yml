@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Project brief / constraints
-    url: https://github.com/otas0/buusdo/blob/main/docs/PROJECT.md
+    url: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/blob/main/docs/PROJECT.md
     about: C1–C5 and platform boundaries before filing.
   - name: MVP freeze
-    url: https://github.com/otas0/buusdo/blob/main/docs/MVP.md
+    url: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/blob/main/docs/MVP.md
     about: What is in/out of the first preview.

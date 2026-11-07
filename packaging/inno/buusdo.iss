@@ -9,7 +9,7 @@
   #define MyAppVersion "0.1.0"
 #endif
 #define MyAppPublisher "buusdo Graphics Enhancement Tool"
-#define MyAppURL "https://github.com/otas0/buusdo"
+#define MyAppURL "https://github.com/otas0/buusdo-Graphics-Enhancement-Tool"
 #define MyAppExeName "buusdo.exe"
 
 [Setup]

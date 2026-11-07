@@ -2,7 +2,7 @@
 
 語言: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · **繁體中文** · [简体中文](zh.md)
 
-如何在 Windows / macOS / Linux 下載並開啟 **buusdo**。最新版：[v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
+如何在 Windows / macOS / Linux 下載並開啟 **buusdo**。最新版：[v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)。
 
 ## 你在安裝什麼
 
@@ -10,7 +10,7 @@ buusdo 是桌面端的圖形增強 **排程 / 設定協調** 工具。工具包�
 
 ## 1. 下載正確的檔案
 
-1. 開啟 [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
+1. 開啟 [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)。
 2. 捲到 **Assets**。
 3. Windows 選 Setup `.exe`；macOS 選 zip 內 `.app`；Linux 選 onedir 與/或 wheel + `install_linux.sh`。
 4. 不要只下 Source code（除非要自行編譯）。
@@ -47,7 +47,7 @@ python3 -m buusdo
 
 ## 5. 首次啟動後
 
-在 UI 選擇 ReShade / OptiScaler 工具包目錄；反作弊阻擋無法略過。問題請開 https://github.com/otas0/buusdo/issues。
+在 UI 選擇 ReShade / OptiScaler 工具包目錄；反作弊阻擋無法略過。問題請開 https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues。
 
 ---
 

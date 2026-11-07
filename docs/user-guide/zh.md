@@ -2,7 +2,7 @@
 
 语言: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · **简体中文**
 
-如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
+如何在 Windows / macOS / Linux 上下载并打开 **buusdo**。最新版：[v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)。
 
 ## 你在安装什么
 
@@ -10,7 +10,7 @@ buusdo 是桌面端的图形增强 **调度 / 配置协调** 工具（ReShade、
 
 ## 1. 下载正确的文件
 
-1. 浏览器打开 [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)。
+1. 浏览器打开 [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)。
 2. 滚到 **Assets**。
 3. 按系统选择：
    - **Windows：** Setup / 安装包 `.exe`
@@ -103,7 +103,7 @@ python3 -m buusdo
 
 ## 6. 仍打不开？
 
-请记录：(1) 完整弹窗标题/截图 (2) 是安装包还是已安装程序 (3) 系统版本。到 https://github.com/otas0/buusdo/issues 提 Issue。
+请记录：(1) 完整弹窗标题/截图 (2) 是安装包还是已安装程序 (3) 系统版本。到 https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues 提 Issue。
 
 ---
 

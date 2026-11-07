@@ -2,7 +2,7 @@
 
 언어: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · **한국어** · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Windows / macOS / Linux 다운로드 및 실행. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Windows / macOS / Linux 다운로드 및 실행. [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## 개요
 
@@ -10,7 +10,7 @@ Windows / macOS / Linux 다운로드 및 실행. [v1.1.0](https://github.com/ota
 
 ## 1. 다운로드
 
-[https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) **Assets**에서 OS별 파일 선택(Windows Setup `.exe` / macOS `.app` zip / Linux onedir 또는 wheel + `install_linux.sh`).
+[https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) **Assets**에서 OS별 파일 선택(Windows Setup `.exe` / macOS `.app` zip / Linux onedir 또는 wheel + `install_linux.sh`).
 
 ## 2. Windows
 
@@ -37,7 +37,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. 실행 후
 
-UI에서 ReShade/OptiScaler 키트 폴더 지정. 안티치트 차단은 우회 불가. 이슈: https://github.com/otas0/buusdo/issues.
+UI에서 ReShade/OptiScaler 키트 폴더 지정. 안티치트 차단은 우회 불가. 이슈: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 

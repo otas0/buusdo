@@ -6,14 +6,14 @@
 
 <p align="center">
   <a href="docs/PROJECT_COMPLETE.md"><img src="https://img.shields.io/badge/product_track-complete-0E7A3A" alt="product track complete" /></a>
-  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/shelf-v1.1.0-111111" alt="v1.1.0 GitHub shelf" /></a>
+  <a href="https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/shelf-v1.1.0-111111" alt="v1.1.0 GitHub shelf" /></a>
 </p>
 
 <p align="center">
   <strong>Download · Open · Install</strong><br />
-  <a href="https://github.com/otas0/buusdo/releases/tag/v1.1.0"><strong>Get v1.1.0 (GitHub)</strong></a>
+  <a href="https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0"><strong>Get v1.1.0 (GitHub)</strong></a>
   ·
-  <a href="https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-companion.apk"><strong>Companion APK</strong></a>
+  <a href="https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-companion.apk"><strong>Companion APK</strong></a>
   ·
   <a href="docs/user-guide/README.md"><strong>User guide</strong></a>
   ·
@@ -52,18 +52,18 @@ Same locale codes as the in-app language picker (`buusdo/locales/`).
 
 | Product | Asset | Notes |
 |---------|-------|-------|
-| Desktop Windows | [`buusdo-setup-1.1.0.exe`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-setup-1.1.0.exe) | Unsigned Inno |
-| Desktop macOS | [`buusdo-macos-1.1.0.zip`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-macos-1.1.0.zip) | Unsigned `.app` |
-| Desktop Linux | [`buusdo-linux-1.1.0.tar.gz`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-linux-1.1.0.tar.gz) + [`install_linux.sh`](https://github.com/otas0/buusdo/releases/download/v1.1.0/install_linux.sh) | Onedir |
-| Desktop any OS | [`buusdo-1.1.0-py3-none-any.whl`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-1.1.0-py3-none-any.whl) | pip |
-| **Mobile Android** | [`buusdo-companion.apk`](https://github.com/otas0/buusdo/releases/download/v1.1.0/buusdo-companion.apk) | Sideload; cleartext LAN; **not** Play Store |
+| Desktop Windows | [`buusdo-setup-1.1.0.exe`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-setup-1.1.0.exe) | Unsigned Inno |
+| Desktop macOS | [`buusdo-macos-1.1.0.zip`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-macos-1.1.0.zip) | Unsigned `.app` |
+| Desktop Linux | [`buusdo-linux-1.1.0.tar.gz`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-linux-1.1.0.tar.gz) + [`install_linux.sh`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/install_linux.sh) | Onedir |
+| Desktop any OS | [`buusdo-1.1.0-py3-none-any.whl`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-1.1.0-py3-none-any.whl) | pip |
+| **Mobile Android** | [`buusdo-companion.apk`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/buusdo-companion.apk) | Sideload; cleartext LAN; **not** Play Store |
 | Mobile iOS | [`mobile/flutter/ios/`](mobile/flutter/) | Source only — **no IPA** (certs cancelled) |
-| Checksums | [`SHA256SUMS`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS) · [`SHA256SUMS-companion-apk.txt`](https://github.com/otas0/buusdo/releases/download/v1.1.0/SHA256SUMS-companion-apk.txt) | |
+| Checksums | [`SHA256SUMS`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/SHA256SUMS) · [`SHA256SUMS-companion-apk.txt`](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/download/v1.1.0/SHA256SUMS-companion-apk.txt) | |
 
-Latest release page: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0). Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mobile honesty: [docs/MOBILE.md](docs/MOBILE.md). Hardware: [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
+Latest release page: [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0). Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mobile honesty: [docs/MOBILE.md](docs/MOBILE.md). Hardware: [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above):
-buusdo Graphics Enhancement Tool 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
+buusdo Graphics Enhancement Tool 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0
 
 ### Unsigned vs notarized (macOS / Windows)
 

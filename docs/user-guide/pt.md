@@ -2,7 +2,7 @@
 
 Idiomas: [Deutsch](de.md) · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · **Português** · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Transferir e abrir o buusdo no Windows, macOS e Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Transferir e abrir o buusdo no Windows, macOS e Linux. [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## Resumo
 
@@ -10,7 +10,7 @@ Agendador / coordenador de configuração gráfica. Kits BYO. macOS é **só con
 
 ## 1. Transferência
 
-Em [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) → **Assets**: Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
+Em [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) → **Assets**: Setup Windows `.exe` / zip macOS `.app` / Linux onedir ou wheel + `install_linux.sh`.
 
 ## 2. Windows
 
@@ -37,7 +37,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. Após o primeiro arranque
 
-Escolha as pastas dos kits na UI. Bloqueios anti-cheat não têm “continuar mesmo assim”. Issues: https://github.com/otas0/buusdo/issues.
+Escolha as pastas dos kits na UI. Bloqueios anti-cheat não têm “continuar mesmo assim”. Issues: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 

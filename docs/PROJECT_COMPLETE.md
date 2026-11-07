@@ -1,7 +1,7 @@
 # Project complete
 
 **Date:** 2026-11-06  
-**Final shelf:** [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0)
+**Final shelf:** [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0)
 
 ## Verdict
 

@@ -2,7 +2,7 @@
 
 Sprachen: **Deutsch** · [English](en.md) · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-Download und Start unter Windows, macOS und Linux. [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+Download und Start unter Windows, macOS und Linux. [v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0).
 
 ## Überblick
 
@@ -10,7 +10,7 @@ Desktop-**Scheduler / Konfigurations-Koordinator**. Kits sind BYO. macOS ist **n
 
 ## 1. Download
 
-Unter [https://github.com/otas0/buusdo/releases/tag/v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0) bei **Assets** die Datei für Ihr OS wählen (Windows-Setup `.exe` / macOS-`.app`-ZIP / Linux onedir oder Wheel + `install_linux.sh`).
+Unter [https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0](https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/releases/tag/v1.1.0) bei **Assets** die Datei für Ihr OS wählen (Windows-Setup `.exe` / macOS-`.app`-ZIP / Linux onedir oder Wheel + `install_linux.sh`).
 
 ## 2. Windows
 
@@ -37,7 +37,7 @@ python3 -m pip install ./buusdo-*-py3-none-any.whl "PySide6-Essentials==6.12.0" 
 
 ## 5. Nach dem Start
 
-Im UI Kit-Ordner wählen. Anti-Cheat-Sperren sind nicht umgehbar. Issues: https://github.com/otas0/buusdo/issues.
+Im UI Kit-Ordner wählen. Anti-Cheat-Sperren sind nicht umgehbar. Issues: https://github.com/otas0/buusdo-Graphics-Enhancement-Tool/issues.
 
 ---
 
