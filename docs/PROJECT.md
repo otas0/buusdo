@@ -1,8 +1,13 @@
-# buusdo — project brief
+# buusdo Graphics Enhancement Tool — project brief
 
 ## 1. What this project is
 
-buusdo is a cross-platform (Windows / Linux / macOS) desktop tool for improving
+**Product line:** buusdo. **This product:** **buusdo Graphics Enhancement Tool**
+(graphics / display enhancement track). It is **not** **buusdo Cybersecurity
+Service Tool** — same brand family, separate product; do not mix repos, releases,
+or support.
+
+This repo is a cross-platform (Windows / Linux / macOS) desktop tool for improving
 graphics experience. Core jobs are **automatic visual enhancement scheduling**
 and **ray-tracing capability management**, plus a few tightly related system
 items (per-game display profiles, HDR coordination).
@@ -13,7 +18,7 @@ It is not a rendering engine and not a game-mod authoring tool. In essence it is
 
 It reuses each platform’s existing enhancement ecosystem. It does not implement
 injection hosts itself, does not implement rendering, and does not implement
-ray tracing.
+ray tracing. It is not a cybersecurity / SOC / vulnerability-scanning product.
 
 ## 2. Platform capability boundaries (must be respected)
 
