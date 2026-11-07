@@ -1,8 +1,11 @@
-# buusdo — project brief
+# buusdo Graphics Enhancement Tool — project brief
 
 ## 1. What this project is
 
-buusdo is a cross-platform (Windows / Linux / macOS) desktop tool for improving
+**Product line:** buusdo. **This product:** **buusdo Graphics Enhancement Tool**
+(graphics / display enhancement track).
+
+This repo is a cross-platform (Windows / Linux / macOS) desktop tool for improving
 graphics experience. Core jobs are **automatic visual enhancement scheduling**
 and **ray-tracing capability management**, plus a few tightly related system
 items (per-game display profiles, HDR coordination).
