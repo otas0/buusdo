@@ -1,9 +1,10 @@
-# Mobile companion (phone / tablet)
+# buusdo Graphics Enhancement Tool — Mobile Companion
 
 **Status:** shipped with **v1.1.0** (desktop). Mobile client ships as **GitHub
 source + Android APK** (unsigned). No App Store / Play Store.
 
-buusdo on phone or tablet is a **companion** to the desktop app. It does not
+**buusdo Graphics Enhancement Tool** on phone or tablet is a **companion** to the
+desktop app (full product name — other buusdo-branded products exist). It does not
 install ReShade, inject into PC/console games, or turn phone silicon into a
 remote GPU. Desktop backends keep owning all mutating work (C1–C5).
 

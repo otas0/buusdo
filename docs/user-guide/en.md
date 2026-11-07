@@ -1,12 +1,12 @@
-# buusdo user guide (English)
+# buusdo Graphics Enhancement Tool — user guide (English)
 
 Languages: [Deutsch](de.md) · **English** · [Español](es.md) · [Français](fr.md) · [Italiano](it.md) · [日本語](ja.md) · [한국어](ko.md) · [Português (Brasil)](pt-BR.md) · [Português](pt.md) · [Русский](ru.md) · [繁體中文](zh-Hant.md) · [简体中文](zh.md)
 
-How to download and open **buusdo** on Windows, macOS, and Linux. Latest release: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
+How to download and open **buusdo Graphics Enhancement Tool** on Windows, macOS, and Linux. Latest release: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0).
 
 ## What you are installing
 
-buusdo is a desktop **scheduler / config coordinator** for existing graphics stacks (ReShade, OptiScaler, etc.). Kits are **BYO** (not bundled). Capabilities differ by OS — macOS is **config-only** (no injection).
+**buusdo Graphics Enhancement Tool** is a desktop **scheduler / config coordinator** for existing graphics stacks (ReShade, OptiScaler, etc.). Kits are **BYO** (not bundled). Capabilities differ by OS — macOS is **config-only** (no injection).
 
 ## 1. Download the right file
 
@@ -40,9 +40,9 @@ v1.1.0 is **not** Authenticode-signed. SmartScreen is expected. You do **not** n
 3. If **User Account Control** appears → click **Yes**.
 4. Finish the wizard: Next → Next → Install → Finish.
 
-### C. Open buusdo after install
+### C. Open buusdo Graphics Enhancement Tool after install
 
-1. Press **Win**, type `buusdo`, press **Enter**.
+1. Press **Win**, type `buusdo Graphics Enhancement Tool`, press **Enter**.
 2. Or open `C:\Program Files\buusdo\buusdo.exe` (or `Program Files (x86)`).
 
 ### D. If the file vanishes / “not found”

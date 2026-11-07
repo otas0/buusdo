@@ -8,7 +8,7 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
 #endif
-#define MyAppPublisher "buusdo"
+#define MyAppPublisher "buusdo Graphics Enhancement Tool"
 #define MyAppURL "https://github.com/otas0/buusdo"
 #define MyAppExeName "buusdo.exe"
 

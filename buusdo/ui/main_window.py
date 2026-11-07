@@ -432,7 +432,7 @@ class MainWindow(QMainWindow):
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
         self._tray = QSystemTrayIcon(tray_icon(), self)
-        self._tray.setToolTip("buusdo")
+        self._tray.setToolTip(PRODUCT_NAME)
         show = QAction("Show", self)
         show.triggered.connect(self.showNormal)
         quit_act = QAction("Quit", self)
@@ -477,7 +477,7 @@ class MainWindow(QMainWindow):
         name = str(data.get("name") or "game")
         reply = QMessageBox.question(
             self,
-            "buusdo",
+            PRODUCT_NAME,
             t("tray.clear_uninstalled_confirm", name=name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -711,12 +711,12 @@ class MainWindow(QMainWindow):
         base = t("settings.steam_uri_cleared") if cleared else t("settings.steam_uri_clear_empty")
         self._status.setText(f"{base}\n{preview}")
         if hasattr(self, "_tray"):
-            self._tray.showMessage("buusdo", base)
+            self._tray.showMessage(PRODUCT_NAME, base)
 
     def _toast(self, message: str) -> None:
         self._status.setText(message)
         if hasattr(self, "_tray"):
-            self._tray.showMessage("buusdo", message)
+            self._tray.showMessage(PRODUCT_NAME, message)
 
     def _kit_side_toast(self, *, side: str, saved: bool) -> None:
         if not saved:
@@ -754,7 +754,7 @@ class MainWindow(QMainWindow):
         name = str(data.get("name") or "game")
         reply = QMessageBox.question(
             self,
-            "buusdo",
+            PRODUCT_NAME,
             t("action.confirm_uninstall", name=name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -772,13 +772,13 @@ class MainWindow(QMainWindow):
             mark_uninstalled(data)
             self._status.setText(result.message)
             if hasattr(self, "_tray"):
-                self._tray.showMessage("buusdo", result.message)
+                self._tray.showMessage(PRODUCT_NAME, result.message)
             self._rebuild_tray_recent()
             self._refresh_game_list()
             self._refresh_history()
             self._refresh_session_banner()
         except (BuusdoError, UnsafeTargetError) as exc:
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
 
     def _maybe_run_first_run_wizard(self) -> None:
         # After install / first launch: language preference before kit setup.
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
             FirstRunWizard(self).exec()
         except Exception as exc:
             capture_exception(exc, context={"op": "first_run_wizard"})
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
         self._refresh_kits_banner()
 
     def _open_language_dialog(self) -> None:
@@ -1114,23 +1114,23 @@ class MainWindow(QMainWindow):
             else None
         )
         if not uri:
-            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            QMessageBox.information(self, PRODUCT_NAME, t("proton.missing_prefix"))
             return
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
 
         QDesktopServices.openUrl(QUrl(uri))
         if not health.get("ok", True):
-            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            QMessageBox.information(self, PRODUCT_NAME, t("proton.missing_prefix"))
 
     def _write_proton_note(self) -> None:
         if not self._target or not self._target.metadata.get("app_id"):
-            QMessageBox.information(self, "buusdo", t("proton.missing_prefix"))
+            QMessageBox.information(self, PRODUCT_NAME, t("proton.missing_prefix"))
             return
         steam_id3 = self._steam_user.currentData() or self._target.metadata.get("steam_id3")
         localconfig = find_localconfig(steam_roots(), steam_id3=steam_id3 or None)
         if localconfig is None:
-            QMessageBox.warning(self, "buusdo", t("proton.missing_prefix"))
+            QMessageBox.warning(self, PRODUCT_NAME, t("proton.missing_prefix"))
             return
         try:
             with Transaction() as tx:
@@ -1141,10 +1141,10 @@ class MainWindow(QMainWindow):
                     note=t("proton.note_text"),
                 )
         except BuusdoError as exc:
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
             return
         self._status.setText(t("proton.note_written"))
-        QMessageBox.information(self, "buusdo", t("proton.note_written"))
+        QMessageBox.information(self, PRODUCT_NAME, t("proton.note_written"))
         app_id = str(self._target.metadata["app_id"])
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
@@ -1573,7 +1573,7 @@ class MainWindow(QMainWindow):
         if result.get("restored"):
             self._status.setText(t("display.rollback_ok"))
             if hasattr(self, "_tray"):
-                self._tray.showMessage("buusdo", t("display.rollback_ok"))
+                self._tray.showMessage(PRODUCT_NAME, t("display.rollback_ok"))
             self._refresh_capabilities()
             self._refresh_game_list()
             return
@@ -1588,7 +1588,7 @@ class MainWindow(QMainWindow):
                 )
                 self._status.setText(msg)
                 if hasattr(self, "_tray"):
-                    self._tray.showMessage("buusdo", msg)
+                    self._tray.showMessage(PRODUCT_NAME, msg)
                 self._refresh_capabilities()
             self._show_rollback_failures(failed, hdr_step=result.get("details", {}).get("hdr"))
         else:
@@ -1686,13 +1686,13 @@ class MainWindow(QMainWindow):
                 dry_run=False,
             )
             if out.get("ok"):
-                QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+                QMessageBox.information(self, PRODUCT_NAME, t("display.rollback_ok"))
                 table.removeRow(r)
                 failed.pop(r)
             else:
                 QMessageBox.warning(
                     self,
-                    "buusdo",
+                    PRODUCT_NAME,
                     t(
                         "display.rollback_failed",
                         devices=str(row.get("device_string") or row.get("device")),
@@ -1722,7 +1722,7 @@ class MainWindow(QMainWindow):
                 dry_run=False,
             )
             if out.get("ok"):
-                QMessageBox.information(self, "buusdo", t("display.rollback_ok"))
+                QMessageBox.information(self, PRODUCT_NAME, t("display.rollback_ok"))
                 drop_session_ccd_target(
                     adapter_low=int(adapter_low),
                     adapter_high=int(adapter_high or 0),
@@ -1743,7 +1743,7 @@ class MainWindow(QMainWindow):
             else:
                 QMessageBox.warning(
                     self,
-                    "buusdo",
+                    PRODUCT_NAME,
                     t("display.rollback_failed", devices=f"HDR target {target_id}"),
                 )
 
@@ -1758,7 +1758,7 @@ class MainWindow(QMainWindow):
                 targets = list((hdr_step or {}).get("targets") or [])
                 bad = next((tg for tg in targets if not tg.get("ok")), None)
                 if not bad:
-                    QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                    QMessageBox.information(self, PRODUCT_NAME, t("display.retry_hdr_need_id"))
                     return
                 adapter_low = bad.get("adapterLow")
                 adapter_high = bad.get("adapterHigh") or 0
@@ -1775,11 +1775,11 @@ class MainWindow(QMainWindow):
         def _retry_hdr_selected() -> None:
             item = remaining_list.currentItem()
             if item is None:
-                QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                QMessageBox.information(self, PRODUCT_NAME, t("display.retry_hdr_need_id"))
                 return
             data = item.data(Qt.ItemDataRole.UserRole) or {}
             if data.get("adapterLow") is None or data.get("targetId") is None:
-                QMessageBox.information(self, "buusdo", t("display.retry_hdr_need_id"))
+                QMessageBox.information(self, PRODUCT_NAME, t("display.retry_hdr_need_id"))
                 return
             # Prefer matching fail-table row when present.
             match_i = -1
@@ -1875,7 +1875,7 @@ class MainWindow(QMainWindow):
 
     def _on_preview(self) -> None:
         if not self._target:
-            QMessageBox.information(self, "buusdo", "Select a game first.")
+            QMessageBox.information(self, PRODUCT_NAME, "Select a game first.")
             return
         mode = self._mode_combo.currentData()
         try:
@@ -1895,7 +1895,7 @@ class MainWindow(QMainWindow):
                     api=api,
                 )
         except BuusdoError as exc:
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
             return
         self._show_conflict_dialog(details)
 
@@ -1910,7 +1910,7 @@ class MainWindow(QMainWindow):
 
     def _on_install(self) -> None:
         if not self._target:
-            QMessageBox.information(self, "buusdo", "Select a game first.")
+            QMessageBox.information(self, PRODUCT_NAME, "Select a game first.")
             return
         opts = self._install_options()
         if opts.pop("_abort", False):
@@ -1923,7 +1923,7 @@ class MainWindow(QMainWindow):
             return
         except BuusdoError as exc:
             capture_exception(exc, context={"op": "install", "target": self._target.name})
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
             self._refresh_history()
             return
         if self._mode_combo.currentData() == "preview":
@@ -1944,7 +1944,7 @@ class MainWindow(QMainWindow):
             self._show_blocked(exc)
             return
         except BuusdoError as exc:
-            QMessageBox.warning(self, "buusdo", str(exc))
+            QMessageBox.warning(self, PRODUCT_NAME, str(exc))
             return
         self._status.setText(result.message)
         self._refresh_game_list()

@@ -76,15 +76,15 @@ v1.1.0 is **unsigned**. SmartScreen / Gatekeeper warnings are expected. You do *
 
 BODIES: dict[str, str] = {}
 
-BODIES["en"] = f"""# buusdo user guide (English)
+BODIES["en"] = f"""# buusdo Graphics Enhancement Tool — user guide (English)
 
 Languages: {nav("en")}
 
-How to download and open **buusdo** on Windows, macOS, and Linux. Latest release: [v1.1.0]({RELEASE}).
+How to download and open **buusdo Graphics Enhancement Tool** on Windows, macOS, and Linux. Latest release: [v1.1.0]({RELEASE}).
 
 ## What you are installing
 
-buusdo is a desktop **scheduler / config coordinator** for existing graphics stacks (ReShade, OptiScaler, etc.). Kits are **BYO** (not bundled). Capabilities differ by OS — macOS is **config-only** (no injection).
+**buusdo Graphics Enhancement Tool** is a desktop **scheduler / config coordinator** for existing graphics stacks (ReShade, OptiScaler, etc.). Kits are **BYO** (not bundled). Capabilities differ by OS — macOS is **config-only** (no injection).
 
 ## 1. Download the right file
 
@@ -118,9 +118,9 @@ v1.1.0 is **not** Authenticode-signed. SmartScreen is expected. You do **not** n
 3. If **User Account Control** appears → click **Yes**.
 4. Finish the wizard: Next → Next → Install → Finish.
 
-### C. Open buusdo after install
+### C. Open buusdo Graphics Enhancement Tool after install
 
-1. Press **Win**, type `buusdo`, press **Enter**.
+1. Press **Win**, type `buusdo Graphics Enhancement Tool`, press **Enter**.
 2. Or open `C:\\Program Files\\buusdo\\buusdo.exe` (or `Program Files (x86)`).
 
 ### D. If the file vanishes / “not found”
@@ -188,7 +188,7 @@ If the UI fails to start, install Qt/xcb deps for your distro (e.g. on Debian/Ub
 Note: (1) full dialog title/screenshot, (2) installer vs installed app, (3) OS version. Open an issue at {REPO}/issues.
 """
 
-BODIES["zh"] = f"""# buusdo 用户指南（简体中文）
+BODIES["zh"] = f"""# buusdo Graphics Enhancement Tool — 用户指南（简体中文）
 
 语言: {nav("zh")}
 
@@ -740,7 +740,7 @@ Languages: {nav(code, langs)}
 
 ## What you are installing
 
-buusdo is a desktop **scheduler / config coordinator** for existing graphics stacks
+**buusdo Graphics Enhancement Tool** is a desktop **scheduler / config coordinator** for existing graphics stacks
 (ReShade, OptiScaler, etc.). Kits are **BYO**. macOS is **config-only** (no injection).
 
 ## 1. Download

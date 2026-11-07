@@ -153,11 +153,13 @@ jobs:
           fi
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "${ASSETS[@]}" --clobber
-            gh release edit "${TAG}" --draft=false --latest --title "buusdo ${TAG#v}" --notes-file dist/RELEASE_NOTES.md
+            gh release edit "${TAG}" --draft=false --latest \
+              --title "buusdo Graphics Enhancement Tool ${TAG#v}" \
+              --notes-file dist/RELEASE_NOTES.md
           else
             gh release create "${TAG}" "${ASSETS[@]}" \
               --latest \
-              --title "buusdo ${TAG#v}" \
+              --title "buusdo Graphics Enhancement Tool ${TAG#v}" \
               --notes-file dist/RELEASE_NOTES.md
           fi
           gh release view "${TAG}" --json isDraft,url,assets --jq '{draft:.isDraft,url,assets:[.assets[].name]}'

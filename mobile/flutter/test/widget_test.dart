@@ -10,6 +10,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(BuusdoCompanionApp(prefs: prefs));
-    expect(find.textContaining('Pair'), findsOneWidget);
+    expect(
+      find.textContaining('buusdo Graphics Enhancement Tool'),
+      findsWidgets,
+    );
   });
 }

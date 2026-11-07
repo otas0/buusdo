@@ -1,6 +1,6 @@
-# buusdo_companion (Flutter)
+# buusdo Graphics Enhancement Tool Companion (Flutter)
 
-Phone + tablet client for companion protocol v1.
+Phone + tablet client for **buusdo Graphics Enhancement Tool** companion protocol v1.
 
 ## GitHub packages
 

@@ -24,6 +24,7 @@ from buusdo.core.config_store import (
     set_optiscaler_kit_path,
     set_reshade_kit_path,
 )
+from buusdo import PRODUCT_NAME
 from buusdo.core.i18n import t
 from buusdo.core.kit_validate import validate_optiscaler_kit, validate_reshade_kit
 from buusdo.ui.logo_widget import make_logo_label
@@ -186,13 +187,13 @@ class FirstRunWizard(QDialog):
             save_settings(data)
             return True
         except OSError as exc:
-            QMessageBox.critical(self, "buusdo", f"{t('wizard.save_failed')}: {exc}")
+            QMessageBox.critical(self, PRODUCT_NAME, f"{t('wizard.save_failed')}: {exc}")
             return False
 
     def _finish_skip(self) -> None:
         reply = QMessageBox.question(
             self,
-            "buusdo",
+            PRODUCT_NAME,
             t("wizard.skip_confirm"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -205,7 +206,7 @@ class FirstRunWizard(QDialog):
 
     def _finish_done(self) -> None:
         if not self._has_valid_kit():
-            QMessageBox.warning(self, "buusdo", t("wizard.need_kit"))
+            QMessageBox.warning(self, PRODUCT_NAME, t("wizard.need_kit"))
             return
         if not self._persist_wizard(skipped=False):
             return

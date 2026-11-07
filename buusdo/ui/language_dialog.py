@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from buusdo import PRODUCT_NAME
 from buusdo.core.i18n import (
     available_locales,
     filter_locales,
@@ -33,7 +34,7 @@ class LanguageDialog(QDialog):
         self.setModal(True)
         self.setObjectName("languageDialog")
         self.setAccessibleName(t("lang.pick_title") if not first_run else "Language")
-        self.setWindowTitle(t("lang.pick_title") if not first_run else "buusdo")
+        self.setWindowTitle(t("lang.pick_title") if not first_run else PRODUCT_NAME)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(8)

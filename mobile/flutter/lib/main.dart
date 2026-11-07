@@ -3,6 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 
+/// Official companion display name (distinguish from other buusdo products).
+const String kProductCompanion =
+    'buusdo Graphics Enhancement Tool Companion';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -17,7 +21,7 @@ class BuusdoCompanionApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'buusdo companion',
+      title: kProductCompanion,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFE85D04),
@@ -165,7 +169,7 @@ class _CompanionHomeState extends State<CompanionHome> {
 
     if (tablet) {
       return Scaffold(
-        appBar: AppBar(title: const Text('buusdo companion')),
+        appBar: AppBar(title: const Text(kProductCompanion)),
         body: Row(
           children: [
             Expanded(flex: 3, child: pairPane),
@@ -177,7 +181,7 @@ class _CompanionHomeState extends State<CompanionHome> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('buusdo companion')),
+      appBar: AppBar(title: const Text(kProductCompanion)),
       body: ListView(
         children: [
           pairPane,
