@@ -102,9 +102,9 @@ cat > "${APP}/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key>
   <string>app.buusdo.dev</string>
   <key>CFBundleName</key>
-  <string>Buusdo</string>
+  <string>buusdo</string>
   <key>CFBundleDisplayName</key>
-  <string>Buusdo</string>
+  <string>buusdo Graphics Enhancement Tool</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

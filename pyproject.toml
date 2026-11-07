@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "buusdo"
 version = "1.1.0"
-description = "Cross-platform graphics enhancement scheduler and config coordinator"
+description = "buusdo Graphics Enhancement Tool — cross-platform scheduler and config coordinator"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

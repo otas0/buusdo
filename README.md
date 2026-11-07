@@ -1,7 +1,7 @@
-# buusdo
+# buusdo Graphics Enhancement Tool
 
 <p align="center">
-  <img src="buusdo/assets/logo.png" alt="buusdo wordmark" width="280" />
+  <img src="buusdo/assets/logo.png" alt="buusdo Graphics Enhancement Tool wordmark" width="280" />
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <a href="docs/PROJECT_COMPLETE.md"><strong>Complete</strong></a>
 </p>
 
-Cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS).
+**buusdo Graphics Enhancement Tool** — cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS).
 
 It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
@@ -63,7 +63,7 @@ Same locale codes as the in-app language picker (`buusdo/locales/`).
 Latest release page: [v1.1.0](https://github.com/otas0/buusdo/releases/tag/v1.1.0). Scope: [docs/MVP.md](docs/MVP.md). Signing: [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Mobile honesty: [docs/MOBILE.md](docs/MOBILE.md). Hardware: [docs/HARDWARE_NOTES.md](docs/HARDWARE_NOTES.md).
 
 **Share blurb** (also [docs/SHARE_BLURB.md](docs/SHARE_BLURB.md); wordmark above):
-buusdo 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
+buusdo Graphics Enhancement Tool 1.1.0 — desktop + companion APK (GitHub) · https://github.com/otas0/buusdo/releases/tag/v1.1.0
 
 ### Unsigned vs notarized (macOS / Windows)
 

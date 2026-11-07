@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from buusdo import PRODUCT_NAME
 from buusdo.ui.tray_icon import tray_icon
 from buusdo.backends import get_backend
 from buusdo.core.backend import EnhancementBackend, EnhancementTarget
@@ -113,7 +114,7 @@ from buusdo.ui.wizard import FirstRunWizard, needs_wizard
 class MainWindow(QMainWindow):
     def __init__(self, backend: EnhancementBackend | None = None):
         super().__init__()
-        self.setWindowTitle("buusdo")
+        self.setWindowTitle(PRODUCT_NAME)
         self.resize(980, 720)
 
         # Window/taskbar icon is set in app.py (skipped on macOS so Dock uses
@@ -1852,7 +1853,7 @@ class MainWindow(QMainWindow):
             except OSError as exc:
                 box = QMessageBox(self)
                 box.setIcon(QMessageBox.Icon.Warning)
-                box.setWindowTitle("buusdo")
+                box.setWindowTitle(PRODUCT_NAME)
                 box.setText(t("action.export_audit_failed", error=str(exc)))
                 retry = box.addButton(
                     t("action.export_audit_retry"), QMessageBox.ButtonRole.AcceptRole

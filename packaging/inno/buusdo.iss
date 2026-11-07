@@ -3,7 +3,8 @@
 ;   iscc /DMyAppVersion=0.1.0 packaging\inno\buusdo.iss
 ; Payload must be prepared by scripts/package_windows_inno.sh into dist\payload\
 
-#define MyAppName "buusdo"
+#define MyAppName "buusdo Graphics Enhancement Tool"
+#define MyAppDirName "buusdo"
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
 #endif
@@ -18,7 +19,7 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
-DefaultDirName={localappdata}\Programs\{#MyAppName}
+DefaultDirName={localappdata}\Programs\{#MyAppDirName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist
@@ -46,4 +47,4 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch buusdo"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent

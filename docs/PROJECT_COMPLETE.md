@@ -5,7 +5,7 @@
 
 ## Verdict
 
-buusdo product track is **finished** at the current GitHub shelf:
+**buusdo Graphics Enhancement Tool** product track is **finished** at the current GitHub shelf:
 
 | Product | Status |
 |---------|--------|

@@ -2,7 +2,7 @@
     <application
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="buusdo_companion"
+        android:label="buusdo GET Companion"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
