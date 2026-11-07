@@ -10,9 +10,7 @@
   <img src="https://img.shields.io/badge/buusdo_product_line-Graphics_Enhancement-2563EB" alt="buusdo product line Graphics Enhancement" />
 </p>
 
-> **buusdo product line — this repo**  
-> This repository is **buusdo Graphics Enhancement Tool** (desktop graphics scheduler / config coordinator + optional mobile companion).  
-> It is **not** **buusdo Cybersecurity Service Tool**. Same brand family, **different product** — do not mix downloads, issues, or support with the cybersecurity tool.
+> **buusdo product line** — this repository is **buusdo Graphics Enhancement Tool** (desktop graphics scheduler / config coordinator + optional mobile companion).
 
 <p align="center">
   <strong>Download · Open · Install</strong><br />
@@ -27,9 +25,9 @@
   <a href="docs/PROJECT_COMPLETE.md"><strong>Complete</strong></a>
 </p>
 
-**buusdo Graphics Enhancement Tool** — cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS). Part of the **buusdo** product line (graphics track only).
+**buusdo Graphics Enhancement Tool** — cross-platform graphics enhancement **scheduler + config coordinator** (Windows / Linux / macOS). Part of the **buusdo** product line (graphics track).
 
-It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool. It is **not** a cybersecurity / SOC / scanning product.
+It reuses each platform’s existing enhancement stack. It does not implement rendering beyond the injection host, does not implement ray tracing, and is not a game-mod authoring tool.
 
 ## User guide (start here)
 

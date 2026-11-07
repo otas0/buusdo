@@ -1,7 +1,7 @@
 # buusdo Graphics Enhancement Tool — user guides
 
 These guides are for **buusdo Graphics Enhancement Tool** (buusdo product line —
-graphics track). They are **not** for **buusdo Cybersecurity Service Tool**.
+graphics track).
 
 GitHub **does not** auto-translate repository docs. This folder ships one guide
 per UI locale from `buusdo/locales/` (same codes as the in-app language picker).

@@ -3,9 +3,7 @@
 ## 1. What this project is
 
 **Product line:** buusdo. **This product:** **buusdo Graphics Enhancement Tool**
-(graphics / display enhancement track). It is **not** **buusdo Cybersecurity
-Service Tool** — same brand family, separate product; do not mix repos, releases,
-or support.
+(graphics / display enhancement track).
 
 This repo is a cross-platform (Windows / Linux / macOS) desktop tool for improving
 graphics experience. Core jobs are **automatic visual enhancement scheduling**
@@ -18,7 +16,7 @@ It is not a rendering engine and not a game-mod authoring tool. In essence it is
 
 It reuses each platform’s existing enhancement ecosystem. It does not implement
 injection hosts itself, does not implement rendering, and does not implement
-ray tracing. It is not a cybersecurity / SOC / vulnerability-scanning product.
+ray tracing.
 
 ## 2. Platform capability boundaries (must be respected)
 
